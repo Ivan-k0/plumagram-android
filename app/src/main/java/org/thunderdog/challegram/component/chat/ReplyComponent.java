@@ -485,7 +485,9 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
       tgx101WashPath.reset();
       tgx101WashPath.addRoundRect(rectF, tgx101Radii, android.graphics.Path.Direction.CW);
       // (user 2026-10-26 «затухание убери, верни как было 10 %»): an even wash
-      c.drawPath(tgx101WashPath, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(.1f, lineColor)));
+      // (user 2026-11-17 «контрастность цитаты в шапке пузыря тоже нужно увеличить»: on the dark theme's outgoing bubble the
+      // 10 % wash all but vanished): 20 % in a dark theme, 14 % in a light one
+      c.drawPath(tgx101WashPath, Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(Theme.isDark() ? .2f : .14f, lineColor)));
     }
 
     if (cornerDrawable != null) {
