@@ -1331,18 +1331,6 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101OwnAiModelCurrent, "выбрана");
     RU.put(R.string.Tgx101TypingLine, "Полоска и пульс при наборе");
     RU.put(R.string.Tgx101MorseLine, "Интерактивная полоса ввода");
-    RU.put(R.string.Tgx101WaveColor, "Цвет волны");
-    RU.put(R.string.Tgx101WaveDefault, "По умолчанию");
-    RU.put(R.string.Tgx101WaveAccent, "Акцент темы");
-    RU.put(R.string.Tgx101WaveWhite, "Белый");
-    RU.put(R.string.Tgx101WaveBlack, "Чёрный");
-    RU.put(R.string.Tgx101WaveRed, "Красный");
-    RU.put(R.string.Tgx101WaveOrange, "Оранжевый");
-    RU.put(R.string.Tgx101WaveYellow, "Жёлтый");
-    RU.put(R.string.Tgx101WaveGreen, "Зелёный");
-    RU.put(R.string.Tgx101WaveLightBlue, "Голубой");
-    RU.put(R.string.Tgx101WaveBlue, "Синий");
-    RU.put(R.string.Tgx101WaveViolet, "Фиолетовый");
     RU.put(R.string.Tgx101TypingLineDemo, "Уже еду, буду минут через десять!");
     RU.put(R.string.Tgx101InPlayerSave, "В Избранное");
     RU.put(R.string.Tgx101InPlayerUnsave, "Убрать из Избранного");
