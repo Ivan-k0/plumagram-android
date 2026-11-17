@@ -4763,6 +4763,17 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     notifications().onChatOpened(chatId);
   }
 
+  private final java.util.HashMap<Long, Long> tgx101ChatClosedAt = new java.util.HashMap<>();
+
+  /** TGx101: the chat is not open here and wasn't for the last 5 s — a read of it now came from somewhere else */
+  private boolean tgx101ReadElsewhere (long chatId) {
+    synchronized (chatOpenMutex) {
+      if (openedChatsTimes.get(chatId) != 0) return false;
+      Long closedAt = tgx101ChatClosedAt.get(chatId);
+      return closedAt == null || android.os.SystemClock.uptimeMillis() - closedAt > 5000;
+    }
+  }
+
   public boolean isChatOpen (final long chatId) {
     synchronized (chatOpenMutex) {
       return openedChatsTimes.get(chatId) != 0;
@@ -4782,6 +4793,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       ArrayList<ViewController<?>> controllers = openedChats.get(chatId);
       if (controllers != null && controllers.remove(controller) && controllers.isEmpty()) {
         openedChatsTimes.delete(chatId);
+        tgx101ChatClosedAt.put(chatId, android.os.SystemClock.uptimeMillis());
         openedChats.remove(chatId);
         if (Log.isEnabled(Log.TAG_MESSAGES_LOADER)) {
           Log.v(Log.TAG_MESSAGES_LOADER, "closeChat, chatId=%d", chatId);
@@ -8518,6 +8530,13 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
       availabilityChanged = (chat.unreadCount > 0) != (update.unreadCount > 0);
       chat.unreadCount = update.unreadCount;
       chatLists = chatListsImpl(chat.positions);
+    }
+    // TGx101 (user 2026-11-17, as the official app): the chat was read somewhere else (another device, the notification's
+    // «read») — the place left in it is forgotten, it opens at the end or on what is still unread
+    if (!isSelfChat(update.chatId) && tgx101ReadElsewhere(update.chatId)
+      && Settings.instance().getScrollMessageId(accountId, update.chatId, null) != null) {
+      Settings.instance().setScrollMessageId(accountId, update.chatId, null, null);
+      org.thunderdog.challegram.Tgx101Diag.mark("read elsewhere: chat " + update.chatId + " — its place left is forgotten");
     }
     listeners.updateChatReadInbox(update, availabilityChanged, chat, chatLists);
   }

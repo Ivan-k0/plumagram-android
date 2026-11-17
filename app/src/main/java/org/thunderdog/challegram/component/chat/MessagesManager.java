@@ -2211,7 +2211,10 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         message.onDestroy();
         return;
       }
-      boolean scrollToBottom = (message.isSending() || (atBottom && (!message.isOld() || message.isChatMember()))) && !message.isSponsoredMessage();
+      // TGx101 (user 2026-11-17, as the official app): your own message written somewhere else (another device) takes
+      // the chat down to it too, as one sent here does
+      boolean tgx101OwnElsewhere = message.isOutgoing() && !message.isSending() && !message.isOld() && !message.isSponsoredMessage() && !areScheduled();
+      boolean scrollToBottom = (message.isSending() || tgx101OwnElsewhere || (atBottom && (!message.isOld() || message.isChatMember()))) && !message.isSponsoredMessage();
       // message.mergeWith(bottomMessage, true);
       if (scrollToBottom && message.isSending()) {
         message.tgx101StartAppear(); // TGx101 (user 2026-10-24 «выезд снизу»): the sent message comes up from under the field
@@ -2241,6 +2244,16 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
           });
           org.thunderdog.challegram.Tgx101Diag.mark("sent again: glides down to it, the arrow returns to " + (tgx101ResendReturn >> 20));
           tgx101SetReturnAfterSend(message, tgx101ResendReturn);
+          return;
+        }
+        if (!atBottom && tgx101OwnElsewhere && tgx101List != null && androidx.core.view.ViewCompat.isAttachedToWindow(tgx101List) && !tgx101IsRestoringPosition()) {
+          long returnTo = tgx101VisibleMessageId();
+          adapter.addMessage(message, false, false);
+          tgx101List.post(() -> {
+            if (!tgx101SmoothScrollToBottom()) scrollToBottom(false);
+          });
+          org.thunderdog.challegram.Tgx101Diag.mark("own message from elsewhere while scrolled up: glides down to it");
+          tgx101SetReturnAfterSend(message, returnTo);
           return;
         }
         if (!atBottom && message.isSending() && tgx101List != null && androidx.core.view.ViewCompat.isAttachedToWindow(tgx101List) && !tgx101IsRestoringPosition()) {
@@ -3243,9 +3256,17 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         if (view != null && view.getParent() != null) {
           scrollOffsetInPixels = calculateOffsetInPixels(view, message.getExtraPadding());
         }
+        TdApi.Chat tgx101Chat = threadInfo == null ? tdlib.chat(scrollChatId) : null;
         if (readFully && scrollOffsetInPixels == 0) {
           scrollMessageId = scrollMessageChatId = 0;
           scrollMessageOtherIds = null;
+        } else if (tgx101Chat != null && tgx101Chat.unreadCount > 0 && !message.isOutgoing() && scrollMessageId > tgx101Chat.lastReadInboxMessageId) {
+          // TGx101 (user 2026-11-17, as the official app): left standing on messages not read yet — no place is kept,
+          // the chat opens on the first unread one next time
+          org.thunderdog.challegram.Tgx101Diag.mark("scroll: left on unread messages — no place kept, next time on the first unread");
+          scrollMessageId = scrollMessageChatId = 0;
+          scrollMessageOtherIds = null;
+          readFully = true;
         } else if (isBottomSponsored) {
           if (message.isSponsoredMessage()) {
             // the bottom VISIBLE message is sponsored - no need to save that data

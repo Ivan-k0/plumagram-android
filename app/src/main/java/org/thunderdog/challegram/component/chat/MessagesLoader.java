@@ -1672,6 +1672,18 @@ public class MessagesLoader implements Client.ResultHandler {
           if (Log.isEnabled(Log.TAG_MESSAGES_LOADER)) {
             Log.i(Log.TAG_MESSAGES_LOADER, "Restoring scroll position for message: %s", scrollMessageId);
           }
+          // TGx101 (user 2026-11-17, as the official app): new messages came in right below the place left — the first
+          // of them is among those loaded around it — the chat opens on them (the unread badge), not on the old place;
+          // further down they wait behind the arrow
+          if (unreadBadged != null && (loadingMode == MODE_INITIAL || loadingMode == MODE_REPEAT_INITIAL)) {
+            int i = items.indexOf(unreadBadged);
+            if (i != -1) {
+              scrollItemIndex = i;
+              scrollItem = unreadBadged;
+              scrollHighlightMode = MessagesManager.HIGHLIGHT_MODE_UNREAD;
+              org.thunderdog.challegram.Tgx101Diag.mark("open: new messages right below the place left — on them, not on the place");
+            }
+          }
           break;
         }
         case MessagesManager.HIGHLIGHT_MODE_NORMAL:

@@ -4106,11 +4106,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // (27.10) the anchor is «unread» whenever there are any, and every tap went to the first unread one again, a
       // little lower each time. Without the remembered place the tap goes by what is on screen (below): to the first
       // unread if it is still below, else to the end
-      if (!inPreviewMode && !isInForceTouchMode() && anchorMode == MessagesManager.HIGHLIGHT_MODE_UNREAD && Settings.instance().tgx101RememberChatPlace()) {
-        MessageId messageId = MessagesManager.getAnchorMessageId(tdlib.id(), chat, messageThread, anchorMode);
-        manager.highlightMessage(messageId, MessagesManager.HIGHLIGHT_MODE_UNREAD_NEXT, null, true);
-        return;
-      }
+      // (2026-11-17, the place always remembered): the arrow keeps going by what is on screen — the «first unread
+      // again» way it took with the switch on is the one that slid down a little on every tap
       if (chat != null && MessagesManager.canGoUnread(chat, messageThread)) {
         MessageId messageId = MessagesManager.getAnchorMessageId(tdlib.id(), chat, messageThread, MessagesManager.HIGHLIGHT_MODE_UNREAD);
         int firstUnreadIndex = manager.indexOfFirstUnreadMessage();

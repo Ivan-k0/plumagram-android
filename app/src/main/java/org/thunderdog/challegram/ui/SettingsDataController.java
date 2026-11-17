@@ -660,8 +660,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NextChannelSwipe, 0, R.string.Tgx101NextChannelSwipe),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RememberChatPlace, 0, R.string.Tgx101RememberChatPlace),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_pullToSearch, 0, R.string.Tgx101PullAction),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_CUSTOM - TGX101_PILLS, R.id.btn_tgx101FloatingInput, 0, R.string.Tgx101InputStyle),

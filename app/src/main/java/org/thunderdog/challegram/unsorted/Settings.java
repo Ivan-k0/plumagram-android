@@ -4805,7 +4805,8 @@ public class Settings {
 
   // TGx101 (user 2026-10-27 17:43): reopen a chat where it was left (Telegram X) — off: the first unread or the end.
   // (2026-11-05 taken out of the settings, 2026-11-13 back «верни, выкл. сразу»): a new key, so it comes back off for everyone
-  public boolean tgx101RememberChatPlace () { return pmc.getBoolean("tgx101_remember_chat_place_v2", false); }
+  // (user 2026-11-17 «помнить место по умолчанию — правильная позиция; оставим один вариант без выбора»): always on, no switch
+  public boolean tgx101RememberChatPlace () { return true; }
   public void setTgx101RememberChatPlace (boolean v) { pmc.putBoolean("tgx101_remember_chat_place_v2", v); }
 
   // TGx101 (user 2026-10-27): the video stream's quality picked in the viewer — the short side (720, 480…), 0 = «Auto»
