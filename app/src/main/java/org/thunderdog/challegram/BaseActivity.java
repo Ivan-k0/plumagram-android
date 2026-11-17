@@ -1467,9 +1467,33 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     org.thunderdog.challegram.ui.Tgx101CallBubble.onAppShown(); // TGx101: the floating call button goes when the app is back
   }
 
+  // TGx101 (user 2026-11-17 16:19 «перешёл по уведомлению со шторки, но чат не открылся»; system log: a swipe home at
+  // 16:19:06.6 and the tap 0.7 s later, while the home transition was still running — the app still counted as on top,
+  // so Android only handed it the intent; then the transition finished and the window went, the chat opened inside
+  // it unseen): a window stopped right after a notification's chat was opened brings itself back to the front
+  protected long tgx101NotificationOpenAt;
+
+  private void tgx101BackAfterNotification () {
+    long since = android.os.SystemClock.uptimeMillis() - tgx101NotificationOpenAt;
+    if (tgx101NotificationOpenAt == 0 || since > 1000 || isFinishing() || isChangingConfigurations()) return;
+    android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
+    if (pm != null && !pm.isInteractive()) return; // the screen went off: not a lost window
+    tgx101NotificationOpenAt = 0;
+    try {
+      Intent front = getPackageManager().getLaunchIntentForPackage(getPackageName());
+      if (front == null) return;
+      front.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+      startActivity(front);
+      org.thunderdog.challegram.Tgx101Diag.mark("notification: the window was hidden " + since + " ms after the chat opened — brought back to the front");
+    } catch (Throwable t) {
+      org.thunderdog.challegram.Tgx101Diag.mark("notification: the window was hidden after the chat opened, bringing it back failed — " + t);
+    }
+  }
+
   @Override
   protected void onStop () {
     super.onStop();
+    tgx101BackAfterNotification();
     tgx101Visible = false;
     org.thunderdog.challegram.ui.Tgx101CallBubble.onAppHidden(this); // TGx101: a call goes on — the floating button over other apps
   }
