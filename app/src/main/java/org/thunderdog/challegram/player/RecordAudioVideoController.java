@@ -1737,11 +1737,9 @@ public class RecordAudioVideoController implements
         if (!recordingVideo && !tgx101OverlayFloating) { // TGx101: the docked field's line follows the voice; the floating field stays as it was
           org.thunderdog.challegram.ui.Tgx101TypingLine.Sound.pushRecording(Math.min(1f, amplitude / 150f));
         }
-        org.thunderdog.challegram.unsorted.Settings st = org.thunderdog.challegram.unsorted.Settings.instance();
-        // the line shows no wave with the keyboard up (2026-11-15) — the drop then, so the button never stands bare
-        boolean lineOn = !recordingVideo && !tgx101OverlayFloating && st.tgx101MorseLine() && st.tgx101TypingLine()
-          && !org.thunderdog.challegram.ui.Tgx101TypingLine.Sound.keyboardUp(recordBackground);
-        recordBackground.tgx101SetHalo(lineOn ? RecordButton.TGX101_HALO_NONE : RecordButton.TGX101_HALO_DROP);
+        // (user 2026-11-17 «анимацию кнопки во время записи — одинаковой везде, с волной «морзе» и без; за стандарт — без»):
+        // the two-layer drop always, whether the field line's wave is on or not
+        recordBackground.tgx101SetHalo(RecordButton.TGX101_HALO_DROP);
         recordBackground.setVolume(amplitude, true);
       } else {
         startTimers(SystemClock.uptimeMillis());
