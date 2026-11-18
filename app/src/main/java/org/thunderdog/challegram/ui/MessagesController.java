@@ -730,7 +730,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     try { tgx101CaptureGapClose(); } catch (Throwable ignored) { }
     if (tgx101DeleteEffect == null) return;
     try { // (4PDA 2026-10-18: crashes on deleting / clearing) the dust is a nicety — it never takes the app down
-      tgx101DeleteEffect.take(messageView, messageView != null ? tgx101BubbleOutline(messageView) : null);
+      TGMessage leaving = messageView != null ? tgx101MessageOf(messageView) : null;
+      boolean right = leaving != null && (leaving.isOutgoingBubble() != Lang.rtl());
+      tgx101DeleteEffect.take(messageView, messageView != null ? tgx101BubbleOutline(messageView) : null, right);
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("delete effect: failed at start " + t.getClass().getSimpleName());
     }
@@ -780,7 +782,14 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // so the messages around a deleted one jumped into its place. Remember where every row stood before the removal, and
   // after the list has laid out again let each one glide from its old place to the new one (bubble merges included)
   private @Nullable java.util.IdentityHashMap<TGMessage, Integer> tgx101GapTops;
-  private static final long TGX101_GAP_CLOSE_DURATION = 320, TGX101_GAP_CLOSE_DELAY = 260; // the single message's squash is over at 250 ms
+  // (user 2026-11-18, А+В chosen): the chat closes in almost at once as the message shrinks and melts, on one soft curve;
+  // with a wave it waits for the wave's last message to start going
+  private static final long TGX101_GAP_CLOSE_DURATION = 260, TGX101_GAP_CLOSE_DELAY = 50;
+  private static final android.view.animation.Interpolator TGX101_GAP_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.2f, .8f, .2f, 1f);
+
+  private long tgx101GapDelay () {
+    return TGX101_GAP_CLOSE_DELAY + (tgx101DeleteEffect != null ? tgx101DeleteEffect.lastWave() : 0);
+  }
 
   private void tgx101CaptureGapClose () {
     if (tgx101GapTops != null || messagesView == null) return;
@@ -831,7 +840,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (msg == null || tops.containsKey(msg)) continue;
       child.setAlpha(0f); // hidden through the delay too — the animator sets its first value only when it starts
       android.animation.ObjectAnimator in = android.animation.ObjectAnimator.ofFloat(child, View.ALPHA, 0f, 1f);
-      in.setStartDelay(TGX101_GAP_CLOSE_DELAY);
+      in.setStartDelay(tgx101GapDelay());
       in.setDuration(220);
       in.start();
       faded++;
@@ -852,13 +861,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // the deleted photo's dust flew over their text — two pictures at once. They wait until most of the dust has left
       // (an ObjectAnimator: a start delay set on the view's own animate() would stay for every later animation of the row)
       android.animation.ObjectAnimator glide = android.animation.ObjectAnimator.ofFloat(child, View.TRANSLATION_Y, deltas[i], 0f);
-      glide.setStartDelay(TGX101_GAP_CLOSE_DELAY);
+      glide.setStartDelay(tgx101GapDelay());
       glide.setDuration(TGX101_GAP_CLOSE_DURATION);
-      glide.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+      glide.setInterpolator(TGX101_GAP_CURVE);
       glide.start();
       moved++;
     }
-    org.thunderdog.challegram.Tgx101Diag.mark("delete effect: gap closes after " + TGX101_GAP_CLOSE_DELAY + " ms, " + moved + " rows glide");
+    org.thunderdog.challegram.Tgx101Diag.mark("delete effect: gap closes after " + tgx101GapDelay() + " ms, " + moved + " rows glide");
   }
 
   private void tgx101UpdateKeyboardFiller () {

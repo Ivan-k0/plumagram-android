@@ -59,7 +59,9 @@ public final class Tgx101DeleteEffect extends View {
     long start;
     boolean fade; // an album that stays, smaller: its old look dissolves
     float shift; // how far the chat has scrolled since — the dust is tied to the messages, not to the screen
-    @Nullable RectF group; // messages deleted together: the whole batch flattens as one picture around its centre
+    @Nullable RectF group; // (no longer used: «one television» for a batch gave way to the wave, 2026-11-18)
+    boolean right; // the bubble stands at the right: it shrinks towards its right edge
+    @Nullable Bitmap soft; // a tiny copy drawn large — the blur it melts into (cheap, every Android)
   }
 
   private final ArrayList<Burst> bursts = new ArrayList<>();
@@ -124,6 +126,10 @@ public final class Tgx101DeleteEffect extends View {
 
   /** Photographs a message view about to leave the list ({@code null}: not on screen); {@link #launch()} lets the batch go */
   public void take (@Nullable View source, @Nullable Path outline) {
+    take(source, outline, false);
+  }
+
+  public void take (@Nullable View source, @Nullable Path outline, boolean right) {
     pendingAsked++;
     if (!capable(getContext()) || source == null || source.getWidth() <= 0 || source.getHeight() <= 0 || !source.isShown()) return;
     try {
@@ -140,6 +146,7 @@ public final class Tgx101DeleteEffect extends View {
       scale = Math.max(scale, COARSE);
       Burst b = snapshot(source, area, outline, scale);
       if (b != null) {
+        b.right = right;
         pending.add(b);
         pendingPixels += (long) (b.snapshot.getWidth()) * b.snapshot.getHeight();
       }
@@ -162,7 +169,17 @@ public final class Tgx101DeleteEffect extends View {
     }
   }
 
+  static final long WAVE_STEP = 45;
+  static final int WAVE_STEPS = 8;
+  private long lastWave;
+
+  /** How long the wave of the last batch runs before its top message starts going (0 for one message) */
+  public long lastWave () {
+    return lastWave;
+  }
+
   public void launch () {
+    lastWave = 0;
     int asked = pendingAsked;
     pendingAsked = 0;
     pendingPixels = 0;
@@ -196,20 +213,27 @@ public final class Tgx101DeleteEffect extends View {
       // grains — the GPU barely notices
       // (user 2026-10-30 18:45 «пусть сжимаются в один телевизор»): several messages go as one — no wave, the batch
       // flattens into one line around its common centre and that line goes out
-      RectF group = null;
+      // (user 2026-11-18, mockup «Удаление сообщения: варианты», А+В «Сжатие с размытием» chosen): each message shrinks
+      // a little towards its own edge, melts into a blur and goes out in 200 ms; several go as a wave from the bottom up,
+      // each 45 ms after the one below, only the first 8 wait their turn (the wave stays short however many there are)
+      ArrayList<Burst> leaving = new ArrayList<>();
       for (Burst b : batch) {
-        if (b.fade) continue;
-        if (group == null) group = new RectF(b.bounds);
-        else group.union(b.bounds);
-      }
-      int squashed = 0;
-      for (Burst b : batch) if (!b.fade) squashed++;
-      for (Burst b : batch) {
-        b.start = now;
         b.count = 0;
-        if (!b.fade && squashed > 1) b.group = group;
+        b.start = now;
+        if (!b.fade) {
+          leaving.add(b);
+          try {
+            int sw = Math.max(1, b.snapshot.getWidth() / 10), sh = Math.max(1, b.snapshot.getHeight() / 10);
+            b.soft = Bitmap.createScaledBitmap(b.snapshot, sw, sh, true);
+          } catch (Throwable ignored) {
+            b.soft = null;
+          }
+        }
         bursts.add(b);
       }
+      java.util.Collections.sort(leaving, (x, y) -> Float.compare(y.bounds.bottom, x.bounds.bottom));
+      for (int i = 0; i < leaving.size(); i++) leaving.get(i).start = now + Math.min(i, WAVE_STEPS - 1) * WAVE_STEP;
+      lastWave = (long) Math.min(leaving.size() > 0 ? leaving.size() - 1 : 0, WAVE_STEPS - 1) * WAVE_STEP;
       int made = batch.size();
       batch.clear();
       setVisibility(VISIBLE);
@@ -336,7 +360,10 @@ public final class Tgx101DeleteEffect extends View {
       // no dust rather than a crash: drop what's flying
       Tgx101Diag.mark("delete effect: draw failed " + t.getClass().getSimpleName() + " " + t.getMessage());
       fastBroken = true;
-      for (Burst b : bursts) if (b.snapshot != null && !b.snapshot.isRecycled()) b.snapshot.recycle();
+      for (Burst b : bursts) {
+        if (b.snapshot != null && !b.snapshot.isRecycled()) b.snapshot.recycle();
+        if (b.soft != null && !b.soft.isRecycled()) b.soft.recycle();
+      }
       bursts.clear();
       setVisibility(INVISIBLE);
     }
@@ -345,6 +372,29 @@ public final class Tgx101DeleteEffect extends View {
   private static final float FADE_END = .18f;
   private static final float SQUASH_FLAT = .14f, SQUASH_OUT = .11f, SQUASH_END = SQUASH_FLAT + SQUASH_OUT;
   private static final android.view.animation.Interpolator SQUASH_CURVE = new android.view.animation.DecelerateInterpolator(1.6f);
+
+  private static final float SHRINK_END = .2f;
+  private static final android.view.animation.Interpolator SHRINK_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.3f, 0f, .8f, .15f);
+
+  /** А+В: shrinks to .86 towards its own edge, the sharp picture giving way to its blur, and goes out */
+  private void drawShrink (Canvas c, Burst b, float t) {
+    float f = Math.max(0f, Math.min(1f, t / SHRINK_END));
+    float e = SHRINK_CURVE.getInterpolation(f);
+    float scale = 1f - .14f * e, alpha = 1f - e;
+    if (alpha <= 0f) return;
+    float px = b.right ? b.bounds.right : b.bounds.left, py = b.bounds.centerY();
+    dst.set(px + (b.bounds.left - px) * scale, py + (b.bounds.top - py) * scale, px + (b.bounds.right - px) * scale, py + (b.bounds.bottom - py) * scale);
+    float melt = b.soft != null ? Math.min(1f, f * 2.2f) : 0f; // how far into the blur
+    if (melt < 1f) {
+      bitmapPaint.setAlpha((int) (255 * alpha * (1f - melt)));
+      c.drawBitmap(b.snapshot, null, dst, bitmapPaint);
+    }
+    if (melt > 0f) {
+      bitmapPaint.setAlpha((int) (255 * alpha * melt));
+      c.drawBitmap(b.soft, null, dst, bitmapPaint);
+    }
+    bitmapPaint.setAlpha(255);
+  }
 
   private void drawSquash (Canvas c, Burst b, float t) {
     float sy, sx = 1f, alpha = 1f;
@@ -376,8 +426,9 @@ public final class Tgx101DeleteEffect extends View {
     for (int k = bursts.size() - 1; k >= 0; k--) {
       Burst b = bursts.get(k);
       float t = (now - b.start) / 1000f;
-      if (t >= (b.fade ? FADE_END : SQUASH_END)) {
+      if (t >= (b.fade ? FADE_END : SHRINK_END)) {
         b.snapshot.recycle();
+        if (b.soft != null && b.soft != b.snapshot) b.soft.recycle();
         bursts.remove(k);
         continue;
       }
@@ -388,7 +439,7 @@ public final class Tgx101DeleteEffect extends View {
         c.drawBitmap(b.snapshot, null, b.bounds, bitmapPaint);
         bitmapPaint.setAlpha(255);
       } else {
-        drawSquash(c, b, t);
+        drawShrink(c, b, t);
       }
       c.restoreToCount(save);
     }
