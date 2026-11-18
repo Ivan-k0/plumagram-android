@@ -784,7 +784,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private @Nullable java.util.IdentityHashMap<TGMessage, Integer> tgx101GapTops;
   // (user 2026-11-18, А+В chosen): the chat closes in almost at once as the message shrinks and melts, on one soft curve;
   // with a wave it waits for the wave's last message to start going
-  private static final long TGX101_GAP_CLOSE_DURATION = 260, TGX101_GAP_CLOSE_DELAY = 80; // the picture is gone by ~110 ms
+  // «television» (2026-11-18): the chat closes in once the picture is a thin line running in (А+В was 80 ms)
+  private static final long TGX101_GAP_CLOSE_DURATION = 260, TGX101_GAP_CLOSE_DELAY = 240; // the TV line is a dot by then
   private static final android.view.animation.Interpolator TGX101_GAP_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.2f, .8f, .2f, 1f);
 
   private long tgx101GapDelay () {
@@ -4569,6 +4570,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return TGMessage.getContentLeft();
   }
 
+  /**
+   * TGx101 (user 2026-11-18 «16:12 были свайпы назад выхода из канала и они не сработали», journal: in a channel with no
+   * field every touch in the lower half was «over the emoji panel»): the panel opened in the chat before stayed VISIBLE
+   * when the screen went on to the channel — closed but in place. The back swipe minds it only while it is really up
+   */
+  private boolean tgx101EmojiPanelUp () {
+    return emojiLayout != null && emojiShown && emojiLayout.getVisibility() == View.VISIBLE && emojiLayout.isShown();
+  }
+
   /** TGx101: the journal — which of canSlideBackFrom's rules refuses the back swipe at this point */
   public String tgx101WhyNoSlideBack (NavigationController navigationController, float x, float y) {
     if (context().getRecordAudioVideoController().isOpen()) return "recording open";
@@ -4577,7 +4587,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (hasEditedChanges()) return "edited changes";
     if (getChatId() == 0 || inPreviewMode) return "preview";
     int baseY = Views.getLocationInWindow(navigationController.getValue())[1];
-    if (emojiLayout != null && emojiLayout.getVisibility() == View.VISIBLE && y >= Views.getLocationInWindow(emojiLayout)[1] - baseY) return "over the emoji panel";
+    if (tgx101EmojiPanelUp() && y >= Views.getLocationInWindow(emojiLayout)[1] - baseY) return "over the emoji panel";
     if (inputView != null && inputView.getVisibility() == View.VISIBLE) {
       int inputY = Views.getLocationInWindow(inputView)[1] - baseY;
       if (y >= inputY && y < inputY + inputView.getMeasuredHeight()) return "over the input field (y " + inputY + "–" + (inputY + inputView.getMeasuredHeight()) + ")";
@@ -4622,7 +4632,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     int bound = (getSlideBackBound());
 
-    if (emojiLayout != null && emojiLayout.getVisibility() == View.VISIBLE && y >= Views.getLocationInWindow(emojiLayout)[1] - baseY) {
+    if (tgx101EmojiPanelUp() && y >= Views.getLocationInWindow(emojiLayout)[1] - baseY) {
       return emojiLayout.canSlideBack() && x <= bound;
     }
 

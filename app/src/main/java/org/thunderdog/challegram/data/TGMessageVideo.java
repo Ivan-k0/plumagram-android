@@ -1038,6 +1038,22 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
     }
   }
 
+  private String tgx101WidestFor;
+  private float tgx101WidestWidth;
+
+  private float tgx101WidestDurationWidth () {
+    String str = durationStr;
+    if (str == null) return 0f;
+    if (!str.equals(tgx101WidestFor)) {
+      String zeros = str.replaceAll("[0-9]", "0");
+      if (tgx101WidestFor == null || zeros.length() != tgx101WidestFor.length() || !zeros.equals(tgx101WidestFor.replaceAll("[0-9]", "0"))) {
+        tgx101WidestWidth = U.measureText(zeros, useBubbles() ? mTimeBubble() : mTime(false));
+      }
+      tgx101WidestFor = str;
+    }
+    return tgx101WidestWidth;
+  }
+
   @Override
   protected void drawOverlay (MessageView view, Canvas c, int startX, int startY, int maxWidth) {
     if (tgx101TextMode()) {
@@ -1086,7 +1102,12 @@ public class TGMessageVideo extends TGMessage implements FileProgressComponent.S
       float buttonRadius = Screen.dp(TRANSCRIBE_BUTTON_RADIUS);
       boolean buttonOnLeft = isOutgoingBubble();
       float circleRadius = receiver.getWidth() / 2f;
-      float pillLeft = x - contentWidth - (useBubbles ? Screen.dp(6f) * 2 : 0);
+      // (user 2026-11-18 «при проигрывании кружка и смене секунд кнопка А смещается вместе с пузырем секунд — нужно, чтобы
+      // стояла статично»): the digits differ in width (a «1» is narrower than a «0»), the pill changed width every second
+      // and the button rode along. It keeps the room of the widest time of the same length (every digit a «0») and of the
+      // unwatched dot — the pill changes beside it, the button stands still
+      float stableWidth = Math.max(durationWidth, tgx101WidestDurationWidth()) + Screen.dp(5f);
+      float pillLeft = x - Math.max(contentWidth, stableWidth) - (useBubbles ? Screen.dp(6f) * 2 : 0);
       float circleRight = centerX + circleRadius;
       float timeRight = tgx101CircleTimeX != Integer.MIN_VALUE ? tgx101CircleTimeX + computeBubbleTimePartWidth(false) + Screen.dp(11f) : circleRight;
       // (user 2026-11-06, screenshots of the official app «кнопка распознавания точно не должна быть на краю»): the button

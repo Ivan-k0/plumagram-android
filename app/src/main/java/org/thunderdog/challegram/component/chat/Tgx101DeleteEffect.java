@@ -61,6 +61,7 @@ public final class Tgx101DeleteEffect extends View {
     float shift; // how far the chat has scrolled since — the dust is tied to the messages, not to the screen
     @Nullable RectF group; // (no longer used: «one television» for a batch gave way to the wave, 2026-11-18)
     boolean right; // the bubble stands at the right: it shrinks towards its right edge
+    int tone; // the picture's average colour, lit up — the glowing line and dot of the «television»
     @Nullable Bitmap soft; // a tiny copy drawn large — the blur it melts into (cheap, every Android)
   }
 
@@ -169,6 +170,8 @@ public final class Tgx101DeleteEffect extends View {
     }
   }
 
+  /** «Television» (user 2026-11-18) instead of «shrink with blur» (А+В, kept) */
+  static final boolean TV = true;
   static final long WAVE_STEP = 45;
   static final int WAVE_STEPS = 8;
   private long lastWave;
@@ -231,9 +234,22 @@ public final class Tgx101DeleteEffect extends View {
         }
         bursts.add(b);
       }
-      java.util.Collections.sort(leaving, (x, y) -> Float.compare(y.bounds.bottom, x.bounds.bottom));
-      for (int i = 0; i < leaving.size(); i++) leaving.get(i).start = now + Math.min(i, WAVE_STEPS - 1) * WAVE_STEP;
-      lastWave = (long) Math.min(leaving.size() > 0 ? leaving.size() - 1 : 0, WAVE_STEPS - 1) * WAVE_STEP;
+      if (TV) {
+        // (user 2026-11-18 «верни анимацию удаления — телевизор, но лучше»; earlier 2026-10-30 «пусть сжимаются в один
+        // телевизор»): several go as one picture around their common centre, together, no wave
+        RectF group = null;
+        for (Burst b : leaving) {
+          if (group == null) group = new RectF(b.bounds);
+          else group.union(b.bounds);
+        }
+        if (leaving.size() > 1) for (Burst b : leaving) b.group = group;
+        for (Burst b : leaving) b.tone = averageTone(b);
+        lastWave = 0;
+      } else {
+        java.util.Collections.sort(leaving, (x, y) -> Float.compare(y.bounds.bottom, x.bounds.bottom));
+        for (int i = 0; i < leaving.size(); i++) leaving.get(i).start = now + Math.min(i, WAVE_STEPS - 1) * WAVE_STEP;
+        lastWave = (long) Math.min(leaving.size() > 0 ? leaving.size() - 1 : 0, WAVE_STEPS - 1) * WAVE_STEP;
+      }
       int made = batch.size();
       batch.clear();
       setVisibility(VISIBLE);
@@ -373,6 +389,82 @@ public final class Tgx101DeleteEffect extends View {
   private static final float SQUASH_FLAT = .14f, SQUASH_OUT = .11f, SQUASH_END = SQUASH_FLAT + SQUASH_OUT;
   private static final android.view.animation.Interpolator SQUASH_CURVE = new android.view.animation.DecelerateInterpolator(1.6f);
 
+  // TGx101 «television» (user 2026-11-18 «схлопывание должно быть до конца — полоска уменьшается, пока не исчезнет; в
+  // самом конце чуть размытия, как у настоящего телевизора»): the picture flattens into a thin line lighting up as it
+  // goes, the line runs in to the middle all the way, and a small soft glowing dot is left a moment and fades
+  // (phone check 2026-11-18, light theme: the line all but invisible, it stood full width and vanished in 2–3 frames, no
+  // dot to be seen, the row coming down crossed what was left): a darker line on a light theme, a lighter one on a dark,
+  // an even run in to the middle, a short small dot; the chat closes in as the line is nearly gone
+  // (second check: the row below came down while the line was still full width — the line and the dot were drawn over its
+  // text): quicker, and the chat closes in only once the line is a dot (TGX101_GAP_CLOSE_DELAY = TV_FLAT + TV_IN)
+  private static final float TV_FLAT = .10f, TV_IN = .14f, TV_DOT = .05f, TV_END = TV_FLAT + TV_IN + TV_DOT;
+  private static final android.view.animation.Interpolator TV_FLAT_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.5f, 0f, .2f, 1f);
+  private static final android.view.animation.Interpolator TV_IN_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.4f, 0f, .6f, 1f);
+  private final Paint tvPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+
+  private static int averageTone (Burst b) {
+    int c;
+    try {
+      Bitmap one = Bitmap.createScaledBitmap(b.soft != null ? b.soft : b.snapshot, 1, 1, true);
+      c = one.getPixel(0, 0);
+      if (one != b.soft && one != b.snapshot) one.recycle();
+    } catch (Throwable t) {
+      c = 0xff808080;
+    }
+    c |= 0xff000000;
+    // (user 2026-11-18 «в тёмной теме телевизор сильно светлый — под стать теме, чтобы не мелькало, но было заметно»):
+    // a dark theme gets a line only a little lighter than the bubble (it was near white)
+    return org.thunderdog.challegram.theme.Theme.isDark() ? lighten(c, .22f) : mix(c, 0xff000000, .38f);
+  }
+
+  private void drawTv (Canvas c, Burst b, float t) {
+    if (t < 0f) t = 0f;
+    RectF r = b.group != null ? b.group : b.bounds;
+    float cx = r.centerX(), cy = r.centerY();
+    float thin = Math.max(Screen.dp(2f), 2f);
+    if (t < TV_FLAT) {
+      float f = TV_FLAT_CURVE.getInterpolation(t / TV_FLAT);
+      float sy = 1f - (1f - thin / Math.max(thin, r.height())) * f;
+      dst.set(b.bounds.left, cy + (b.bounds.top - cy) * sy, b.bounds.right, cy + (b.bounds.bottom - cy) * sy);
+      bitmapPaint.setAlpha(255);
+      c.drawBitmap(b.snapshot, null, dst, bitmapPaint);
+      // it lights up as it flattens
+      tvPaint.setShader(null);
+      tvPaint.setColor(me.vkryl.core.ColorUtils.alphaColor((org.thunderdog.challegram.theme.Theme.isDark() ? .55f : .85f) * f, b.tone));
+      c.drawRect(dst, tvPaint);
+      return;
+    }
+    float h = thin;
+    if (t < TV_FLAT + TV_IN) {
+      float f = TV_IN_CURVE.getInterpolation((t - TV_FLAT) / TV_IN);
+      // the line runs in to the middle all the way (no cut-off at a fifth)
+      float half = (b.group != null ? r.width() : b.bounds.width()) / 2f * (1f - f);
+      float left = Math.max(b.bounds.left, cx - half), right = Math.min(b.bounds.right, cx + half);
+      if (right > left) {
+        tvPaint.setShader(null);
+        tvPaint.setColor(b.tone);
+        dst.set(left, cy - h / 2f, right, cy + h / 2f);
+        c.drawRoundRect(dst, h / 2f, h / 2f, tvPaint);
+      }
+      if (f > .6f) drawTvDot(c, cx, cy, h, (f - .6f) / .4f, b.tone, 1f);
+      return;
+    }
+    // the last moment: a soft dot of light, a little blurred, fading
+    float f = Math.min(1f, (t - TV_FLAT - TV_IN) / TV_DOT);
+    drawTvDot(c, cx, cy, h, 1f, b.tone, 1f - f);
+  }
+
+  private void drawTvDot (Canvas c, float cx, float cy, float h, float grow, int tone, float alpha) {
+    if (alpha <= 0f) return;
+    float radius = h * (1.2f + 1.6f * grow);
+    int core = org.thunderdog.challegram.theme.Theme.isDark() ? lighten(tone, .25f) : tone; // no white flash on a dark theme
+    tvPaint.setShader(new android.graphics.RadialGradient(cx, cy, radius,
+      new int[] {me.vkryl.core.ColorUtils.alphaColor(alpha, core), me.vkryl.core.ColorUtils.alphaColor(alpha * .8f, tone), me.vkryl.core.ColorUtils.alphaColor(0f, tone)},
+      new float[] {0f, .35f, 1f}, android.graphics.Shader.TileMode.CLAMP));
+    c.drawCircle(cx, cy, radius, tvPaint);
+    tvPaint.setShader(null);
+  }
+
   private static final float SHRINK_END = .2f;
   private static final android.view.animation.Interpolator SHRINK_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.3f, 0f, .8f, .15f);
 
@@ -428,7 +520,7 @@ public final class Tgx101DeleteEffect extends View {
     for (int k = bursts.size() - 1; k >= 0; k--) {
       Burst b = bursts.get(k);
       float t = (now - b.start) / 1000f;
-      if (t >= (b.fade ? FADE_END : SHRINK_END)) {
+      if (t >= (b.fade ? FADE_END : TV ? TV_END : SHRINK_END)) {
         b.snapshot.recycle();
         if (b.soft != null && b.soft != b.snapshot) b.soft.recycle();
         bursts.remove(k);
@@ -440,6 +532,8 @@ public final class Tgx101DeleteEffect extends View {
         bitmapPaint.setAlpha((int) (255 * Math.max(0f, 1f - t / FADE_END)));
         c.drawBitmap(b.snapshot, null, b.bounds, bitmapPaint);
         bitmapPaint.setAlpha(255);
+      } else if (TV) {
+        drawTv(c, b, t);
       } else {
         drawShrink(c, b, t);
       }

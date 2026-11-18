@@ -1180,6 +1180,7 @@ public class MediaLayout extends FrameLayoutFix implements
 
   @Override
   public void onPopupDismiss (PopupLayout popup) {
+    tgx101MatchStatusIcons(false);
     if (cameraOpenOptions != null) {
       if (parent != null && (parent instanceof MessagesController || mode == MODE_AVATAR_PICKER) && !parent.isDestroyed()) {
         parent.openInAppCamera(cameraOpenOptions);
@@ -2022,7 +2023,21 @@ public class MediaLayout extends FrameLayoutFix implements
         int offsetY = HeaderView.getSize(false) + headerView.getFilling().getExtraHeight();
         headerView.setTranslationY(-offsetY + (int) ((float) offsetY * factor));
       }
+      tgx101MatchStatusIcons(factor >= .5f);
     }
+  }
+
+  // TGx101 (user 2026-11-18, screenshot: «строку состояния не видно»): the gallery opened full has a light header right
+  // under the status bar, its icons stayed white — invisible. With the header over half in they follow its colour, and
+  // go back to the chat header's when it leaves or the sheet closes
+  private boolean tgx101HeaderIcons;
+
+  private void tgx101MatchStatusIcons (boolean header) {
+    if (tgx101HeaderIcons == header || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
+    tgx101HeaderIcons = header;
+    android.view.Window window = UI.getWindow();
+    if (window == null) return;
+    org.thunderdog.challegram.navigation.HeaderView.tgx101MatchStatusIcons(window, header ? Theme.fillingColor() : Theme.headerColor());
   }
 
   private boolean visible = true;
