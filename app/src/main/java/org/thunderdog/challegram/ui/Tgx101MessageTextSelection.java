@@ -192,7 +192,7 @@ public final class Tgx101MessageTextSelection {
     }
 
     private int anchorStart, anchorEnd;
-    private boolean followed;
+    private boolean followed, movedSelection;
 
     void followTo (float rawX, float rawY) {
       if (closed) return;
@@ -217,10 +217,14 @@ public final class Tgx101MessageTextSelection {
       }
       if (start != this.start || end != this.end) {
         setSelection(start, end);
+        movedSelection = true;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O_MR1) {
           org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
         }
       }
+      // user 2026-11-18 «мигание»: the finger still on the first word didn't change anything — the bar that has just
+      // popped up stays, no magnifier; both only once the finger has really moved the selection
+      if (!movedSelection) return;
       bar.onSelectionChanging();
       overlay.showMagnifier(view, vx + msg.tgx101ContentShiftX());
     }
