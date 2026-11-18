@@ -524,7 +524,7 @@ public class TdlibUi extends Handler {
         noRevokeCount++;
       }
     }
-    boolean revokeByDefault = outgoingMessageCount > 0;
+    boolean revokeByDefault = tgx101RevokeRemembered(); // TGx101 (user 2026-11-18): as left last time, ticked at first
     if (optionalCount == 0) {
       return false;
     }
@@ -557,6 +557,7 @@ public class TdlibUi extends Handler {
       }).setIntDelegate((id, result) -> {
         if (id == R.id.btn_deleteMessagesWithRevoke) {
           boolean revoke = result.get(R.id.btn_revokeMessages) != 0;
+          tgx101RememberRevoke(revoke);
           if (revoke && noRevokeCountFinal > 0) {
             TdApi.Message[] revokeMessages = new TdApi.Message[deletingMessages.length - noRevokeCountFinal];
             TdApi.Message[] noRevokeMessages = new TdApi.Message[noRevokeCountFinal];
@@ -753,12 +754,14 @@ public class TdlibUi extends Handler {
       } else {
         revokeFor = ChatId.isMultiChat(chatId) ? Lang.plural(R.string.DeleteXForEveryone, optionalCount) : Lang.plural(R.string.DeleteXForUser, optionalCount, tdlib.cache().userFirstName(tdlib.chatUserId(chatId)));
       }
-      // «for everyone» starts unticked: a quick tap never deletes from the other side by accident
-      org.thunderdog.challegram.navigation.Tgx101M3Sheets.showHeaderMenu(context, revokeFor, false,
+      // (user 2026-11-18 «галочка удалить для всех должна быть по умолчанию всегда активна», then «пусть будет
+      // запоминающейся»): «for everyone» is ticked as it was left at the last deletion — ticked the first time
+      org.thunderdog.challegram.navigation.Tgx101M3Sheets.showHeaderMenu(context, revokeFor, tgx101RevokeRemembered(),
         new CharSequence[] {Lang.getString(R.string.Delete)},
         new int[] {R.drawable.baseline_delete_24},
         new boolean[] {true},
         (index, checked) -> {
+          tgx101RememberRevoke(checked);
           deleteMessagesSplit(messages, checked);
           onDone.run();
         });
@@ -8603,4 +8606,16 @@ public class TdlibUi extends Handler {
       }
     }
   }
+
+  // TGx101: the «delete for everyone» tick as it was left last time (shared by both delete windows)
+  private static final String TGX101_KEY_REVOKE = "tgx101_delete_revoke";
+
+  private static boolean tgx101RevokeRemembered () {
+    return org.thunderdog.challegram.unsorted.Settings.instance().pmc().getBoolean(TGX101_KEY_REVOKE, true);
+  }
+
+  private static void tgx101RememberRevoke (boolean revoke) {
+    org.thunderdog.challegram.unsorted.Settings.instance().pmc().putBoolean(TGX101_KEY_REVOKE, revoke);
+  }
+
 }

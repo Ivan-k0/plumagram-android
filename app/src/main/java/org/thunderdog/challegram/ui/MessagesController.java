@@ -14149,8 +14149,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private Tgx101SendFlight tgx101Flight;
   private long tgx101SentAt;
 
+  // (user 2026-11-18 «нам точно нужно, чтобы текст плыл из поля в чат? выглядит кринжово»): off — a copy of the words
+  // flying apart from the bubble read as two texts; the quick start of the chat's glide stays. Code kept
+  private static final boolean TGX101_SEND_FLIGHT = false;
+
   private void tgx101ArmSendFlight () {
     tgx101SentAt = android.os.SystemClock.uptimeMillis();
+    if (!TGX101_SEND_FLIGHT) return;
     if (inputView == null || messagesView == null || contentView == null || inPreviewMode) return;
     if (tgx101Flight == null) {
       tgx101Flight = new Tgx101SendFlight(context(), messagesView);
@@ -14163,7 +14168,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   /** A sent text message came into the chat: the words waiting over the field fly to it (it needs no rise-and-fade) */
   public boolean tgx101FlightBind (TGMessage message) {
-    return tgx101Flight != null && message instanceof org.thunderdog.challegram.data.TGMessageText && tgx101Flight.bind(message);
+    if (!(message instanceof org.thunderdog.challegram.data.TGMessageText)) return false;
+    // no flight: a text just sent from here rises with the chat, whole, with no fade of its own (none in the official app)
+    if (!TGX101_SEND_FLIGHT) return tgx101JustSent();
+    return tgx101Flight != null && tgx101Flight.bind(message);
   }
 
   /** The field was emptied by sending a moment ago: its shrink and the chat's glide go quick, as the words fly */
