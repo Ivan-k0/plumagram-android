@@ -9169,6 +9169,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     bottomShadowView.setTranslationY(y + offset + keyboardOffset + tgx101FieldShift() + tgx101TopReveal);
     if (replyBarView != null) {
       replyBarView.setTranslationY(y + keyboardOffset + tgx101FieldShift() + tgx101TopReveal);
+      if (!floatingLook && bottomWrap != null) bottomWrap.invalidate(); // the hairline under the quote follows the bar
       if (floatingLook) {
         // TGx101: hidden behind the see-through capsule while there's no reply (it would show through)
         replyBarView.setAlpha(MathUtils.clamp(-y / (float) Screen.dp(48f)));
@@ -12185,6 +12186,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     // variant А (flat): the panel with no line on top (user 2026-11-15 «поле выделяется серой полосой вверху — не нужно»);
     // variant Б adds the well
+    // (user 2026-11-18 «нужно тонкое разделение между цитатой и полем ввода, мы раньше её убрали»): with a reply / edit /
+    // forward bar over the field the hairline comes back between them, fading in and out with the bar
+    float tgx101Quote = replyBarView != null && replyBarView.getVisibility() == View.VISIBLE ? MathUtils.clamp(getReplyOffset() / (float) Screen.dp(48f)) : 0f;
+    if (tgx101Quote > 0f) {
+      c.drawRect(0, top, w, top + Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(tgx101Quote, Theme.separatorColor())));
+    }
     // the field's bottom edge, live — made with the first drawing, not the first letter (user 2026-11-13 «полоски нема»)
     if (tgx101TypingLine == null && inputView != null && bottomWrap != null) tgx101TypingLine = new Tgx101TypingLine(bottomWrap, inputView, tdlib);
     if (tgx101TypingLine != null) tgx101TypingLine.draw(c, h, w);
