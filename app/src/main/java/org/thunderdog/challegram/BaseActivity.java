@@ -1477,7 +1477,9 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
     long since = android.os.SystemClock.uptimeMillis() - tgx101NotificationOpenAt;
     if (tgx101NotificationOpenAt == 0 || since > 1000 || isFinishing() || isChangingConfigurations()) return;
     android.os.PowerManager pm = (android.os.PowerManager) getSystemService(POWER_SERVICE);
-    if (pm != null && !pm.isInteractive()) return; // the screen went off: not a lost window
+    // the screen went off: not a lost window (isInteractive is Android 4.4W+; before it isScreenOn — lint android4 2026-11-18)
+    //noinspection deprecation
+    if (pm != null && !(Build.VERSION.SDK_INT >= 20 ? pm.isInteractive() : pm.isScreenOn())) return;
     tgx101NotificationOpenAt = 0;
     try {
       Intent front = getPackageManager().getLaunchIntentForPackage(getPackageName());
