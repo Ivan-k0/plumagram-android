@@ -12020,8 +12020,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // TGx101 (user 2026-10-13 «ход поля ввода намного резче, чем в exteraGram — у нас резко, там плавно»): 160 ms with a
     // strong deceleration put most of the move into the first frames — the field and the chat behind it jumped. Like the
     // official app: longer, with a soft start and a soft stop (the chat follows the same curve)
-    tgx101RevealAnimator.setDuration(TGX101_REVEAL_DURATION);
-    tgx101RevealAnimator.setInterpolator(tgx101RevealCurve());
+    // (user 2026-11-18 «точно как в оффе», frame by frame): emptied by sending, the field goes down at once and stops
+    // softly, with the words flying out of it — the soft start held everything still for ~100 ms
+    boolean bySend = delta < 0 && tgx101JustSent();
+    tgx101RevealAnimator.setDuration(bySend ? TGX101_SEND_DURATION : TGX101_REVEAL_DURATION);
+    tgx101RevealAnimator.setInterpolator(bySend ? tgx101SendCurve() : tgx101RevealCurve());
     tgx101RevealAnimator.addUpdateListener(a -> tgx101SetTopReveal((float) a.getAnimatedValue()));
     tgx101SetTopReveal(from);
     tgx101RevealAnimator.start();
@@ -14119,6 +14122,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     if (clearInput) {
+      if (finalSendOptions.schedulingState == null && functions.size() == 1) tgx101ArmSendFlight();
       final List<TdApi.Message> sentMessages = new ArrayList<>(functions.size());
       setIsSendingText(true);
       manager.setSentMessages(sentMessages);
@@ -14130,6 +14134,38 @@ public class MessagesController extends ViewController<MessagesController.Argume
         tdlib.client().send(function, tdlib.messageHandler());
       }
     }
+  }
+
+  // TGx101 (user 2026-11-18 «точно как в оффе»): the words fly from the field into the new bubble (see Tgx101SendFlight)
+  private Tgx101SendFlight tgx101Flight;
+  private long tgx101SentAt;
+
+  private void tgx101ArmSendFlight () {
+    tgx101SentAt = android.os.SystemClock.uptimeMillis();
+    if (inputView == null || messagesView == null || contentView == null || inPreviewMode) return;
+    if (tgx101Flight == null) {
+      tgx101Flight = new Tgx101SendFlight(context(), messagesView);
+      contentView.addView(tgx101Flight, new RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    } else if (contentView.indexOfChild(tgx101Flight) != contentView.getChildCount() - 1) {
+      tgx101Flight.bringToFront(); // something was added over it since (it must lie over the field and the chat)
+    }
+    tgx101Flight.arm(inputView);
+  }
+
+  /** A sent text message came into the chat: the words waiting over the field fly to it (it needs no rise-and-fade) */
+  public boolean tgx101FlightBind (TGMessage message) {
+    return tgx101Flight != null && message instanceof org.thunderdog.challegram.data.TGMessageText && tgx101Flight.bind(message.getId());
+  }
+
+  /** The field was emptied by sending a moment ago: its shrink and the chat's glide go quick, as the words fly */
+  public boolean tgx101JustSent () {
+    return tgx101SentAt != 0 && android.os.SystemClock.uptimeMillis() - tgx101SentAt < 400;
+  }
+
+  public static final long TGX101_SEND_DURATION = Tgx101SendFlight.DURATION;
+
+  public static android.view.animation.Interpolator tgx101SendCurve () {
+    return androidx.core.view.animation.PathInterpolatorCompat.create(.2f, 0f, 0f, 1f);
   }
 
   private void clearInputAfterSend (boolean success, boolean allowReply, ReplyInfo replyTo, boolean allowLinkPreview) {

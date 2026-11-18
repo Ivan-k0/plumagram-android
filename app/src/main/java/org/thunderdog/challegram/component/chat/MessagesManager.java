@@ -2216,7 +2216,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
       boolean tgx101OwnElsewhere = message.isOutgoing() && !message.isSending() && !message.isOld() && !message.isSponsoredMessage() && !areScheduled();
       boolean scrollToBottom = (message.isSending() || tgx101OwnElsewhere || (atBottom && (!message.isOld() || message.isChatMember()))) && !message.isSponsoredMessage();
       // message.mergeWith(bottomMessage, true);
-      if (scrollToBottom && message.isSending()) {
+      if (scrollToBottom && message.isSending() && !controller.tgx101FlightBind(message)) {
         message.tgx101StartAppear(); // TGx101 (user 2026-10-24 «выезд снизу»): the sent message comes up from under the field
       }
       if (scrollToBottom) {
@@ -2447,7 +2447,12 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
         // 175 px): a multi-line field emptied by sending shrinks over 250 ms on a soft curve and lowers the messages with it,
         // while the glide up was done in ~100 ms. Run on the field's own curve and time, the two moves add up to one
         boolean withField = controller.tgx101IsFieldRevealing();
-        if (withField || !controller.tgx101FloatingLook()) {
+        if (controller.tgx101JustSent()) {
+          // (user 2026-11-18 «точно как в оффе», frame by frame next to it): sent from here — the chat goes up at once and
+          // stops softly, ~200 ms, on the same clock as the flying words and the emptied field
+          curve = org.thunderdog.challegram.ui.MessagesController.tgx101SendCurve();
+          duration = (int) org.thunderdog.challegram.ui.MessagesController.TGX101_SEND_DURATION;
+        } else if (withField || !controller.tgx101FloatingLook()) {
           // (user 2026-10-24 «написал — довольно резко или быстро», classic field, black box: 200 of 202 px in the first
           // 25 ms): there ~250 ms with a soft start and stop — the field's own curve
           curve = org.thunderdog.challegram.ui.MessagesController.tgx101RevealCurve();
