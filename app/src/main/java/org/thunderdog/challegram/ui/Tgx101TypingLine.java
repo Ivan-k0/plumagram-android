@@ -38,12 +38,6 @@ public final class Tgx101TypingLine {
   private final View host;   // the field's wrap: it draws the line
   private final TextView field;
 
-  private final long[] keys = new long[16];
-  private int keyCount;
-  private float energy;      // 0 — idle, 1 — typing fast
-  private float kick;        // a short pulse on each key
-  private boolean deleting;
-  private long lastFrame;
 
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Runnable wake = this::invalidateHost;
@@ -51,11 +45,6 @@ public final class Tgx101TypingLine {
   private void invalidateHost () {
     host.invalidate();
   }
-
-  // (user 2026-11-13 «на светлой теме вообще не видно — цвета темнее и насыщеннее»): a palette for each theme
-  private static int accent () { return Theme.isDark() ? Theme.getColor(ColorId.textNeutral) : 0xff1565c0; }
-  private static int fast () { return Theme.isDark() ? 0xffb070f0 : 0xff6a1bc8; } // violet the fast hand runs into
-  private static int warm () { return Theme.isDark() ? 0xfff08a5a : 0xffd84315; } // a deleted letter, near the limit
 
   private final org.thunderdog.challegram.telegram.Tdlib tdlib;
 
@@ -86,23 +75,8 @@ public final class Tgx101TypingLine {
   // (user 2026-11-15 23:1x «синюю полосу вообще убери из кода, подсветка при наборе остаётся»): the fill that showed the
   // text's length is gone; the pulse answering the typing stays, at the cursor
 
-  void onTyped (boolean longer) {
-    long now = SystemClock.uptimeMillis();
-    if (longer) {
-      keys[keyCount++ % keys.length] = now;
-      deleting = false;
-    } else {
-      deleting = true;
-    }
-    int recent = 0;
-    for (int i = 0; i < Math.min(keyCount, keys.length); i++) if (now - keys[i] < 1500) recent++;
-    if (longer && recent >= 3) Tempo.add(recent / 1.5f);
-    float speed = Math.min(1f, (recent / 1.5f) / 7f); // ~7 keys a second is «fast»
-    energy = Math.max(energy * .6f + speed * .4f, longer ? .18f : energy);
-    kick = 1f;
-    lastFrame = now;
-    host.invalidate();
-  }
+  // (user 2026-11-18 «убери вообще эту линию скорости печати в поле ввода, функция не нужна»): the pulse that ran after
+  // the cursor and took colour from the typing speed is gone, with its switch and the day's pace kept for it
 
   private boolean keyboardUp () {
     try {
@@ -152,64 +126,16 @@ public final class Tgx101TypingLine {
     host.removeCallbacks(wake);
     if (next > 0) host.postDelayed(wake, next);
 
-    long now = SystemClock.uptimeMillis();
-    float dt = lastFrame != 0 ? Math.min(64, now - lastFrame) : 16;
-    lastFrame = now;
-
-    // the pulse only while the field is being typed in — the keyboard up; at rest just the thin line
-    boolean active = field.isFocused() && keyboardUp();
-    if (!active) energy = kick = 0f;
-    boolean idle = keyCount == 0 || now - keys[(keyCount - 1) % keys.length] > 350;
-    if (idle) energy = Math.max(0f, energy - dt / 900f);
-    kick = Math.max(0f, kick - dt / 260f);
-    float glow = Math.max(energy, kick * .55f);
-    if (glow <= .01f) {
-      energy = kick = 0f;
-      return;
-    }
-
-    float cx = caretX(w); // the pulse stands at the cursor
-    // (user 2026-11-13 «пульс не доходит дальше половины поля — продлить, но не до самого конца»): fast typing carries it
-    // ahead up to 85 % of the field, a little behind the fill's end too
-    float right = Math.min(w * .85f, cx + Screen.dp(24f) + w * .85f * energy);
-    float left = Math.max(0f, cx - Screen.dp(24f) - Screen.dp(90f) * energy);
-    if (right <= left + 1f) right = left + Screen.dp(24f);
-    int color = deleting && kick > 0f ? ColorUtils.fromToArgb(accent(), warm(), kick) : ColorUtils.fromToArgb(accent(), fast(), Math.max(0f, energy - .35f) / .65f);
-    float strength = Theme.isDark() ? .35f + .65f * glow : .55f + .45f * glow; // light: denser, it must show on white
-    int mid = ColorUtils.alphaColor(Math.min(1f, strength), color);
-    int edge = ColorUtils.alphaColor(0f, color);
-    float at = Math.max(0f, Math.min(1f, (cx - left) / (right - left)));
-    paint.setShader(new LinearGradient(left, 0, right, 0, new int[] {edge, mid, edge}, new float[] {0f, at, 1f}, Shader.TileMode.CLAMP));
-    float thick = Screen.dp(Theme.isDark() ? 1.5f : 2f) + Screen.dp(1f) * energy;
-    c.drawRect(left, y - thick / 2f + thin / 2f, right, y + thick / 2f + thin / 2f, paint);
-    // a soft halo below the line, into the room under the field
-    paint.setShader(new LinearGradient(0, y, 0, y + Screen.dp(10f), ColorUtils.alphaColor((Theme.isDark() ? .22f : .16f) * glow, color), ColorUtils.alphaColor(0f, color), Shader.TileMode.CLAMP));
-    c.drawRect(left + (cx - left) * .3f, y, cx + (right - cx) * .7f, y + Screen.dp(10f), paint);
-    paint.setShader(null);
-    host.postInvalidateOnAnimation();
   }
 
   /**
    * MagiX's live example (user 2026-11-13 «полоску и пульс нужно показать наглядно людям»): the same line for a field
-   * running from left to right at y — the pulse (energy 0…1) where the typing has got to (0…1 of the width)
+   * running from left to right at y
    */
-  static void drawDemo (Canvas c, Paint paint, float left, float right, float y, float where, float energy) {
-    float w = right - left;
-    float thin = Math.max(1, Screen.dp(.5f));
+  static void drawDemo (Canvas c, Paint paint, float left, float right, float y) {
     paint.setShader(null);
     paint.setColor(Theme.separatorColor());
-    c.drawRect(left, y, right, y + thin, paint); // whole, as the field's own at rest (user 2026-11-16)
-    if (energy <= .01f) return;
-    float cx = left + w * Math.max(where, .02f);
-    float r = Math.min(left + w * .85f, cx + Screen.dp(24f) + w * .85f * energy);
-    float l = Math.max(left, cx - Screen.dp(24f) - Screen.dp(90f) * energy);
-    int color = ColorUtils.fromToArgb(accent(), fast(), Math.max(0f, energy - .35f) / .65f);
-    float strength = Theme.isDark() ? .35f + .65f * energy : .55f + .45f * energy;
-    float at = Math.max(0f, Math.min(1f, (cx - l) / Math.max(1f, r - l)));
-    paint.setShader(new LinearGradient(l, 0, r, 0, new int[] {ColorUtils.alphaColor(0f, color), ColorUtils.alphaColor(Math.min(1f, strength), color), ColorUtils.alphaColor(0f, color)}, new float[] {0f, at, 1f}, Shader.TileMode.CLAMP));
-    float thick = Screen.dp(Theme.isDark() ? 1.5f : 2f) + Screen.dp(1f) * energy;
-    c.drawRect(l, y - thick / 2f + thin / 2f, r, y + thick / 2f + thin / 2f, paint);
-    paint.setShader(null);
+    c.drawRect(left, y, right, y + Math.max(1, Screen.dp(.5f)), paint); // whole, as the field's own at rest (user 2026-11-16)
   }
 
   /**
@@ -484,7 +410,7 @@ public final class Tgx101TypingLine {
         wantedAt = now;
         try {
           org.thunderdog.challegram.unsorted.Settings s = org.thunderdog.challegram.unsorted.Settings.instance();
-          wanted = s.tgx101MorseLine() && s.tgx101TypingLine();
+          wanted = s.tgx101MorseLine();
         } catch (Throwable t) {
           wanted = false;
         }
@@ -817,69 +743,4 @@ public final class Tgx101TypingLine {
     }
   }
 
-  /**
-   * The day's typing pace: letters a second while typing, averaged over about a day (older bursts count less and less),
-   * kept on the phone only — no text, no times of messages, just one number
-   */
-  static final class Tempo {
-    private static final String KEY = "tgx101_typing_tempo", KEY_AT = "tgx101_typing_tempo_at";
-    private static float rate = -1f;
-    private static long at;
-    private static int unsaved;
-
-    private static void load () {
-      if (rate >= 0f) return;
-      rate = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getFloat(KEY, 0f);
-      at = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getLong(KEY_AT, 0);
-    }
-
-    static void add (float lettersPerSecond) {
-      load();
-      long now = System.currentTimeMillis();
-      // a day-long memory: what was typed a day ago weighs about a third
-      float keep = at == 0 ? 0f : (float) Math.exp(-(now - at) / 86_400_000d) * .97f;
-      rate = rate * keep + Math.min(15f, lettersPerSecond) * (1f - keep);
-      at = now;
-      if (++unsaved >= 20) save();
-    }
-
-    static void save () {
-      if (rate < 0f) return;
-      unsaved = 0;
-      org.thunderdog.challegram.unsorted.Settings.instance().pmc().putFloat(KEY, rate);
-      org.thunderdog.challegram.unsorted.Settings.instance().pmc().putLong(KEY_AT, at);
-    }
-
-    static float rate () {
-      load();
-      return rate;
-    }
-
-    /** blue below ~2.5 letters a second, violet around 5, pink past 7 */
-    static int color () {
-      float r = rate();
-      int blue = accent(), violet = Theme.isDark() ? 0xff9a7af0 : 0xff6a1bc8, pink = Theme.isDark() ? 0xffe77fb5 : 0xffc2185b;
-      if (r <= 2.5f) return blue;
-      if (r <= 5f) return ColorUtils.fromToArgb(blue, violet, (r - 2.5f) / 2.5f);
-      return ColorUtils.fromToArgb(violet, pink, Math.min(1f, (r - 5f) / 2.5f));
-    }
-  }
-
-  /** where the caret stands, in the wrap's coordinates; the field's middle if unknown */
-  private float caretX (int w) {
-    float x = w / 2f;
-    try {
-      Layout l = field.getLayout();
-      int sel = field.getSelectionEnd();
-      if (l != null && sel >= 0) {
-        x = l.getPrimaryHorizontal(Math.min(sel, l.getText().length())) + field.getTotalPaddingLeft() - field.getScrollX();
-        View v = field;
-        while (v != null && v != host) {
-          x += v.getLeft() + v.getTranslationX();
-          v = v.getParent() instanceof View ? (View) v.getParent() : null;
-        }
-      }
-    } catch (Throwable ignored) { }
-    return Math.max(0f, Math.min(w, x));
-  }
 }

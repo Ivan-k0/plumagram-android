@@ -12187,7 +12187,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // variant Б adds the well
     // the field's bottom edge, live — made with the first drawing, not the first letter (user 2026-11-13 «полоски нема»)
     if (tgx101TypingLine == null && inputView != null && bottomWrap != null) tgx101TypingLine = new Tgx101TypingLine(bottomWrap, inputView, tdlib);
-    if (tgx101TypingLine != null && Settings.instance().tgx101TypingLine()) tgx101TypingLine.draw(c, h, w);
+    if (tgx101TypingLine != null) tgx101TypingLine.draw(c, h, w);
     if (!Settings.instance().tgx101InputWell()) return;
     int wash = Theme.isDark() ? 0x0dffffff : 0x0f1e3a5a;
     int well = me.vkryl.core.ColorUtils.compositeColor(filling, wash);
@@ -13215,7 +13215,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     if (tgx101TypingLine != null) {
       int len = charSequence != null ? charSequence.length() : 0;
-      if (byUserAction && len != tgx101TypedLength) tgx101TypingLine.onTyped(len > tgx101TypedLength);
       tgx101TypedLength = len;
     }
     if (byUserAction && charSequence != null && charSequence.length() > 0 && !tgx101TypingHidesArrow) {
