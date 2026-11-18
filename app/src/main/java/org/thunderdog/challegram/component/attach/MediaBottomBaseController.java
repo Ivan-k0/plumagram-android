@@ -624,9 +624,14 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       mediaLayout.prepareHeader();
       if (toUp) {
         if (canExpandHeight()) {
-          // (user 2026-10-12 21:56, exteraGram video «убери этот сдвиг вовсе»): the grid stays where it was — the rest of
-          // the flick no longer scrolls it on, the sheet only opens
+          // (user 2026-10-12 21:56, exteraGram video «убери этот сдвиг вовсе»): the grid stayed where it was.
+          // (user 2026-11-18, variant 2 «без остановки»): a flick from the half sheet opens it and the grid goes on
+          // scrolling by the rest of the flick, as one move
           animateCurrentHeight(getMaxHeight(), false);
+          if (velocityY < 0 && recyclerView != null) {
+            final int fling = Math.round(-velocityY * .6f);
+            recyclerView.post(() -> recyclerView.fling(0, fling));
+          }
         } else {
           animateCurrentHeight(startHeight, true);
         }

@@ -63,7 +63,7 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
   private boolean shouldIntercept;
   private boolean intercepting;
 
-  private float interceptStartY;
+  private float interceptStartY, lastMoveY;
 
   private boolean isAnimating;
 
@@ -78,7 +78,15 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
     intercepting = false;
     isAnimating = base.isAnimating();
     touchStartY = e.getY();
+    lastMoveY = touchStartY;
     shouldIntercept = !isAnimating && base.canMoveRecycler() && base.isInsideRecyclerView(e.getX(), e.getY());
+  }
+
+  // TGx101 (user 2026-11-18, variant 2): the grid forbids its parent to intercept once it scrolls — this view still
+  // watches the finger (to take the sheet down when the grid comes back to its top); the ban goes on to the parents
+  @Override
+  public void requestDisallowInterceptTouchEvent (boolean disallow) {
+    if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(disallow);
   }
 
   @Override
@@ -100,6 +108,18 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
         } else if (shouldIntercept) {
           float y = e.getY();
           float yDiff = y - touchStartY;
+          // TGx101 (user 2026-11-18, variant 2 «одним движением»): the grid was scrolled when the finger came down and has
+          // just come back to its top under it, the finger still going down — the sheet takes over and comes down with it
+          // (it took a second swipe)
+          boolean backAtTop = currentScrollY != 0 && y > lastMoveY && base.getRecyclerScrollY() == 0;
+          lastMoveY = y;
+          if (backAtTop) {
+            intercepting = true;
+            interceptStartY = y;
+            base.onRecyclerMovementStarted();
+            ((BaseActivity) getContext()).setOrientationLockFlagEnabled(BaseActivity.ORIENTATION_FLAG_TOUCHING_MEDIA_LAYOUT, true);
+            return true;
+          }
           if (Math.abs(yDiff) >= touchSlop && currentScrollY == 0) {
             //scrolling = currentScrollY != 0 && yDiff <= currentScrollY; //(currentScrollY == 0 || yDiff > currentScrollY)
             //scrollStartY = y + currentScrollY;
@@ -177,6 +197,13 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
           if (!scrolling) {
             scrolling = true;
             scrollStartY = e.getY();
+            // TGx101 (user 2026-11-18 «медиа должно листаться свободно, без первого свайпа, что раскрывает окно», variant 2):
+            // the sheet has reached the top under the finger — the grid takes the same finger on from here. It had been
+            // cancelled when the sheet took the touch, so it is given a fresh touch-down first (moves alone it ignored)
+            MotionEvent down = MotionEvent.obtain(e);
+            down.setAction(MotionEvent.ACTION_DOWN);
+            base.dispatchRecyclerTouchEvent(down);
+            down.recycle();
           }
         }
         break;
@@ -184,7 +211,16 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
 
       case MotionEvent.ACTION_UP: {
         intercepting = false;
-        base.dispatchRecyclerTouchEvent(e);
+        if (scrolling && Math.abs(e.getY() - scrollStartY) < touchSlop) {
+          // the finger let go right where the grid took it: no tap on a photo — the touch is called off
+          MotionEvent cancel = MotionEvent.obtain(e);
+          cancel.setAction(MotionEvent.ACTION_CANCEL);
+          base.dispatchRecyclerTouchEvent(cancel);
+          cancel.recycle();
+        } else {
+          base.dispatchRecyclerTouchEvent(e);
+        }
+        scrolling = false;
         base.onRecyclerMovementFinished();
         ((BaseActivity) getContext()).setOrientationLockFlagEnabled(BaseActivity.ORIENTATION_FLAG_TOUCHING_MEDIA_LAYOUT, false);
         return true;
@@ -227,6 +263,7 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
 
   @Override
   public boolean onFling (MotionEvent e1, MotionEvent e2, float velocityX, float velocityY) {
-    return Math.abs(velocityY) > Screen.dp(140, 1f) && base.handleFling(velocityY < 0, velocityY); // TGx101: a light flick is enough
+    // TGx101: a light flick is enough; when the grid already scrolls under the finger it carries its own fling on
+    return Math.abs(velocityY) > Screen.dp(140, 1f) && base.handleFling(velocityY < 0, scrolling ? 0f : velocityY);
   }
 }

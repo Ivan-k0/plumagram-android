@@ -57,7 +57,7 @@ public class MediaBottomBaseRecyclerView extends RecyclerView {
   }
 
   public void processEvent (MotionEvent e) {
-    if (isDown) {
+    if (isDown || e.getAction() == MotionEvent.ACTION_DOWN) { // TGx101: a fresh touch-down hands the finger on to the grid
       dispatchTouchEvent(e);
     }
   }
