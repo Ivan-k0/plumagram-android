@@ -64,6 +64,7 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
   private boolean intercepting;
 
   private float interceptStartY, lastMoveY;
+  private boolean loggedNearTop;
 
   private boolean isAnimating;
 
@@ -79,6 +80,7 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
     isAnimating = base.isAnimating();
     touchStartY = e.getY();
     lastMoveY = touchStartY;
+    loggedNearTop = false;
     shouldIntercept = !isAnimating && base.canMoveRecycler() && base.isInsideRecyclerView(e.getX(), e.getY());
   }
 
@@ -111,12 +113,17 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
           // TGx101 (user 2026-11-18, variant 2 «одним движением»): the grid was scrolled when the finger came down and has
           // just come back to its top under it, the finger still going down — the sheet takes over and comes down with it
           // (it took a second swipe)
-          boolean backAtTop = currentScrollY != 0 && y > lastMoveY && base.getRecyclerScrollY() == 0;
+          int liveScrollY = base.getRecyclerScrollY();
+          boolean backAtTop = currentScrollY != 0 && y > lastMoveY && liveScrollY <= 0;
+          if (currentScrollY != 0 && y > lastMoveY && liveScrollY < org.thunderdog.challegram.tool.Screen.dp(40f) && !loggedNearTop) {
+            loggedNearTop = true;
+            org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: grid near its top under a finger going down, scroll " + liveScrollY + " (was " + currentScrollY + " at the touch)");
+          }
           lastMoveY = y;
           if (backAtTop) {
             intercepting = true;
             interceptStartY = y;
-            base.onRecyclerMovementStarted();
+            base.onRecyclerMovementStarted(true); // the sheet stops at half in this move (as the other client does)
             ((BaseActivity) getContext()).setOrientationLockFlagEnabled(BaseActivity.ORIENTATION_FLAG_TOUCHING_MEDIA_LAYOUT, true);
             return true;
           }

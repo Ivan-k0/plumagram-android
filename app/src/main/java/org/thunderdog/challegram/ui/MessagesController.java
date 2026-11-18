@@ -8682,6 +8682,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       shouldBeVisible = false;
     }
     final float toFactor = shouldBeVisible ? 1f : 0f;
+    if (shouldBeVisible && !floatingLook && replyBarView.getAlpha() != 1f) replyBarView.setAlpha(1f); // hidden for a send, see tgx101SettleBarsForSend
     if (animated && replyBarVisible.getFloatValue() != toFactor) {
       setForceHw(true); // Resets back in onFactorChangeFinished
     }
@@ -9026,6 +9027,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (!tgx101BarHeld) return;
     tgx101BarHeld = false;
     UI.cancel(tgx101ReleaseBar);
+    // (user 2026-11-18 «после отправки ответом белое поле цитаты исчезает слишком заметно, как белое бельмо», frame by
+    // frame on a light theme): the bar was emptied at once but stood one more frame where it was — a blank white strip.
+    // It goes out of sight in this same frame; it comes back whole with the next reply
+    if (replyBarView != null && !floatingLook) replyBarView.setAlpha(0f);
     updateReplyBarVisibility(false);
     setForceHw(false);
     if (replyBarView != null && !replyBarVisible.getValue()) replyBarView.reset();

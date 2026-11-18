@@ -296,6 +296,18 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
           hideSoftwareKeyboard();
         }
       }
+
+      // TGx101 (user 2026-11-18 «проверь это в другом клиенте и перенеси жесты к нам», recorded there): a flick down on
+      // the scrolled grid of the open sheet — the grid comes back to its top and the rest of the flick takes the sheet
+      // down to half, in one flick (it stayed open)
+      @Override
+      public void onScrolled (RecyclerView view, int dx, int dy) {
+        if (dy < 0 && view.getScrollState() == RecyclerView.SCROLL_STATE_SETTLING && !isMoving && !animatingHeight
+          && isExpanded() && canMinimizeHeight() && !view.canScrollVertically(-1)) {
+          mediaLayout.prepareHeader();
+          animateCurrentHeight(startHeight, false);
+        }
+      }
     });
     contentView.addView(recyclerView);
 
@@ -516,7 +528,9 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
         } else {
           float barFactor = (float) (getMaxHeight() - currentHeight) / (float) (maxHeight - startHeight);
           mediaLayout.setBottomBarFactor(barFactor);
-          mediaLayout.setHeaderFactor(1f - barFactor);
+          // TGx101 (recorded next to the other client): the header comes in only as the sheet reaches the top — over the
+          // last 30 % of the way; it showed over the chat from the first frames of the rise
+          mediaLayout.setHeaderFactor(Math.max(0f, (1f - barFactor - .7f) / .3f));
         }
       }
     }
@@ -529,6 +543,37 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
   private ValueAnimator heightAnimator;
 
   protected void animateCurrentHeight (int toHeight, boolean fast) {
+    animateCurrentHeight(toHeight, fast, 0f);
+  }
+
+  /**
+   * TGx101 (user 2026-11-18, recorded next to the other client: «галерея должна следовать за пальцем так же плавно»): let
+   * go with a speed, the sheet goes on at that same speed and slows down softly — a quadratic ease-out whose first speed is
+   * the finger's (duration 2 × distance / speed). It jumped: a strong decelerate put 60 % of the way into the first 50 ms
+   */
+  protected void animateCurrentHeight (int toHeight, boolean fast, float velocity) {
+    animateCurrentHeight(toHeight, fast, velocity, null);
+  }
+
+  protected void animateCurrentHeight (int toHeight, boolean fast, float velocity, @androidx.annotation.Nullable Runnable after) {
+    long duration = fast ? 180l : 300l;
+    android.view.animation.Interpolator curve = new android.view.animation.DecelerateInterpolator(2.2f);
+    int distance = Math.abs(toHeight - currentHeight);
+    if (velocity != 0f && distance > 0) {
+      // (recorded next to the other client, sharp flick): there the sheet and the grid are one scroll — the sheet goes up
+      // at about the finger's speed in near-even steps (~9 % of the screen a frame, ~170 ms for a hard flick) and at the
+      // top the move goes on in the grid. Hardly any slowing down on the way, the grid takes the rest (see handleFling)
+      duration = Math.max(160l, Math.min(380l, Math.round(1600.0 * distance / Math.abs(velocity))));
+      curve = new android.view.animation.DecelerateInterpolator(.6f);
+    } else if (!fast) {
+      duration = 340l; // let go slowly: no sudden start either
+      curve = new android.view.animation.DecelerateInterpolator(1.2f);
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: " + currentHeight + " → " + toHeight + " px, finger " + Math.round(velocity) + " px/s, " + duration + " ms" + (animatingHeight ? " (one already running)" : ""));
+    animateCurrentHeightImpl(toHeight, duration, curve, after);
+  }
+
+  private void animateCurrentHeightImpl (int toHeight, long duration, android.view.animation.Interpolator curve, @androidx.annotation.Nullable Runnable after) {
     if (animatingHeight) {
       animatingHeight = false;
       if (heightAnimator != null) {
@@ -554,14 +599,21 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       }
     });
     heightAnimator.addListener(new AnimatorListenerAdapter() {
+      private boolean cancelled;
+
+      @Override
+      public void onAnimationCancel (Animator animation) {
+        cancelled = true;
+      }
+
       @Override
       public void onAnimationEnd (Animator animation) {
         animatingHeight = false;
+        if (after != null && !cancelled) after.run();
       }
     });
-    // TGx101: a soft settle like a spring at the end (the sheet glides into place instead of stopping short)
-    heightAnimator.setInterpolator(new android.view.animation.DecelerateInterpolator(2.2f));
-    heightAnimator.setDuration(fast ? 180l : 300l);
+    heightAnimator.setInterpolator(curve);
+    heightAnimator.setDuration(duration);
     heightAnimator.start();
   }
 
@@ -605,8 +657,18 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
   }
 
   public void onRecyclerMovementStarted () {
+    onRecyclerMovementStarted(false);
+  }
+
+  // TGx101 (recorded in the other client, 2026-11-18): the sheet taken down in the same move that brought the grid back
+  // to its top stops at half — closing it is a swipe of its own
+  private boolean stopAtStart;
+
+  public void onRecyclerMovementStarted (boolean stopAtStart) {
+    org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: the finger takes it at " + currentHeight + " px" + (stopAtStart ? " (from the grid, stops at half)" : ""));
     moveStartHeight = currentHeight;
     isMoving = true;
+    this.stopAtStart = stopAtStart;
   }
 
   public boolean handleFling (boolean toUp) {
@@ -622,16 +684,18 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       float expandFactor = currentHeight < startHeight ? 0f : 1f - (float) (getMaxHeight() - currentHeight) / (float) (getMaxHeight() - startHeight);
 
       mediaLayout.prepareHeader();
-      if (toUp) {
+      if (stopAtStart && !toUp) {
+        stopAtStart = false;
+        animateCurrentHeight(startHeight, false, velocityY); // a flick down in the move that came from the grid: to half, not away
+      } else if (toUp) {
+        stopAtStart = false;
         if (canExpandHeight()) {
           // (user 2026-10-12 21:56, exteraGram video «убери этот сдвиг вовсе»): the grid stayed where it was.
           // (user 2026-11-18, variant 2 «без остановки»): a flick from the half sheet opens it and the grid goes on
           // scrolling by the rest of the flick, as one move
-          animateCurrentHeight(getMaxHeight(), false);
-          if (velocityY < 0 && recyclerView != null) {
-            final int fling = Math.round(-velocityY * .6f);
-            recyclerView.post(() -> recyclerView.fling(0, fling));
-          }
+          // the grid takes the rest of the flick once the sheet is at the top, as one move
+          final int fling = velocityY < 0 ? Math.round(-velocityY * .7f) : 0;
+          animateCurrentHeight(getMaxHeight(), false, velocityY, fling > 0 && recyclerView != null ? () -> recyclerView.fling(0, fling) : null);
         } else {
           animateCurrentHeight(startHeight, true);
         }
@@ -662,7 +726,10 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
 
       mediaLayout.prepareHeader();
 
-      if (openFactor <= .45f && !isHeightIncreasing && showExitWarning(false, true)) {
+      if (stopAtStart) {
+        stopAtStart = false;
+        animateCurrentHeight(isHeightIncreasing && expandFactor >= .08f ? getMaxHeight() : startHeight, false);
+      } else if (openFactor <= .45f && !isHeightIncreasing && showExitWarning(false, true)) {
         animateCurrentHeight(startHeight, false); // photos are chosen: the sheet comes back and asks first
       } else if (openFactor <= .45f && !isHeightIncreasing) {
         useBottomBarChange = true;
@@ -683,6 +750,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
   public boolean moveRecyclerView (float diffY) {
     int maxHeight = canExpandHeight() ? getMaxHeight() : startHeight;
     int newHeight = Math.min(maxHeight, moveStartHeight - (int) diffY);
+    if (stopAtStart) newHeight = Math.max(newHeight, startHeight);
 
     if (newHeight < startHeight && !canMinimizeHeight()) {
       return false;
