@@ -1989,7 +1989,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     if (moveFactor != 0f && !useBubbles()) {
       c.drawRect(0, findTopEdge(), view.getMeasuredWidth(), findBottomEdge(), Paints.fillingPaint(getSelectionColor(moveFactor)));
     }
-    if (selectionFactor != 0f) {
+    if (selectionFactor != 0f && !useBubbles()) { // TGx101: in bubbles the selection lies over the bubble, see the end of draw()
       drawSelection(view, c);
     }
     if (highlightFactor != 0f) {
@@ -2508,20 +2508,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
     // Check box
     if (useBubbles) {
-      if (selectableFactor > 0 && canBeSelected()) {
-        int centerY = (findTopEdge() / 2 + findBottomEdge() / 2);
-        int centerX = Screen.dp(18f) - contentOffset;
-        if (contentOffset != 0) {
-          centerX -= Screen.dp(28f) * (1f - selectableFactor);
-        }
-        if (Lang.rtl()) {
-          centerX = viewWidth - centerX;
-        }
-
-        // float darkFactor = Theme.getDarkFactor();
-        float transparency = manager.controller().wallpaper().getBackgroundTransparency();
-        c.drawCircle(centerX, centerY, Screen.dp(9f) + (int) (Screen.dp(1f) * (1f - transparency)), Paints.strokeBigPaint(ColorUtils.alphaColor(selectableFactor, ColorUtils.fromToArgb(Theme.getColor(ColorId.bubble_messageCheckOutline), Theme.getColor(ColorId.bubble_messageCheckOutlineNoWallpaper), transparency))));
-        SimplestCheckBox.draw(c, centerX, centerY, selectionFactor, null);
+      if (selectableFactor > 0 && canBeSelected() && selectionFactor == 0f) { // TGx101: a selected one is drawn over the selection at the end
+        tgx101DrawBubbleCheck(c, viewWidth, selectableFactor, contentOffset);
       }
     } else if (selectionFactor > 0f) {
       double radians = Math.toRadians(45f);
@@ -2771,6 +2759,19 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       drawTranslate(view, c);
     }
 
+    // TGx101 (user 2026-11-18 «когда выделено сообщение, то подсветка должна ложиться на сам пузырь или медиа тоже»):
+    // the selection tint lies over the whole row — wallpaper, bubble and media alike; the check box stays clear on top
+    if (useBubbles && selectionFactor != 0f) {
+      drawSelection(view, c);
+      if (selectableFactor > 0 && canBeSelected()) {
+        c.save();
+        if (savedTranslation) c.translate(translation, 0);
+        if (contentOffset != 0) c.translate(contentOffset * (Lang.rtl() ? -1 : 1), 0);
+        tgx101DrawBubbleCheck(c, viewWidth, selectableFactor, contentOffset);
+        c.restore();
+      }
+    }
+
     tgx101DrawGoToButton(c);
     startSetReactionAnimationIfReady();
     highlightUnreadReactionsIfNeeded();
@@ -2868,6 +2869,22 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   /** TGx101: how far the content is drawn to the right of the view (the selection-mode checkbox room) */
   public final int tgx101ContentShiftX () {
     return getSelectableContentOffset(manager.getSelectableFactor()) * (Lang.rtl() ? -1 : 1);
+  }
+
+  private void tgx101DrawBubbleCheck (Canvas c, int viewWidth, float selectableFactor, int contentOffset) {
+    int centerY = (findTopEdge() / 2 + findBottomEdge() / 2);
+    int centerX = Screen.dp(18f) - contentOffset;
+    if (contentOffset != 0) {
+      centerX -= Screen.dp(28f) * (1f - selectableFactor);
+    }
+    if (Lang.rtl()) {
+      centerX = viewWidth - centerX;
+    }
+
+    // float darkFactor = Theme.getDarkFactor();
+    float transparency = manager.controller().wallpaper().getBackgroundTransparency();
+    c.drawCircle(centerX, centerY, Screen.dp(9f) + (int) (Screen.dp(1f) * (1f - transparency)), Paints.strokeBigPaint(ColorUtils.alphaColor(selectableFactor, ColorUtils.fromToArgb(Theme.getColor(ColorId.bubble_messageCheckOutline), Theme.getColor(ColorId.bubble_messageCheckOutlineNoWallpaper), transparency))));
+    SimplestCheckBox.draw(c, centerX, centerY, selectionFactor, null);
   }
 
   public final void drawOverlay (MessageView view, Canvas c) {
