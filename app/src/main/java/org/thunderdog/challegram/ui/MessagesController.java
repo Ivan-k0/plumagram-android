@@ -4817,10 +4817,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
-  private static void tgx101FitSelectionButtons (LinearLayout menu) {
+  private void tgx101FitSelectionButtons (LinearLayout menu) {
     int visible = 0;
     for (int i = 0; i < menu.getChildCount(); i++) if (menu.getChildAt(i).getVisibility() == View.VISIBLE) visible++;
     int width = visible >= 5 ? Screen.dp(46f) : Screen.dp(52f);
+    int buttonsWidth = 0;
     for (int i = 0; i < menu.getChildCount(); i++) {
       View b = menu.getChildAt(i);
       ViewGroup.LayoutParams lp = b.getLayoutParams();
@@ -4828,6 +4829,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
         lp.width = width;
         b.setLayoutParams(lp);
       }
+      if (b.getVisibility() == View.VISIBLE) buttonsWidth += lp != null && lp.width > 0 ? lp.width : width;
+    }
+    // TGx101 (user 2026-11-18 «либо спрячь его, либо найди ему место»): the count shows only where it fits between
+    // the close button (counter starts at 68dp) and the leftmost button; otherwise it stays away until buttons go
+    if (headerView != null) {
+      org.thunderdog.challegram.navigation.CounterHeaderView counter = getCounterHeaderView(headerView);
+      int headerWidth = headerView.getMeasuredWidth() > 0 ? headerView.getMeasuredWidth() : Screen.currentWidth();
+      int room = headerWidth - buttonsWidth - Screen.dp(68f) - Screen.dp(6f);
+      counter.tgx101SetCrowded(room < counter.tgx101DigitsWidth(), isFocused());
     }
   }
 

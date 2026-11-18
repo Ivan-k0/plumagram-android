@@ -525,9 +525,38 @@ public class CounterHeaderView extends View {
     }
   }
 
+  // TGx101 (user 2026-11-18 «либо спрячь его, либо найди ему место»): no room between the close button and the buttons — away
+  private boolean crowded;
+  private float crowdedFactor;
+  private android.animation.ValueAnimator crowdedAnimator;
+
+  public void tgx101SetCrowded (boolean crowded, boolean animated) {
+    if (this.crowded == crowded) return;
+    this.crowded = crowded;
+    if (crowdedAnimator != null) crowdedAnimator.cancel();
+    float to = crowded ? 1f : 0f;
+    if (!animated || getWindowToken() == null || getVisibility() != VISIBLE) {
+      crowdedFactor = to;
+      invalidate();
+      return;
+    }
+    crowdedAnimator = android.animation.ValueAnimator.ofFloat(crowdedFactor, to);
+    crowdedAnimator.setDuration(SWITCH_DURATION);
+    crowdedAnimator.addUpdateListener(a -> {
+      crowdedFactor = (float) a.getAnimatedValue();
+      invalidate();
+    });
+    crowdedAnimator.start();
+  }
+
+  /** Width the digits take for the current counter, without any suffix */
+  public int tgx101DigitsWidth () {
+    return (int) Math.ceil(maxWidth * Math.max(1, String.valueOf(Math.max(counter, 0)).length()));
+  }
+
   @Override
   protected void onDraw (Canvas c) {
-    float visibility = hideSingle ? getMultipleFactor() : 1f;
+    float visibility = (hideSingle ? getMultipleFactor() : 1f) * (1f - crowdedFactor);
     if (visibility <= 0f) {
       return;
     }
