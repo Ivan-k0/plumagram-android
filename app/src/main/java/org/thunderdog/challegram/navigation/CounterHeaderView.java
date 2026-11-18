@@ -514,8 +514,33 @@ public class CounterHeaderView extends View {
     return cx;
   }
 
+  // TGx101 (user 2026-11-18 «когда выделено одно сообщение, то счетчик вверху не включать; начинай счёт когда больше одного»):
+  // a counter that stays away while it would say 1 — fades in with the 1 → 2 roll, out with 2 → 1
+  private boolean hideSingle;
+
+  public void tgx101SetHideSingle (boolean hide) {
+    if (this.hideSingle != hide) {
+      this.hideSingle = hide;
+      invalidate();
+    }
+  }
+
   @Override
   protected void onDraw (Canvas c) {
+    float visibility = hideSingle ? getMultipleFactor() : 1f;
+    if (visibility <= 0f) {
+      return;
+    }
+    if (visibility < 1f) {
+      int saveCount = org.thunderdog.challegram.tool.Tgx101Compat.saveLayerAlpha(c, 0, 0, getWidth(), getHeight(), (int) (255f * visibility));
+      drawCounter(c);
+      c.restoreToCount(saveCount);
+    } else {
+      drawCounter(c);
+    }
+  }
+
+  private void drawCounter (Canvas c) {
     float translateX = 0;
     if (alignRight()) {
       translateX = getMeasuredWidth() - calculateDrawingSize() - getPaddingRight();

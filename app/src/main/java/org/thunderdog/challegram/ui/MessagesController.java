@@ -7125,6 +7125,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     selectMessage(messageId, msg, pivotX, pivotY, true, -1);
   }
 
+  @Override
+  protected org.thunderdog.challegram.navigation.CounterHeaderView getCounterHeaderView (org.thunderdog.challegram.navigation.HeaderView view) {
+    org.thunderdog.challegram.navigation.CounterHeaderView counter = super.getCounterHeaderView(view);
+    counter.tgx101SetHideSingle(true); // TGx101: one message selected — no «1» in the header, the count starts at 2
+    return counter;
+  }
+
   public int getSelectedMessageCount () {
     return selectedMessageIds != null ? selectedMessageIds.size() : 0;
   }
