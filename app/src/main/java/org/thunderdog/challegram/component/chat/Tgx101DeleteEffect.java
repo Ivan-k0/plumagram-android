@@ -380,7 +380,9 @@ public final class Tgx101DeleteEffect extends View {
   private void drawShrink (Canvas c, Burst b, float t) {
     float f = Math.max(0f, Math.min(1f, t / SHRINK_END));
     float e = SHRINK_CURVE.getInterpolation(f);
-    float scale = 1f - .14f * e, alpha = 1f - e;
+    // (phone check 2026-11-18: the neighbour coming down showed through the half-faded picture — «Test oOk»): it is gone
+    // by 55 % of the time, before the chat closing in reaches it; the shrink goes on to the end unseen
+    float scale = 1f - .14f * e, alpha = 1f - Math.min(1f, f / .55f);
     if (alpha <= 0f) return;
     float px = b.right ? b.bounds.right : b.bounds.left, py = b.bounds.centerY();
     dst.set(px + (b.bounds.left - px) * scale, py + (b.bounds.top - py) * scale, px + (b.bounds.right - px) * scale, py + (b.bounds.bottom - py) * scale);

@@ -784,7 +784,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private @Nullable java.util.IdentityHashMap<TGMessage, Integer> tgx101GapTops;
   // (user 2026-11-18, А+В chosen): the chat closes in almost at once as the message shrinks and melts, on one soft curve;
   // with a wave it waits for the wave's last message to start going
-  private static final long TGX101_GAP_CLOSE_DURATION = 260, TGX101_GAP_CLOSE_DELAY = 50;
+  private static final long TGX101_GAP_CLOSE_DURATION = 260, TGX101_GAP_CLOSE_DELAY = 80; // the picture is gone by ~110 ms
   private static final android.view.animation.Interpolator TGX101_GAP_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.2f, .8f, .2f, 1f);
 
   private long tgx101GapDelay () {
@@ -14163,7 +14163,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   /** A sent text message came into the chat: the words waiting over the field fly to it (it needs no rise-and-fade) */
   public boolean tgx101FlightBind (TGMessage message) {
-    return tgx101Flight != null && message instanceof org.thunderdog.challegram.data.TGMessageText && tgx101Flight.bind(message.getId());
+    return tgx101Flight != null && message instanceof org.thunderdog.challegram.data.TGMessageText && tgx101Flight.bind(message);
   }
 
   /** The field was emptied by sending a moment ago: its shrink and the chat's glide go quick, as the words fly */

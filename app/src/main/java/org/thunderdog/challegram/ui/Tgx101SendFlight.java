@@ -35,6 +35,7 @@ final class Tgx101SendFlight extends View {
   private StaticLayout layout;
   private float startX, startY, lineHeight;
   private long messageId;
+  private @Nullable TGMessage message; // the message itself: its id changes when the server takes it (local → real)
   private long armedAt, flyingAt;
   private float lastX, lastY, lastScale = 1f, drawnY;
 
@@ -58,7 +59,14 @@ final class Tgx101SendFlight extends View {
     try {
       TextPaint paint = new TextPaint(field.getPaint());
       paint.setColor(field.getCurrentTextColor());
-      layout = new StaticLayout(new SpannableStringBuilder(text), paint, Math.max(1, old.getWidth()), Layout.Alignment.ALIGN_NORMAL,
+      SpannableStringBuilder words = new SpannableStringBuilder(text);
+      // the keyboard's underline under the word being typed (and its suggestions) stays in the field
+      for (Object span : words.getSpans(0, words.length(), Object.class)) {
+        if ((words.getSpanFlags(span) & android.text.Spanned.SPAN_COMPOSING) != 0 || span instanceof android.text.style.UnderlineSpan || span instanceof android.text.style.SuggestionSpan) {
+          words.removeSpan(span);
+        }
+      }
+      layout = new StaticLayout(words, paint, Math.max(1, old.getWidth()), Layout.Alignment.ALIGN_NORMAL,
         field.getLineSpacingMultiplier(), field.getLineSpacingExtra(), false);
     } catch (Throwable t) {
       layout = null;
@@ -83,9 +91,10 @@ final class Tgx101SendFlight extends View {
   }
 
   /** The message these words became has come into the chat: they fly to it. False if there is no flight waiting */
-  boolean bind (long messageId) {
+  boolean bind (TGMessage message) {
     if (layout == null || this.messageId != 0 || SystemClock.uptimeMillis() - armedAt > WAIT_LIMIT) return false;
-    this.messageId = messageId;
+    this.messageId = message.getId();
+    this.message = message;
     org.thunderdog.challegram.Tgx101Diag.mark("send flight: bound to " + messageId + " +" + (SystemClock.uptimeMillis() - armedAt) + " ms");
     return true;
   }
@@ -96,7 +105,7 @@ final class Tgx101SendFlight extends View {
       View child = list.getChildAt(i);
       if (!(child instanceof MessageView)) continue;
       TGMessage msg = ((MessageView) child).getMessage();
-      if (msg == null || !msg.isDescendantOrSelf(messageId) || !(msg instanceof TGMessageText)) continue;
+      if (msg == null || !(msg == message || msg.isDescendantOrSelf(messageId)) || !(msg instanceof TGMessageText)) continue;
       int[] frame = ((TGMessageText) msg).tgx101TextFrame();
       if (frame == null) return null;
       int[] at = new int[2], me = new int[2];
@@ -111,6 +120,7 @@ final class Tgx101SendFlight extends View {
     org.thunderdog.challegram.Tgx101Diag.mark("send flight: " + why);
     layout = null;
     messageId = 0;
+    message = null;
     invalidate();
   }
 
@@ -145,7 +155,14 @@ final class Tgx101SendFlight extends View {
       y = Math.min(drawnY, startY + (lastY - startY) * e);
       scale = 1f + (lastScale - 1f) * e;
       // the bubble's own text is under it from the start: the flying words give way over the second half
-      alpha = t < .45f ? 1f : Math.max(0f, 1f - (t - .45f) / .55f);
+      // (phone check 2026-11-18): over half the flight two texts showed side by side — the words give way sooner, and
+      // several lines (wrapped differently in the field and the bubble) sooner still
+      float from = layout.getLineCount() > 1 ? .12f : .25f, span = layout.getLineCount() > 1 ? .33f : .45f;
+      alpha = t < from ? 1f : Math.max(0f, 1f - (t - from) / span);
+      if (alpha <= 0f && t > .5f) {
+        finish("landed");
+        return;
+      }
       if (t >= 1f) {
         finish("landed");
         return;
