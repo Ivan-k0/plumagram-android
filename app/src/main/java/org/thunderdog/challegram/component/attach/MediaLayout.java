@@ -1193,6 +1193,7 @@ public class MediaLayout extends FrameLayoutFix implements
 
   @Override
   public void performDestroy () {
+    if (tgx101HeaderIcons) tgx101MatchStatusIcons(false); // the status bar's icons are let go
     setContentVisible(true);
     isDestroyed = true;
     onCurrentColorChanged();
@@ -2049,7 +2050,7 @@ public class MediaLayout extends FrameLayoutFix implements
     tgx101HeaderIcons = header;
     android.view.Window window = UI.getWindow();
     if (window == null) return;
-    org.thunderdog.challegram.navigation.HeaderView.tgx101MatchStatusIcons(window, header ? Theme.fillingColor() : Theme.headerColor());
+    org.thunderdog.challegram.navigation.HeaderView.tgx101HoldStatusIcons(window, header, header ? Theme.fillingColor() : Theme.headerColor());
   }
 
   private boolean visible = true;

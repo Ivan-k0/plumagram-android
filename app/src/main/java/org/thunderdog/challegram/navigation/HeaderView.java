@@ -1718,10 +1718,31 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
   // TGx101 (user 2026-10-14 11:41, ⋮ → «Поиск»: «строка состояния должна быть видна»): the search header turns light and the
   // status bar with it, but its icons stayed white — invisible. Over a light bar the icons go dark, back to the theme after
   @SuppressWarnings("deprecation")
+  /**
+   * TGx101 (user 2026-11-19 «значки так же пропадают», recording): with the gallery open full under its light header the
+   * icons went white again for 4–8 frames right as it settled — something under it set them by its own colour. While a
+   * screen on top holds the status bar (true — dark icons, false — light) nobody else changes them
+   */
+  public static volatile Boolean tgx101IconsHeld;
+
+  /** hold: the icons stay as this colour wants them until released (hold false) */
+  public static void tgx101HoldStatusIcons (Window window, boolean hold, int color) {
+    tgx101IconsHeld = null;
+    tgx101MatchStatusIcons(window, color);
+    if (hold && android.graphics.Color.alpha(color) >= 200) {
+      tgx101IconsHeld = (0.299f * android.graphics.Color.red(color) + 0.587f * android.graphics.Color.green(color) + 0.114f * android.graphics.Color.blue(color)) / 255f > 0.7f;
+    }
+  }
+
   public static void tgx101MatchStatusIcons (Window window, int color) {
     if (android.graphics.Color.alpha(color) < 200 || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
     int r = android.graphics.Color.red(color), g = android.graphics.Color.green(color), b = android.graphics.Color.blue(color);
     boolean lightBar = (0.299f * r + 0.587f * g + 0.114f * b) / 255f > 0.7f;
+    Boolean held = tgx101IconsHeld;
+    if (held != null) {
+      if (held != lightBar) org.thunderdog.challegram.Tgx101Diag.mark("status icons: " + (lightBar ? "dark" : "light") + " asked by a bar colour under the screen holding them — kept " + (held ? "dark" : "light"));
+      lightBar = held;
+    }
     // by the bar itself only (the theme's default could put dark icons on a dark bar); the same way as UI.setLightSystemBars:
     // the insets controller only edge to edge — mixing it with the old flags made them stick
     boolean darkIcons = lightBar;

@@ -570,6 +570,11 @@ public class UI {
 
   @SuppressWarnings("deprecation")
   public static void setLightSystemBars (Window w, boolean lightNavigationBar, boolean lightStatusBar, int newVisibility, boolean forceNewVisibility) {
+    Boolean held = org.thunderdog.challegram.navigation.HeaderView.tgx101IconsHeld; // a screen on top holds the status bar's icons
+    if (held != null && held != lightStatusBar) {
+      org.thunderdog.challegram.Tgx101Diag.mark("status icons: " + (lightStatusBar ? "dark" : "light") + " asked by the window's bars — kept " + (held ? "dark" : "light"));
+      lightStatusBar = held;
+    }
     if (Settings.instance().useEdgeToEdge() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
       android.view.WindowInsetsController insetsController = w.getInsetsController();
       if (insetsController != null) {
