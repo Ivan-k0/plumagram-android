@@ -1854,6 +1854,14 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           } else {
             view.setName(Lang.getString(R.string.LoadingInformation));
           }
+        } else if (itemId == R.id.btn_tgx101ProfileMusic) {
+          TdApi.Audio a = userFull != null ? userFull.firstProfileAudio : null;
+          if (a != null) {
+            String performer = StringUtils.isEmpty(a.performer) ? "" : a.performer + " — ";
+            view.setName(performer + (StringUtils.isEmpty(a.title) ? a.fileName : a.title));
+            int more = tgx101ProfileMusicCount - 1;
+            view.setData(more > 0 ? Lang.getString(R.string.Tgx101ProfileMusic) + " · " + Lang.getString(R.string.Tgx101ProfileMusicMore, more) : Lang.getString(R.string.Tgx101ProfileMusic));
+          }
         } else if (itemId == R.id.btn_tgx101PersonalChannel) {
           long pcId = userFull != null ? userFull.personalChatId : 0;
           TdApi.Chat pc = pcId != 0 ? tdlib.chat(pcId) : null;
@@ -2637,6 +2645,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     checkDescription();
     tgx101CheckNote();
     tgx101CheckPersonalChannel();
+    tgx101CheckProfileMusic();
     tgx101CheckPosts();
     checkGroupsInCommon();
 
@@ -2910,6 +2919,71 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   // TGx101 (user 2026-10-19 «как у нас добавить личный канал?», mockup «Личный канал»): one's own profile has «Personal
   // channel · Add / <name>» — a public channel one owns, shown on the profile; anyone else's profile shows theirs, a tap
   // opens it
+  // TGx101 (user 2026-11-19, mockup «Музыка профиля», «как в эталоне»): under the details the first song of the profile
+  // — a tap plays all of them as one queue — and the «Profile music» tab with the whole list
+  private int tgx101ProfileMusicCount = 1;
+
+  private void tgx101CheckProfileMusic () {
+    if (isEditing() || user == null || TD.isBot(user)) return;
+    boolean has = userFull != null && userFull.firstProfileAudio != null;
+    int foundIndex = baseAdapter.indexOfViewById(R.id.btn_tgx101ProfileMusic);
+    if ((foundIndex != -1) != has) {
+      if (foundIndex != -1) {
+        removeTopItem(foundIndex);
+      } else {
+        int index = 0;
+        for (int id : new int[] {R.id.btn_peer_id, R.id.btn_username, R.id.btn_birthdate, R.id.btn_description, R.id.btn_tgx101UserNote, R.id.btn_tgx101PersonalChannel}) {
+          if ((id != R.id.btn_peer_id || Settings.instance().showPeerIds()) && baseAdapter.indexOfViewById(id) != -1) index++;
+        }
+        addTopItem(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101ProfileMusic, R.drawable.baseline_music_note_24, R.string.Tgx101ProfileMusic), index);
+      }
+    } else if (has) {
+      updateValuedItem(R.id.btn_tgx101ProfileMusic);
+    }
+    Tgx101ProfileMusicController tab = null;
+    for (SharedBaseController<?> c : controllers) {
+      if (c instanceof Tgx101ProfileMusicController) tab = (Tgx101ProfileMusicController) c;
+    }
+    if (has && tab == null) {
+      addControllerTab(new Tgx101ProfileMusicController(context, tdlib));
+    } else if (!has && tab != null) {
+      removeControllerTab(tab);
+    } else if (tab != null) {
+      tab.tgx101Refresh(); // a song added or taken off somewhere
+    }
+    if (has) {
+      final long userId = user.id;
+      tdlib.send(new TdApi.GetUserProfileAudios(userId, 0, 1), (result, error) -> runOnUiThreadOptional(() -> {
+        if (result != null && user != null && user.id == userId && tgx101ProfileMusicCount != result.totalCount) {
+          tgx101ProfileMusicCount = result.totalCount;
+          updateValuedItem(R.id.btn_tgx101ProfileMusic);
+        }
+      }));
+    }
+  }
+
+  private void tgx101PlayProfileMusic () {
+    if (user == null) return;
+    tdlib.send(new TdApi.GetUserProfileAudios(user.id, 0, 100), (result, error) -> runOnUiThreadOptional(() -> {
+      if (result == null || result.audios.length == 0) {
+        if (error != null) UI.showError(error);
+        return;
+      }
+      final java.util.List<TdApi.Message> queue = Tgx101ProfileMusicController.asMessages(result.audios);
+      tdlib.context().player().playPauseMessage(tdlib, queue.get(0), new org.thunderdog.challegram.player.TGPlayerController.PlayListBuilder() {
+        @Override
+        public org.thunderdog.challegram.player.TGPlayerController.PlayList buildPlayList (TdApi.Message fromMessage) {
+          return new org.thunderdog.challegram.player.TGPlayerController.PlayList(new java.util.ArrayList<>(queue), 0).setReachedEnds(true, true);
+        }
+
+        @Override
+        public boolean wouldReusePlayList (TdApi.Message fromMessage, boolean isReverse, boolean hasAltered, java.util.List<TdApi.Message> trackList, long playListChatId) {
+          return false;
+        }
+      });
+    }));
+  }
+
   private void tgx101CheckPersonalChannel () {
     if (isEditing() || user == null || TD.isBot(user)) return;
     boolean self = tdlib.isSelfUserId(user.id);
@@ -2948,7 +3022,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       int at = baseAdapter.indexOfViewById(R.id.btn_tgx101Posts);
       if (show && at == -1) {
         int index = 0;
-        for (int id : new int[] {R.id.btn_peer_id, R.id.btn_username, R.id.btn_birthdate, R.id.btn_description, R.id.btn_tgx101UserNote, R.id.btn_tgx101PersonalChannel}) {
+        for (int id : new int[] {R.id.btn_peer_id, R.id.btn_username, R.id.btn_birthdate, R.id.btn_description, R.id.btn_tgx101UserNote, R.id.btn_tgx101PersonalChannel, R.id.btn_tgx101ProfileMusic}) {
           if ((id != R.id.btn_peer_id || Settings.instance().showPeerIds()) && baseAdapter.indexOfViewById(id) != -1) index++;
         }
         addTopItem(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101Posts, R.drawable.baseline_image_24, R.string.Tgx101Posts), index);
@@ -5141,6 +5215,8 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       c.setArguments(new Tgx101PostsController.Args(getChatId(), viewId == R.id.btn_tgx101PostsArchive));
       navigateTo(c);
       return;
+    } else if (viewId == R.id.btn_tgx101ProfileMusic) {
+      tgx101PlayProfileMusic();
     } else if (viewId == R.id.btn_tgx101PersonalChannel) {
       tgx101OnPersonalChannel();
     } else if (viewId == R.id.btn_tgx101UserNote) {
@@ -6571,6 +6647,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       if (isUpdate) {
         checkUserButtons();
         checkGroupsInCommon();
+        tgx101CheckProfileMusic();
         checkDescription();
         tgx101CheckNote();
         if (mode == Mode.EDIT_BOT_USER) {

@@ -3674,6 +3674,13 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       ids.append(R.id.btn_tgx101Playlists);
       strings.append(R.string.Tgx101Playlists);
 
+      // TGx101 (user 2026-11-19, mockup «Музыка профиля»): the song playing goes onto one's profile, or off it
+      TdApi.Audio tgx101Song = currentItem != null ? Tgx101ProfileMusic.audioOf(currentItem.getMessage()) : null;
+      if (tgx101Song != null) {
+        ids.append(R.id.btn_tgx101ProfileMusicToggle);
+        strings.append(Tgx101ProfileMusic.isMine(tdlib, tgx101Song) ? R.string.Tgx101ProfileMusicRemove : R.string.Tgx101ProfileMusicAdd);
+      }
+
       ids.append(R.id.btn_tgx101QueueSearch);
       strings.append(R.string.Tgx101PlayerSearch);
 
@@ -3689,7 +3696,10 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   @Override
   public void onMoreItemPressed (int id) {
-    if (id == R.id.btn_tgx101Playlists) {
+    if (id == R.id.btn_tgx101ProfileMusicToggle) {
+      TdApi.Audio song = currentItem != null ? Tgx101ProfileMusic.audioOf(currentItem.getMessage()) : null;
+      if (song != null) Tgx101ProfileMusic.toggle(tdlib, song);
+    } else if (id == R.id.btn_tgx101Playlists) {
       Tgx101Playlists.show(this);
     } else if (id == R.id.btn_tgx101HiddenMusic) {
       tgx101ShowHidden();

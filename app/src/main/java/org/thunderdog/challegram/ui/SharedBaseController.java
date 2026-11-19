@@ -803,6 +803,17 @@ public abstract class SharedBaseController <T extends MessageSourceProvider> ext
         modifyResultIfNeeded(items, true);
         break;
       }
+      case TdApi.Audios.CONSTRUCTOR: { // TGx101: the songs of a profile (Tgx101ProfileMusicController)
+        java.util.List<TdApi.Message> messages = Tgx101ProfileMusicController.asMessages(((TdApi.Audios) object).audios);
+        items = new ArrayList<>(messages.size());
+        for (TdApi.Message message : messages) {
+          T parsedItem = parseObject(message);
+          if (parsedItem != null) {
+            items.add(parsedItem);
+          }
+        }
+        break;
+      }
       case TdApi.ChatMembers.CONSTRUCTOR: {
         TdApi.ChatMembers members = (TdApi.ChatMembers) object;
         items = new ArrayList<>(members.members.length);

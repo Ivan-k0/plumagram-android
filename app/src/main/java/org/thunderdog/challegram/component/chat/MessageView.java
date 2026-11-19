@@ -1046,6 +1046,13 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       strings.append(R.string.Translate);
       icons.append(R.drawable.baseline_translate_24);
     }
+    // TGx101 (user 2026-11-19, mockup «Музыка профиля»): a song can be put on one's profile, or taken off it
+    if (!isMore && messageCount == 1 && msg.getMessage().content.getConstructor() == TdApi.MessageAudio.CONSTRUCTOR && !msg.isSponsoredMessage()) {
+      boolean onProfile = org.thunderdog.challegram.ui.Tgx101ProfileMusic.isMine(m.tdlib(), ((TdApi.MessageAudio) msg.getMessage().content).audio);
+      ids.append(R.id.btn_tgx101ProfileMusicToggle);
+      strings.append(onProfile ? R.string.Tgx101ProfileMusicRemove : R.string.Tgx101ProfileMusicAdd);
+      icons.append(R.drawable.baseline_music_note_24);
+    }
     if (!isMore && msg.tgx101CanSummarize()) { // TGx101: «✨ Short» (or back to the whole post)
       ids.append(R.id.btn_tgx101Summary);
       strings.append(msg.tgx101SummaryShown() ? R.string.Tgx101AiShowFull : R.string.Tgx101AiShort);

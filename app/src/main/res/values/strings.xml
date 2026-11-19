@@ -7010,6 +7010,13 @@
   <string name="Tgx101SameSettingsHint">Theme, chat background, message style and chat folders</string>
   <string name="Tgx101EditWaitDownload">The photo is still loading — try again in a moment</string>
   <string name="Tgx101PersonalChannel">Personal channel</string>
+  <string name="Tgx101ProfileMusic">Profile music</string>
+  <string name="Tgx101ProfileMusicTab">Profile music</string>
+  <string name="Tgx101ProfileMusicMore">%1$d more</string>
+  <string name="Tgx101ProfileMusicAdd">Add to profile</string>
+  <string name="Tgx101ProfileMusicRemove">Remove from profile</string>
+  <string name="Tgx101ProfileMusicAdded">Added to your profile</string>
+  <string name="Tgx101ProfileMusicRemoved">Removed from your profile</string>
   <string name="Tgx101PersonalChannelAdd">Add</string>
   <string name="Tgx101PersonalChannelOpen">Open the channel</string>
   <string name="Tgx101PersonalChannelRemove">Remove the personal channel</string>

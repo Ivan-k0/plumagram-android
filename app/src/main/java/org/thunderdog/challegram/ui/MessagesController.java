@@ -7777,6 +7777,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
         cancelSheduledKeyboardOpeningAndHideAllKeyboards();
         startTranslateMessages(selectedMessage);
         return true;
+      } else if (id == R.id.btn_tgx101ProfileMusicToggle) {
+        TdApi.Audio audio = Tgx101ProfileMusic.audioOf(selectedMessage != null ? selectedMessage.getMessage() : null);
+        if (audio != null) Tgx101ProfileMusic.toggle(tdlib, audio);
+        return true;
       } else if (id == R.id.btn_tgx101Summary) {
         selectedMessage.tgx101ToggleSummary();
         return true;

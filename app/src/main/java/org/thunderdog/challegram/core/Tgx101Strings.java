@@ -1821,6 +1821,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SameSettingsHint, "Тема, фон чатов, вид сообщений и папок");
     RU.put(R.string.Tgx101EditWaitDownload, "Фото ещё загружается — нажмите через пару секунд");
     RU.put(R.string.Tgx101PersonalChannel, "Личный канал");
+    RU.put(R.string.Tgx101ProfileMusic, "Музыка профиля");
+    RU.put(R.string.Tgx101ProfileMusicTab, "Музыка профиля");
+    RU.put(R.string.Tgx101ProfileMusicMore, "ещё %1$d");
+    RU.put(R.string.Tgx101ProfileMusicAdd, "Добавить в профиль");
+    RU.put(R.string.Tgx101ProfileMusicRemove, "Убрать из профиля");
+    RU.put(R.string.Tgx101ProfileMusicAdded, "Добавлено в профиль");
+    RU.put(R.string.Tgx101ProfileMusicRemoved, "Убрано из профиля");
     RU.put(R.string.Tgx101PersonalChannelAdd, "Добавить");
     RU.put(R.string.Tgx101PersonalChannelOpen, "Открыть канал");
     RU.put(R.string.Tgx101PersonalChannelRemove, "Убрать личный канал");
