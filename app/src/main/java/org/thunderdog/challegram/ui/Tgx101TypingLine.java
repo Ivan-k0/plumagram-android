@@ -410,7 +410,9 @@ public final class Tgx101TypingLine {
         wantedAt = now;
         try {
           org.thunderdog.challegram.unsorted.Settings s = org.thunderdog.challegram.unsorted.Settings.instance();
-          wanted = s.tgx101MorseLine();
+          // (user 2026-11-19 «волну нужно убрать, если выключен отступ»): with no gap the field lies on the screen's edge
+          // and the wave has no room under its line — none at all then
+          wanted = s.tgx101MorseLine() && s.needBottomGap();
         } catch (Throwable t) {
           wanted = false;
         }
@@ -491,6 +493,7 @@ public final class Tgx101TypingLine {
      * {@link #draw}; the view is asked for the next frame. The level rises fast and falls softly
      */
     static boolean live (View view, boolean panel) {
+      if (!wanted()) return false;
       java.lang.ref.WeakReference<View> ref = panel ? panelRef : hostRef;
       if (ref == null || ref.get() != view) {
         ref = new java.lang.ref.WeakReference<>(view);

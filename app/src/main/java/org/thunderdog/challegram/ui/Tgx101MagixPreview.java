@@ -211,7 +211,7 @@ public class Tgx101MagixPreview extends View {
     }
     // the input line as the field has it: a thin whole line when «Interactive input line» is on
     c.drawText(Lang.getString(R.string.Message), x, cy, ph);
-    if (style != 0 && s.tgx101MorseLine()) {
+    if (style != 0 && s.tgx101MorseLine() && s.needBottomGap()) {
       Tgx101TypingLine.drawDemo(c, demoPaint, fl, fr, fb - Screen.dp(2f));
     }
     float rx = fr - Screen.dp(12f);
