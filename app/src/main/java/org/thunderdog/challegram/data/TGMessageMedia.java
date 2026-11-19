@@ -430,7 +430,7 @@ public class TGMessageMedia extends TGMessage {
       list.add(new TdApi.TextEntity(b.length(), more.length(), new TdApi.TextEntityTypeTextUrl(TGMessageText.TGX101_FULL_LINK)));
       b.append(more);
     } else {
-      return t; // (user 2026-11-19 «просто убери кнопку кратко, значок уже есть»): no «✨ Short» at the end
+      return t; // (user 2026-11-19 «просто убери кнопку кратко, значок уже есть»): no «✨ Short» at the end, the sign at the caption's top right (tgx101DrawShort)
     }
     return new TdApi.FormattedText(b.toString(), list.toArray(new TdApi.TextEntity[0]));
   }
@@ -498,6 +498,12 @@ public class TGMessageMedia extends TGMessage {
           .setHighlightText(getHighlightedText(Highlight.Pool.KEY_MEDIA_CAPTION, fText.text))
           .addTextFlags(Text.FLAG_BIG_EMOJI)
           .setClickCallback(clickCallback());
+        if (tgx101CanSummarize()) {
+          // TGx101 (user 2026-11-19 «у постов с медиа нет иконки вверху "кратко"? — да, добавь»): the «Short» sign at the
+          // caption's top right, the first line ends before it — as in a text post
+          final int room = Screen.dp(TGMessageText.TGX101_SHORT_SIZE + 6f);
+          this.wrapper.setLineWidthProvider((lineIndex, y, defaultMaxWidth, lineHeight) -> y < Screen.dp(TGMessageText.TGX101_SHORT_SIZE) ? defaultMaxWidth - room : defaultMaxWidth);
+        }
         this.wrapper.setViewProvider(currentViews);
         if (Config.USE_NONSTRICT_TEXT_ALWAYS || !useBubbles()) {
           this.wrapper.addTextFlags(Text.FLAG_BOUNDS_NOT_STRICT);
@@ -865,6 +871,58 @@ public class TGMessageMedia extends TGMessage {
       float alpha = getTranslationLoadingAlphaValue();
       wrapper.draw(c, getTextX(view, wrapper, false), getTextX(view, wrapper, true), Config.MOVE_BUBBLE_TIME_RTL_TO_LEFT || tgx101CaptionAbove() ? 0 : getBubbleTimePartWidth(), textTop, null, alpha, view.getTextMediaReceiver());
     }
+    tgx101DrawShort(view, c, textTop);
+  }
+
+  private final android.graphics.RectF tgx101ShortRect = new android.graphics.RectF();
+  private boolean tgx101ShortPressed;
+
+  private void tgx101DrawShort (View view, Canvas c, int textTop) {
+    if (wrapper == null || !tgx101CanSummarize()) {
+      tgx101ShortRect.setEmpty();
+      return;
+    }
+    float size = Screen.dp(TGMessageText.TGX101_SHORT_SIZE);
+    int left = getTextX(view, wrapper, false);
+    float right = left + (useBubbles() ? mosaicWrapper.getWidth() - xBubblePadding * 2 : getRealContentMaxWidth());
+    tgx101ShortRect.set(right - size, textTop, right, textTop + size);
+    if (TGMessageText.tgx101DrawShortIcon(c, tgx101ShortRect, tgx101SummaryShown || tgx101ShortPressed || tgx101SummaryLoading, tgx101SummaryLoading)) invalidate();
+  }
+
+  private boolean tgx101ShortTouch (MessageView view, MotionEvent e) {
+    if (tgx101ShortRect.isEmpty()) return false;
+    float slop = Screen.dp(6f);
+    boolean inside = e.getX() >= tgx101ShortRect.left - slop && e.getX() <= tgx101ShortRect.right + slop && e.getY() >= tgx101ShortRect.top - slop && e.getY() <= tgx101ShortRect.bottom + slop;
+    switch (e.getActionMasked()) {
+      case MotionEvent.ACTION_DOWN:
+        if (!inside) return false;
+        tgx101ShortPressed = true;
+        view.invalidate();
+        return true;
+      case MotionEvent.ACTION_MOVE:
+        if (tgx101ShortPressed && !inside) {
+          tgx101ShortPressed = false;
+          view.invalidate();
+        }
+        return tgx101ShortPressed;
+      case MotionEvent.ACTION_UP:
+        if (tgx101ShortPressed) {
+          tgx101ShortPressed = false;
+          view.performHapticFeedback(android.view.HapticFeedbackConstants.VIRTUAL_KEY);
+          tgx101ToggleSummary();
+          view.invalidate();
+          return true;
+        }
+        return false;
+      case MotionEvent.ACTION_CANCEL:
+        if (tgx101ShortPressed) {
+          tgx101ShortPressed = false;
+          view.invalidate();
+          return true;
+        }
+        return false;
+    }
+    return false;
   }
 
   private static float TEXT_MARGIN = 10f;
@@ -1070,6 +1128,9 @@ public class TGMessageMedia extends TGMessage {
 
   @Override
   public boolean onTouchEvent (MessageView view, MotionEvent e) {
+    if (tgx101ShortTouch(view, e)) {
+      return true;
+    }
     if (super.onTouchEvent(view, e)) {
       return true;
     }
