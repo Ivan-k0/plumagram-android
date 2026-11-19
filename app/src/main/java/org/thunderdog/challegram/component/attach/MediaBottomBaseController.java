@@ -304,12 +304,25 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       @Override
       public void onScrolled (RecyclerView view, int dx, int dy) {
         long now = SystemClock.uptimeMillis();
-        if (dy < 0 && view.getScrollState() == RecyclerView.SCROLL_STATE_SETTLING && now > tgx101GridAt && now - tgx101GridAt < 100) {
-          float v = -dy / (float) (now - tgx101GridAt); // the grid's speed as the sheet would carry it: shrinking
-          tgx101Speed = tgx101SpeedAt == tgx101GridAt && tgx101Speed < 0f ? tgx101Speed * .4f - v * .6f : -v;
-          tgx101SpeedAt = now;
+        // the grid's speed as the sheet would carry it (shrinking), over at least a frame: two steps in the same
+        // millisecond counted as 27 000 px/s and the sheet flew down in 220 ms (journal 2026-11-19 20:51)
+        if (dy < 0 && view.getScrollState() == RecyclerView.SCROLL_STATE_SETTLING) {
+          if (tgx101GridAt == 0 || now - tgx101GridAt > 100) {
+            tgx101GridAt = now;
+            tgx101GridDy = 0;
+          }
+          tgx101GridDy += -dy;
+          long dt = now - tgx101GridAt;
+          if (dt >= 14) {
+            float v = Math.min(12f, tgx101GridDy / (float) dt);
+            tgx101Speed = tgx101SpeedAt != 0 && now - tgx101SpeedAt < 100 && tgx101Speed < 0f ? tgx101Speed * .4f - v * .6f : -v;
+            tgx101SpeedAt = now;
+            tgx101GridAt = now;
+            tgx101GridDy = 0;
+          }
+        } else {
+          tgx101GridAt = 0;
         }
-        tgx101GridAt = now;
         if (dy < 0 && view.getScrollState() == RecyclerView.SCROLL_STATE_SETTLING && !isMoving && !animatingHeight
           && isExpanded() && canMinimizeHeight() && !view.canScrollVertically(-1)) {
           mediaLayout.prepareHeader();
@@ -619,8 +632,9 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
 
   private void tgx101TrackSpeed (int height) {
     long now = SystemClock.uptimeMillis();
-    if (tgx101SpeedHeight >= 0 && now > tgx101SpeedAt && now - tgx101SpeedAt < 100) {
-      float v = (height - tgx101SpeedHeight) / (float) (now - tgx101SpeedAt);
+    if (tgx101SpeedHeight >= 0 && now - tgx101SpeedAt < 8) return; // over a frame at least, not two events at once
+    if (tgx101SpeedHeight >= 0 && now - tgx101SpeedAt < 100) {
+      float v = Math.max(-12f, Math.min(12f, (height - tgx101SpeedHeight) / (float) (now - tgx101SpeedAt)));
       tgx101Speed = tgx101Speed == 0f ? v : tgx101Speed * .4f + v * .6f;
     } else {
       tgx101Speed = 0f;
@@ -630,6 +644,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
   }
 
   private long tgx101GridAt;
+  private int tgx101GridDy;
 
   private void animateCurrentHeightImpl (int toHeight, long duration, android.view.animation.Interpolator curve, @androidx.annotation.Nullable Runnable after) {
     if (animatingHeight) {

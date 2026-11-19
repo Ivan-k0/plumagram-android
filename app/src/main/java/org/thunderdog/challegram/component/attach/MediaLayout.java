@@ -2023,7 +2023,17 @@ public class MediaLayout extends FrameLayoutFix implements
         int offsetY = HeaderView.getSize(false) + headerView.getFilling().getExtraHeight();
         headerView.setTranslationY(-offsetY + (int) ((float) offsetY * factor));
       }
-      tgx101MatchStatusIcons(factor >= .5f);
+      // (user 2026-11-19 «почему мигает строка состояния?», recording): the system changes the icons' colour ~40 ms after
+      // it is asked — over those frames the white icons stood on the header already white and the clock was gone. The
+      // switch is asked for where the header will be 50 ms from now
+      long now = android.os.SystemClock.uptimeMillis();
+      float ahead = factor;
+      if (tgx101FactorAt != 0 && now > tgx101FactorAt && now - tgx101FactorAt < 100) {
+        ahead = factor + (factor - tgx101LastFactor) / (now - tgx101FactorAt) * 50f;
+      }
+      tgx101LastFactor = factor;
+      tgx101FactorAt = now;
+      tgx101MatchStatusIcons(factor >= 1f || (factor > 0f && ahead >= .5f));
     }
   }
 
@@ -2031,6 +2041,8 @@ public class MediaLayout extends FrameLayoutFix implements
   // under the status bar, its icons stayed white — invisible. With the header over half in they follow its colour, and
   // go back to the chat header's when it leaves or the sheet closes
   private boolean tgx101HeaderIcons;
+  private float tgx101LastFactor;
+  private long tgx101FactorAt;
 
   private void tgx101MatchStatusIcons (boolean header) {
     if (tgx101HeaderIcons == header || Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return;
