@@ -451,12 +451,18 @@ public final class Tgx101VoiceCutSheet {
       c.drawRoundRect(rect, Screen.dp(2f), Screen.dp(2f), Paints.fillingPaint(accent));
       c.drawCircle(xp, sy, Screen.dp(10f), Paints.fillingPaint(0xffffffff));
       c.drawCircle(xp, sy, Screen.dp(10f), Paints.strokeSmallPaint(ColorUtils.alphaColor(.25f, 0xff000000)));
+      // (user 2026-11-19 «на полосе секунды, это выглядит не очень — сливается»): the time stood in grey right on the
+      // track beside the knob. It sits in its own small pill now, the track goes under it unseen
       String t = Strings.buildDuration(edit.keptBefore(pos) / Tgx101VoiceEdit.RATE);
-      small.setColor(Theme.textDecentColor());
+      small.setColor(Theme.textAccentColor());
       float tw = small.measureText(t);
-      float tx = xp + Screen.dp(16f);
-      if (tx + tw > w) tx = xp - Screen.dp(16f) - tw;
-      c.drawText(t, tx, sy + Screen.dp(4.5f), small);
+      float padX = Screen.dp(7f), pillH = Screen.dp(20f);
+      float px = xp + Screen.dp(16f);
+      if (px + tw + padX * 2 > w) px = xp - Screen.dp(16f) - tw - padX * 2;
+      rect.set(px, sy - pillH / 2f, px + tw + padX * 2, sy + pillH / 2f);
+      c.drawRoundRect(rect, pillH / 2f, pillH / 2f, Paints.fillingPaint(Theme.fillingColor()));
+      c.drawRoundRect(rect, pillH / 2f, pillH / 2f, Paints.fillingPaint(ColorUtils.alphaColor(.08f, text)));
+      c.drawText(t, px + padX, sy + Screen.dp(4.5f), small);
     }
 
     private void drawFlag (Canvas c, float x, int shown, float bottom) {
@@ -506,6 +512,13 @@ public final class Tgx101VoiceCutSheet {
         case MotionEvent.ACTION_CANCEL:
           if (dragging == EDGE_START || dragging == EDGE_END) {
             edit.commitEdges();
+            // (user 2026-11-19 «передвигаю ползунок укорачивания — должны включаться последние 2–3 секунды отрывка»): let
+            // go of an edge, the note plays right there — the last 2.5 s up to the end edge, the first 2.5 s from the start
+            if (e.getActionMasked() == MotionEvent.ACTION_UP) {
+              int ts = edit.trimStartShown(), te = edit.trimEndShown(), span = Math.round(Tgx101VoiceEdit.RATE * 2.5f);
+              if (dragging == EDGE_END) edit.playShown(Math.max(ts, te - span), te);
+              else edit.playShown(ts, Math.min(te, ts + span));
+            }
             if (onChanged != null) onChanged.run();
             org.thunderdog.challegram.Tgx101Diag.mark("voice edit: edges " + (edit.trimStartShown() * 1000L / Tgx101VoiceEdit.RATE) + "–" + (edit.trimEndShown() * 1000L / Tgx101VoiceEdit.RATE) + " ms of " + (edit.shownLength() * 1000L / Tgx101VoiceEdit.RATE));
           }

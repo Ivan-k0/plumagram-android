@@ -461,6 +461,19 @@ public final class TGMessageService extends TGMessageServiceImpl {
 
   private static final int MAX_PINNED_MESSAGE_PREVIEW_LENGTH = 40;
 
+  /**
+   * TGx101 (user 2026-11-19, screenshot: «… закрепил(а) „Щоб Подати оголошення …“» with the link underlined): the quote of a
+   * pinned post in the service line is plain words — its links, bold, underlines stay in the post; custom emoji stay
+   */
+  private static TdApi.FormattedText tgx101PlainQuote (TdApi.FormattedText text) {
+    if (text.entities == null || text.entities.length == 0) return text;
+    java.util.ArrayList<TdApi.TextEntity> keep = new java.util.ArrayList<>();
+    for (TdApi.TextEntity e : text.entities) {
+      if (e.type != null && e.type.getConstructor() == TdApi.TextEntityTypeCustomEmoji.CONSTRUCTOR) keep.add(e);
+    }
+    return new TdApi.FormattedText(text.text, keep.toArray(new TdApi.TextEntity[0]));
+  }
+
   public TGMessageService (MessagesManager context, TdApi.Message msg, TdApi.MessagePinMessage pinMessage) {
     super(context, msg);
     setTextCreator(() -> {
@@ -482,7 +495,7 @@ public final class TGMessageService extends TGMessageServiceImpl {
             return getText(
               R.string.ActionPinnedText,
               new SenderArgument(sender, isUserChat()),
-              new MessageArgument(message, Td.ellipsize(formattedText, MAX_PINNED_MESSAGE_PREVIEW_LENGTH))
+              new MessageArgument(message, Td.ellipsize(tgx101PlainQuote(formattedText), MAX_PINNED_MESSAGE_PREVIEW_LENGTH))
             );
           }
           String format = null;

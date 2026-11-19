@@ -1668,6 +1668,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   private static final float TGX101_JOURNAL_STRIPE = 30f, TGX101_JOURNAL_LINE = 3f, TGX101_JOURNAL_LINE_GAP = 3f;
+  /** «Journal» posts parted by two hairlines from the edges (user 2026-11-19); the channel photo with three lines kept, off */
+  private static final boolean TGX101_JOURNAL_EDGE_LINES = true;
 
   /** user 2026-10-11 «увеличь аватарку канала на разделении постов»: 24 dp (was 15 % taller than the three lines, ~17 dp) */
   private static int tgx101JournalIconSize () {
@@ -2195,7 +2197,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         c.drawRect(0, top, width, bottom, Paints.fillingPaint(getUnreadSeparatorBackgroundColor()));
       }
       TextPaint mBadge = getBadgePaint(uBadge.needFakeBold);
-      int color = getUnreadSeparatorContentColor();
+      // (user screenshot 2026-11-19: two lines at the edges with nothing between): in «Journal» the label stood in the
+      // separator's content colour on the post's own colour — invisible; there it takes the theme's grey text
+      int color = tgx101JournalHeader ? Theme.textDecentColor() : getUnreadSeparatorContentColor();
       mBadge.setColor(color);
       c.drawText(uBadge.text, pBadgeX, xBadgeTop + top, mBadge);
       if (isFirstUnread()) {
@@ -2312,6 +2316,16 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       // user 2026-10-09 00:25 «разделение бесшовным, между постами 3 полужирные полоски (цвет настраивается), иконка канала
       // на 15 % больше полосок»: the gap has the post's own colour; three bold lines right of the channel's photo
       c.drawRect(0, top, view.getMeasuredWidth(), bottom, Paints.fillingPaint(Theme.getColor(ColorId.bubbleIn_background)));
+      if (TGX101_JOURNAL_EDGE_LINES) {
+        // (user 2026-11-19 «неплохо было бы разделять все посты подобными линиями, а не тремя полосками — их убрать»):
+        // two hairlines from the edges with a gap in the middle, as the «New messages» divider draws them
+        float y = (top + bottom) / 2f;
+        int w = view.getMeasuredWidth();
+        float edge = Screen.dp(12f), half = w * .22f;
+        android.graphics.Paint hair = Paints.strokeSmallPaint(Theme.separatorColor());
+        c.drawLine(edge, y, w / 2f - half, y, hair);
+        c.drawLine(w / 2f + half, y, w - edge, y, hair);
+      } else {
       int[] colors = Settings.instance().tgx101JournalLineColors(Theme.isDark(), Theme.getColor(ColorId.textLink));
       float line = Screen.dp(TGX101_JOURNAL_LINE), gap = Screen.dp(TGX101_JOURNAL_LINE_GAP);
       float block = line * 3 + gap * 2, y = (top + bottom) / 2f - block / 2f;
@@ -2332,6 +2346,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         avatarReceiver.setBounds(iconLeft, iconTop, iconLeft + iconSize, iconTop + iconSize);
       }
       tgx101DrawAvatar(c, avatarReceiver);
+      }
     }
     if (hasBubble) {
       if (needBubbleCornerFix()) {
