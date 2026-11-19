@@ -14,6 +14,7 @@
  */
 package org.thunderdog.challegram.component.attach;
 
+import android.os.SystemClock;
 import android.animation.Animator;
 import android.animation.AnimatorListenerAdapter;
 import android.animation.ValueAnimator;
@@ -302,6 +303,13 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       // down to half, in one flick (it stayed open)
       @Override
       public void onScrolled (RecyclerView view, int dx, int dy) {
+        long now = SystemClock.uptimeMillis();
+        if (dy < 0 && view.getScrollState() == RecyclerView.SCROLL_STATE_SETTLING && now > tgx101GridAt && now - tgx101GridAt < 100) {
+          float v = -dy / (float) (now - tgx101GridAt); // the grid's speed as the sheet would carry it: shrinking
+          tgx101Speed = tgx101SpeedAt == tgx101GridAt && tgx101Speed < 0f ? tgx101Speed * .4f - v * .6f : -v;
+          tgx101SpeedAt = now;
+        }
+        tgx101GridAt = now;
         if (dy < 0 && view.getScrollState() == RecyclerView.SCROLL_STATE_SETTLING && !isMoving && !animatingHeight
           && isExpanded() && canMinimizeHeight() && !view.canScrollVertically(-1)) {
           mediaLayout.prepareHeader();
@@ -556,22 +564,64 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
   }
 
   protected void animateCurrentHeight (int toHeight, boolean fast, float velocity, @androidx.annotation.Nullable Runnable after) {
-    long duration = fast ? 180l : 300l;
-    android.view.animation.Interpolator curve = new android.view.animation.DecelerateInterpolator(2.2f);
     int distance = Math.abs(toHeight - currentHeight);
-    if (velocity != 0f && distance > 0) {
-      // (recorded next to the other client, sharp flick): there the sheet and the grid are one scroll — the sheet goes up
-      // at about the finger's speed in near-even steps (~9 % of the screen a frame, ~170 ms for a hard flick) and at the
-      // top the move goes on in the grid. Hardly any slowing down on the way, the grid takes the rest (see handleFling)
-      duration = Math.max(160l, Math.min(380l, Math.round(1600.0 * distance / Math.abs(velocity))));
-      curve = new android.view.animation.DecelerateInterpolator(.6f);
-    } else if (!fast) {
-      duration = 340l; // let go slowly: no sudden start either
-      curve = new android.view.animation.DecelerateInterpolator(1.2f);
+    // TGx101 (user 2026-11-19, recording: «открытие ещё более-менее, а скрытие плохо. Анимация должна быть без рывков.
+    // Полностью»): frame by frame the grid came back to its top at ~28 px a frame and the sheet then left at 70–100 — it
+    // started at a speed of its own (the grid's was never passed, «finger 0 px/s»), and so did a sheet let go without a
+    // flick. Now the sheet always starts at the speed the content had right before — the finger's, the grid's or the
+    // sheet's own under the finger — and slows down evenly to its place; with no speed it starts from rest
+    float speed = Math.abs(velocity) / 1000f; // px per ms
+    if (speed == 0f && SystemClock.uptimeMillis() - tgx101SpeedAt < 80 && distance > 0) {
+      float toward = tgx101Speed * Math.signum(toHeight - currentHeight);
+      if (toward > 0f) speed = toward;
     }
-    org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: " + currentHeight + " → " + toHeight + " px, finger " + Math.round(velocity) + " px/s, " + duration + " ms" + (animatingHeight ? " (one already running)" : ""));
+    long duration;
+    if (distance <= 0) {
+      duration = fast ? 180l : 300l;
+    } else if (speed > .05f) {
+      // up: about the finger's speed in near-even steps (as recorded next to the other client); down: a softer landing
+      double t = (toHeight > currentHeight ? 1.6 : 2.0) * distance / speed;
+      duration = toHeight > currentHeight ? Math.max(160l, Math.min(380l, Math.round(t))) : Math.max(220l, Math.min(420l, Math.round(t)));
+    } else {
+      duration = fast ? 220l : 320l;
+    }
+    float slope = distance > 0 ? Math.min(3f, speed * duration / distance) : 0f;
+    android.view.animation.Interpolator curve = new Tgx101GlideCurve(slope);
+    org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: " + currentHeight + " → " + toHeight + " px, finger " + Math.round(velocity) + " px/s, start " + Math.round(speed * 1000f) + " px/s, " + duration + " ms" + (animatingHeight ? " (one already running)" : ""));
     animateCurrentHeightImpl(toHeight, duration, curve, after);
   }
+
+  /** Starts at the given speed (slope at 0, in distance per duration) and comes to rest at 1 with no jolt on either end */
+  private static final class Tgx101GlideCurve implements android.view.animation.Interpolator {
+    private final float m;
+    Tgx101GlideCurve (float m) { this.m = m; }
+    @Override
+    public float getInterpolation (float s) {
+      if (s <= 0f) return 0f;
+      if (s >= 1f) return 1f;
+      float r = 1f - s;
+      return m * s * r * r + s * s * (3f - 2f * s);
+    }
+  }
+
+  // the sheet's own speed a moment ago (px per ms, + = growing): under the finger, or the grid's as it reached its top
+  private float tgx101Speed;
+  private long tgx101SpeedAt;
+  private int tgx101SpeedHeight = -1;
+
+  private void tgx101TrackSpeed (int height) {
+    long now = SystemClock.uptimeMillis();
+    if (tgx101SpeedHeight >= 0 && now > tgx101SpeedAt && now - tgx101SpeedAt < 100) {
+      float v = (height - tgx101SpeedHeight) / (float) (now - tgx101SpeedAt);
+      tgx101Speed = tgx101Speed == 0f ? v : tgx101Speed * .4f + v * .6f;
+    } else {
+      tgx101Speed = 0f;
+    }
+    tgx101SpeedHeight = height;
+    tgx101SpeedAt = now;
+  }
+
+  private long tgx101GridAt;
 
   private void animateCurrentHeightImpl (int toHeight, long duration, android.view.animation.Interpolator curve, @androidx.annotation.Nullable Runnable after) {
     if (animatingHeight) {
@@ -668,6 +718,8 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: the finger takes it at " + currentHeight + " px" + (stopAtStart ? " (from the grid, stops at half)" : ""));
     moveStartHeight = currentHeight;
     isMoving = true;
+    tgx101SpeedHeight = -1;
+    tgx101Speed = 0f;
     this.stopAtStart = stopAtStart;
   }
 
@@ -768,6 +820,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     if (currentHeight > startHeight) {
       mediaLayout.prepareHeader();
     }
+    tgx101TrackSpeed(newHeight);
     setCurrentHeight(newHeight, true);
 
     return newHeight == maxHeight;
