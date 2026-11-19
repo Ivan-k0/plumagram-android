@@ -3872,29 +3872,34 @@ public class ShareController extends TelegramViewController<ShareController.Args
     Object was = chip.getTag();
     boolean animate = was instanceof Boolean && (Boolean) was != active && chip.isShown();
     chip.setTypeface(active ? Fonts.getRobotoMedium() : Fonts.getRobotoRegular());
-    if (active) {
-      // (user 2026-10-20 «стрелочки не появляются»): the «✓» character came out as a tiny tick in this font — a real
-      // check icon now, and it grows in when switched on
-      android.graphics.drawable.Drawable check = org.thunderdog.challegram.tool.Drawables.get(chip.getResources(), R.drawable.baseline_check_24).mutate();
-      check.setColorFilter(new android.graphics.PorterDuffColorFilter(accent, android.graphics.PorterDuff.Mode.SRC_IN));
+    // TGx101 (user 2026-11-19 «когда жму на кнопки, текст смещается — этого быть не должно; просто появляется галочка и
+    // меняется вид без смещения»): the check had come in front of the words as a character — they moved right and down.
+    // Its place is kept always (empty while off) and the chip is as wide as its bolder words, so nothing moves
+    chip.setText(Lang.getString(textRes));
+    android.graphics.drawable.Drawable check = chip.getCompoundDrawables()[0];
+    if (check == null) {
+      check = org.thunderdog.challegram.tool.Drawables.get(chip.getResources(), R.drawable.baseline_check_24).mutate();
       int size = Screen.dp(16f);
-      check.setBounds(0, 0, animate ? 1 : size, animate ? 1 : size);
-      android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder("x " + Lang.getString(textRes));
-      b.setSpan(new android.text.style.ImageSpan(check, android.os.Build.VERSION.SDK_INT >= 29 ? android.text.style.DynamicDrawableSpan.ALIGN_CENTER : android.text.style.DynamicDrawableSpan.ALIGN_BASELINE), 0, 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-      chip.setText(b);
-      if (animate) {
-        android.animation.ValueAnimator grow = android.animation.ValueAnimator.ofFloat(0f, 1f);
-        grow.setDuration(220L); // together with the color
-        grow.setInterpolator(new android.view.animation.OvershootInterpolator(2.5f));
-        grow.addUpdateListener(an -> {
-          int s = Math.max(1, Math.round(size * (float) an.getAnimatedValue()));
-          check.setBounds(0, 0, s, s);
-          chip.setText(chip.getText());
-        });
-        grow.start();
-      }
+      check.setBounds(0, 0, size, size);
+      chip.setCompoundDrawables(check, null, null, null);
+      chip.setCompoundDrawablePadding(Screen.dp(4f));
+      android.text.TextPaint bold = new android.text.TextPaint(chip.getPaint());
+      bold.setTypeface(Fonts.getRobotoMedium());
+      chip.setMinWidth(Math.round(bold.measureText(Lang.getString(textRes))) + size + Screen.dp(4f) + chip.getPaddingLeft() + chip.getPaddingRight() + Screen.dp(2f));
+    }
+    check.setColorFilter(new android.graphics.PorterDuffColorFilter(accent, android.graphics.PorterDuff.Mode.SRC_IN));
+    final android.graphics.drawable.Drawable mark = check;
+    if (animate) {
+      android.animation.ValueAnimator fade = android.animation.ValueAnimator.ofFloat(active ? 0f : 1f, active ? 1f : 0f);
+      fade.setDuration(220L); // together with the colour
+      fade.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+      fade.addUpdateListener(an -> {
+        mark.setAlpha(Math.round(255 * (float) an.getAnimatedValue()));
+        chip.invalidate();
+      });
+      fade.start();
     } else {
-      chip.setText(Lang.getString(textRes));
+      mark.setAlpha(active ? 255 : 0);
     }
     if (animate) {
       boolean w = (Boolean) was;

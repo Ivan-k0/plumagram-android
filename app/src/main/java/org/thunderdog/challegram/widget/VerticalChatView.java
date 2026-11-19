@@ -68,7 +68,10 @@ public class VerticalChatView extends BaseView implements Destroyable, ChatListe
     super(context, tdlib);
 
     Views.setClickable(this);
-    RippleSupport.setTransparentSelector(this);
+    // TGx101 (user 2026-11-19 «подложка нажатия — острый квадрат, сделай на современный лад»): the press lights a rounded
+    // tile a little inside the cell, not the whole square edge to edge
+    int inset = org.thunderdog.challegram.tool.Screen.dp(4f);
+    me.vkryl.android.ViewUtils.setBackground(this, new android.graphics.drawable.InsetDrawable(org.thunderdog.challegram.theme.Theme.transparentRoundSelector(16f), inset, inset, inset, inset));
 
     avatarReceiver = new AvatarReceiver(this);
     counter = new Counter.Builder().callback(this).outlineColor(ColorId.filling).build();
