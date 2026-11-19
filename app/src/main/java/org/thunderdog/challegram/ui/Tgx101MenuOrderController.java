@@ -226,6 +226,12 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         boolean hidden = entry.startsWith("-");
         if (hidden != (section == 1)) continue;
         String key = hidden ? entry.substring(1) : entry;
+        if (mode() == MODE_DRAWER && Tgx101BarOrder.isDrawerSpacer(key)) {
+          // (user 2026-11-20): a space or a divider — no switch, it is moved, or tapped / swiped away
+          boolean gap = Tgx101BarOrder.isDrawerGap(key);
+          rows.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101DrawerSpacer, gap ? R.drawable.tgx101_drawer_gap_24 : R.drawable.tgx101_drawer_line_24, gap ? R.string.Tgx101DrawerGap : R.string.Tgx101DrawerLine).setData(key));
+          continue;
+        }
         rows.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeItem, iconOf(key), nameOf(key)).setData(entry));
       }
       int title = section == 1 ? R.string.Tgx101SwipeSectionOff : mode() == MODE_SWIPE ? R.string.Tgx101SwipeSectionOn : R.string.Tgx101BarSectionOn;
@@ -236,6 +242,14 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       }
       addSection(items, titleText, rows);
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+      if (mode() == MODE_DRAWER && section == 0) {
+        items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+        items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101DrawerAddGap, R.drawable.tgx101_drawer_gap_24, R.string.Tgx101DrawerAddGap));
+        items.add(new ListItem(ListItem.TYPE_SEPARATOR));
+        items.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101DrawerAddLine, R.drawable.tgx101_drawer_line_24, R.string.Tgx101DrawerAddLine));
+        items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+        items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101DrawerSpacerHint));
+      }
     }
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, mode() == MODE_SWIPE ? R.string.Tgx101SwipeOrderHint : mode() == MODE_DRAWER ? R.string.Tgx101DrawerOrderHint : mode() == MODE_CAPSULE ? R.string.Tgx101CapsuleTabsHint : R.string.Tgx101ChatMenuOrderHint));
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
@@ -317,7 +331,47 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
 
   @Override
   public boolean canDrag (ListItem item) {
+    if (mode() == MODE_DRAWER && item.getId() == R.id.btn_tgx101DrawerSpacer) return true;
     return item.getId() == (mode() != MODE_MENU ? R.id.btn_tgx101SwipeItem : R.id.btn_tgx101MenuAction);
+  }
+
+  @Override
+  public boolean canSwipe (ListItem item) {
+    return item.getId() == R.id.btn_tgx101DrawerSpacer;
+  }
+
+  @Override
+  public void onSwipedAway (ListItem item) {
+    // the row slides out and the rest close up (no rebuild — that would make the list jump)
+    String key = (String) item.getData();
+    List<String> list = new ArrayList<>(Tgx101BarOrder.getOrder(bar()));
+    if (list.remove(key)) {
+      Tgx101BarOrder.setOrder(bar(), list);
+      org.thunderdog.challegram.Tgx101Diag.mark("order: drawer " + key + " swiped away");
+    }
+    adapter.removeItem(item);
+    if (context().getDrawer() != null) context().getDrawer().tgx101RebuildMenu();
+  }
+
+  /** (user 2026-11-20) A new space or divider goes to the end of the shown items — next to the buttons, to be dragged up */
+  private void addSpacer (String kind) {
+    List<String> list = new ArrayList<>(Tgx101BarOrder.getOrder(bar()));
+    int at = 0;
+    for (int i = 0; i < list.size(); i++) if (!list.get(i).startsWith("-")) at = i + 1;
+    String key = Tgx101BarOrder.newDrawerSpacer(kind, list);
+    list.add(at, key);
+    Tgx101BarOrder.setOrder(bar(), list);
+    org.thunderdog.challegram.Tgx101Diag.mark("order: drawer " + key + " added at " + at);
+    rebuild();
+  }
+
+  private void removeSpacer (String key) {
+    List<String> list = new ArrayList<>(Tgx101BarOrder.getOrder(bar()));
+    if (list.remove(key)) {
+      Tgx101BarOrder.setOrder(bar(), list);
+      org.thunderdog.challegram.Tgx101Diag.mark("order: drawer " + key + " removed");
+    }
+    rebuild();
   }
 
   private static String keyOf (ListItem item) {
@@ -367,6 +421,9 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       for (int section = 0; section < sections.size(); section++) {
         for (ListItem row : sections.get(section)) {
           String key = keyOf(row);
+          if (section > 0 && Tgx101BarOrder.isDrawerSpacer(key)) {
+            continue; // a space or a divider dragged into «Off» is gone
+          }
           if (section > 0 && key.equals(fixedKey())) {
             UI.showToast(fixedHint(), android.widget.Toast.LENGTH_SHORT);
             rebuild();
@@ -491,6 +548,24 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         Settings.instance().setTgx101MessageMenuMore(null);
       }
       rebuild();
+      return;
+    }
+    if (id == R.id.btn_tgx101DrawerAddGap || id == R.id.btn_tgx101DrawerAddLine) {
+      addSpacer(id == R.id.btn_tgx101DrawerAddGap ? Tgx101BarOrder.DRAWER_GAP : Tgx101BarOrder.DRAWER_LINE);
+      return;
+    }
+    if (id == R.id.btn_tgx101DrawerSpacer) {
+      ListItem item = (ListItem) v.getTag();
+      final String key = (String) item.getData();
+      showOptions(item.getString(),
+        new int[] {R.id.btn_tgx101DrawerSpacerRemove},
+        new String[] {Lang.getString(R.string.Tgx101DrawerSpacerRemove)},
+        new int[] {OptionColor.RED},
+        new int[] {R.drawable.baseline_delete_24},
+        (itemView, optionId) -> {
+          if (optionId == R.id.btn_tgx101DrawerSpacerRemove) removeSpacer(key);
+          return true;
+        });
       return;
     }
     if (id == R.id.btn_tgx101SwipeItem) {

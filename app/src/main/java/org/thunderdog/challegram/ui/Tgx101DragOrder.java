@@ -51,6 +51,14 @@ public final class Tgx101DragOrder {
 
     /** Live update while the item moves (the preview); {@code finished} — the finger is up, save the order */
     void onOrderChanged (boolean finished);
+
+    /** Whether the item can be swiped to the side to remove it (user 2026-11-20: the side menu's spaces and dividers) */
+    default boolean canSwipe (ListItem item) {
+      return false;
+    }
+
+    /** The item was swiped away; it is still in the list */
+    default void onSwipedAway (ListItem item) { }
   }
 
   public static boolean isDropTarget (ListItem item, Callback callback) {
@@ -84,7 +92,8 @@ public final class Tgx101DragOrder {
       @Override
       public int getMovementFlags (@NonNull RecyclerView recyclerView, @NonNull RecyclerView.ViewHolder holder) {
         ListItem item = itemAt(holder);
-        return item != null && callback.canDrag(item) ? makeMovementFlags(ItemTouchHelper.UP | ItemTouchHelper.DOWN, 0) : 0;
+        // a swipe only towards the start: towards the end is the screen's own «back» gesture
+        return item != null && callback.canDrag(item) ? makeMovementFlags(ItemTouchHelper.UP | ItemTouchHelper.DOWN, callback.canSwipe(item) ? ItemTouchHelper.START : 0) : 0;
       }
 
       @Override
@@ -94,7 +103,7 @@ public final class Tgx101DragOrder {
 
       @Override
       public boolean isItemViewSwipeEnabled () {
-        return false;
+        return true; // only rows the callback lets go (canSwipe) have a swipe direction
       }
 
       @Override
@@ -118,7 +127,13 @@ public final class Tgx101DragOrder {
       }
 
       @Override
-      public void onSwiped (@NonNull RecyclerView.ViewHolder holder, int direction) { }
+      public void onSwiped (@NonNull RecyclerView.ViewHolder holder, int direction) {
+        ListItem item = itemAt(holder);
+        if (item != null) {
+          org.thunderdog.challegram.Tgx101Diag.mark("order: swiped away at " + holder.getBindingAdapterPosition());
+          callback.onSwipedAway(item);
+        }
+      }
 
       @Override
       public void onSelectedChanged (RecyclerView.ViewHolder holder, int actionState) {

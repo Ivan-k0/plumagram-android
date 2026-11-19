@@ -42,6 +42,59 @@ public final class Tgx101BarOrder {
     DRAWER_PLAYER = "player", // (user 2026-11-05 «плеер нужно добавить в боковое меню (по желанию)»)
     DRAWER_STORAGE = "storage"; // (group 2026-11-05 14:54 «в боковое меню дать возможность добавлять хранилище»)
   private static final String[] DRAWER_OFF_BY_DEFAULT = {DRAWER_PLAYER, DRAWER_STORAGE};
+  // TGx101 (user 2026-11-20 «пробелы … разрыв в половину от кнопки; два пробела — как полноценная кнопка» and the
+  // «две полоски» of «Газета» for everyone): spaces and dividers, as many as wanted, each with a key of its own
+  public static final String DRAWER_GAP = "gap", DRAWER_LINE = "line";
+
+  public static boolean isDrawerGap (String key) {
+    return key.startsWith(DRAWER_GAP + "#");
+  }
+
+  public static boolean isDrawerLine (String key) {
+    return key.startsWith(DRAWER_LINE + "#");
+  }
+
+  public static boolean isDrawerSpacer (String key) {
+    return isDrawerGap(key) || isDrawerLine(key);
+  }
+
+  /** A new space ({@link #DRAWER_GAP}) or divider ({@link #DRAWER_LINE}) key not used in {@code order} yet */
+  public static String newDrawerSpacer (String kind, List<String> order) {
+    int max = 0;
+    for (String entry : order) {
+      String key = entry.startsWith("-") ? entry.substring(1) : entry;
+      int hash = key.indexOf('#');
+      if (hash == -1 || !isDrawerSpacer(key)) continue;
+      try {
+        max = Math.max(max, Integer.parseInt(key.substring(hash + 1)));
+      } catch (NumberFormatException ignored) { }
+    }
+    return kind + "#" + (max + 1);
+  }
+
+  /**
+   * Where the code used to draw the side menu's lines (until 2026-11-20): above «Night mode» and around «Газета»,
+   * never first, never two in a row, none at the end. Inserted into the order once, so the menu looks as before.
+   */
+  private static List<String> withOldDrawerLines (List<String> order) {
+    List<String> result = new ArrayList<>();
+    int lines = 0;
+    boolean anyShown = false, lineAfter = false;
+    for (String entry : order) {
+      if (entry.startsWith("-")) {
+        result.add(entry);
+        continue;
+      }
+      boolean night = DRAWER_NIGHT.equals(entry), gazeta = DRAWER_GAZETA.equals(entry);
+      if (lineAfter || ((night || gazeta) && anyShown)) {
+        result.add(DRAWER_LINE + "#" + (++lines));
+      }
+      result.add(entry);
+      anyShown = true;
+      lineAfter = gazeta;
+    }
+    return result;
+  }
   /** What a new install starts with (user 2026-11-04, screenshot 23:46) */
   public static final String DRAWER_NEW_INSTALL = DRAWER_CALLS + "," + DRAWER_SETTINGS + "," + DRAWER_SAVED + "," + DRAWER_GAZETA + ",-" + DRAWER_STORY + ",-" + DRAWER_CONTACTS + ",-" + DRAWER_SAVED_BY_CHATS + ",-" + DRAWER_PROXY + ",-" + DRAWER_NIGHT + ",-" + DRAWER_PEEK;
   // TGx101 (user 2026-10-12): the chat's ⋮ menu is editable too, with «Proxy» to add (off until switched on)
@@ -345,6 +398,10 @@ public final class Tgx101BarOrder {
     if (saved != null) {
       for (String entry : saved.split(",")) {
         String key = entry.startsWith("-") ? entry.substring(1) : entry;
+        if (bar == BAR_DRAWER && isDrawerSpacer(key)) {
+          if (!entry.startsWith("-") && !result.contains(key)) result.add(key); // a space or a divider is in the menu or gone
+          continue;
+        }
         if (indexOf(KEYS[bar], key) != -1 && !result.contains(key) && !result.contains("-" + key)) {
           result.add(entry);
         }
@@ -358,6 +415,15 @@ public final class Tgx101BarOrder {
         result.add(off ? "-" + key : key);
       }
     }
+    if (bar == BAR_DRAWER) {
+      if (saved == null) {
+        result = withOldDrawerLines(result); // the default (and «Reset») has the lines where they always were
+      } else if (!Settings.instance().isTgx101DrawerLinesMigrated()) {
+        result = withOldDrawerLines(result);
+        Settings.instance().setTgx101BarOrder(bar, android.text.TextUtils.join(",", result));
+        Settings.instance().setTgx101DrawerLinesMigrated();
+      }
+    }
     if (!Tgx101TextEditor.EDIT_WINDOW) { // the edit window is off for now: no «Editor» to order
       result.remove(EDITOR);
       result.remove("-" + EDITOR);
@@ -367,6 +433,7 @@ public final class Tgx101BarOrder {
 
   public static void setOrder (int bar, List<String> order) {
     Settings.instance().setTgx101BarOrder(bar, order != null ? android.text.TextUtils.join(",", order) : null);
+    if (bar == BAR_DRAWER) Settings.instance().setTgx101DrawerLinesMigrated(); // the user's own lines from now on
     if (bar == BAR_CAPSULE) capsuleVersion++;
   }
 

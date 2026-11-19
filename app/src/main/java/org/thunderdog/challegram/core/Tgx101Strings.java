@@ -818,6 +818,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101DrawerOrderHint, "Зажмите пункт и перетащите вверх, вниз или в «Выключены». Переключатель — показывать в меню или нет. «Прокси» видно, только если прокси добавлены.");
     RU.put(R.string.Tgx101ChatMenuOrderHint, "Зажмите пункт и перетащите вверх, вниз или в «Выключены». Переключатель — показывать в меню или нет. Пункты, которых в чате нет (например «Позвонить» в канале), пропускаются.");
     RU.put(R.string.Tgx101DrawerSettingsStays, "«Настройки» остаются в меню");
+    RU.put(R.string.Tgx101DrawerGap, "Пробел");
+    RU.put(R.string.Tgx101DrawerLine, "Разделитель");
+    RU.put(R.string.Tgx101DrawerAddGap, "Добавить пробел");
+    RU.put(R.string.Tgx101DrawerAddLine, "Добавить разделитель");
+    RU.put(R.string.Tgx101DrawerSpacerRemove, "Убрать");
+    RU.put(R.string.Tgx101DrawerSpacerHint, "Пробел — отступ в половину пункта, два подряд — как целый пункт. Разделитель — линия между пунктами. Перетащите их куда нужно; чтобы убрать — нажмите или смахните в сторону.");
     RU.put(R.string.Tgx101ProxyOn, "Включить прокси");
     RU.put(R.string.Tgx101ProxyOff, "Выключить прокси");
     RU.put(R.string.Tgx101ProxyList, "Список прокси");

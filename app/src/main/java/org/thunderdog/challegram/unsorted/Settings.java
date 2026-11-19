@@ -3322,6 +3322,15 @@ public class Settings {
     }
   }
 
+  /** TGx101 (user 2026-11-20): the side menu's lines moved from code into the user's order (Tgx101BarOrder) */
+  public boolean isTgx101DrawerLinesMigrated () {
+    return pmc.getBoolean("tgx101_drawer_lines_2026_11_20", false);
+  }
+
+  public void setTgx101DrawerLinesMigrated () {
+    pmc.putBoolean("tgx101_drawer_lines_2026_11_20", true);
+  }
+
   /** TGx101: message menu actions moved under «More…» (resource names stored, like the order) */
   private static final String KEY_TGX101_MESSAGE_MENU_MORE_REPLIES = "tgx101_message_menu_more_replies";
 

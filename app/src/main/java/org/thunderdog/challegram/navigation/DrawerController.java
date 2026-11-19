@@ -959,13 +959,23 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
   }
 
   // TGx101 (user 2026-10-12 00:15, «это меню должно быть редактируемым»): the menu items go in the user's order
-  // (MagiX → «Side menu items»: drag to reorder, switch off what isn't needed); night mode keeps its line above it
+  // (MagiX → «Side menu items»: drag to reorder, switch off what isn't needed, put spaces and dividers in)
   private int tgx101MenuCount;
 
   private int tgx101BuildMenu (List<ListItem> items) {
     int start = items.size();
     for (String entry : org.thunderdog.challegram.ui.Tgx101BarOrder.getOrder(org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_DRAWER)) {
       if (entry.startsWith("-")) continue;
+      // (user 2026-11-20): the spaces and dividers the user put in MagiX; a space is half an item, two — a whole one
+      if (org.thunderdog.challegram.ui.Tgx101BarOrder.isDrawerGap(entry)) {
+        items.add(new ListItem(ListItem.TYPE_PADDING).setHeight(Screen.dp(52f) / 2));
+        continue;
+      }
+      if (org.thunderdog.challegram.ui.Tgx101BarOrder.isDrawerLine(entry)) {
+        // never first, never two in a row (an item between them may be hidden, e.g. «Proxy» without proxies)
+        if (items.size() > start && items.get(items.size() - 1).getViewType() != ListItem.TYPE_SEPARATOR_FULL) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+        continue;
+      }
       switch (entry) {
         case org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_CALLS:
           if (!Settings.instance().chatFoldersEnabled()) continue;
@@ -976,14 +986,11 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
           items.add(proxyItem);
           continue;
         case org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_NIGHT:
-          if (items.size() > start && items.get(items.size() - 1).getViewType() != ListItem.TYPE_SEPARATOR_FULL) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
           items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM_WITH_RADIO, R.id.btn_night, R.drawable.baseline_brightness_2_24, R.string.NightMode, R.id.btn_night, Theme.isDark()));
           continue;
         case org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_GAZETA:
-          // (user 2026-10-27): a plain row with its yellowish counter, set off by a line like «Night mode»
-          if (items.size() > start && items.get(items.size() - 1).getViewType() != ListItem.TYPE_SEPARATOR_FULL) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+          // (user 2026-10-27): a plain row with its yellowish counter; its lines are in the order now (2026-11-20)
           items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_tgx101Gazeta, R.drawable.tgx101_gazeta_24, R.string.Tgx101Gazeta));
-          items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
           continue;
         case org.thunderdog.challegram.ui.Tgx101BarOrder.DRAWER_PEEK:
           items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM_WITH_RADIO, R.id.btn_tgx101Peek, org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIconOf(entry), R.string.Tgx101Peek, R.id.btn_tgx101Peek, org.thunderdog.challegram.data.Tgx101Peek.isOn()));
@@ -991,7 +998,7 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
       }
       items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIdOf(entry), org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIconOf(entry), org.thunderdog.challegram.ui.Tgx101BarOrder.drawerNameOf(entry)));
     }
-    if (items.size() > start && items.get(items.size() - 1).getViewType() == ListItem.TYPE_SEPARATOR_FULL) items.remove(items.size() - 1); // «Газета» last: no line under it
+    if (items.size() > start && items.get(items.size() - 1).getViewType() == ListItem.TYPE_SEPARATOR_FULL) items.remove(items.size() - 1); // a divider last: no line under the menu
     // TGx101 (user 2026-10-12): a newer release sits at the very bottom — «Обновить PlumaGram · 0.1.N» → progress → «Установить»
     org.thunderdog.challegram.service.Tgx101Updates.restore(context);
     tgx101UpdateShown = tgx101HasUpdateRow();

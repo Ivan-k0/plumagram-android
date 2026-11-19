@@ -1785,6 +1785,10 @@
   <item name="btn_tgx101DragSection" type="id"/>
   <item name="btn_tgx101DragEmpty" type="id"/>
   <item name="btn_tgx101SwipeItem" type="id"/>
+  <item name="btn_tgx101DrawerSpacer" type="id"/>
+  <item name="btn_tgx101DrawerAddGap" type="id"/>
+  <item name="btn_tgx101DrawerAddLine" type="id"/>
+  <item name="btn_tgx101DrawerSpacerRemove" type="id"/>
   <item name="btn_tgx101OrderPreview" type="id"/>
   <item name="btn_tgx101TranslateOtherLanguage" type="id"/>
   <item name="btn_tgx101TranslateBarHide" type="id"/>

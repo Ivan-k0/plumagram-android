@@ -6493,6 +6493,12 @@
   <string name="Tgx101DrawerOrderHint">Hold an item and drag it up, down or into «Off». The switch shows or hides it. «Proxy» shows only when proxies are added.</string>
   <string name="Tgx101ChatMenuOrderHint">Hold an item and drag it up, down or into «Off». The switch shows or hides it. Items a chat doesn\'t have are skipped (e.g. «Call» in a channel).</string>
   <string name="Tgx101DrawerSettingsStays">«Settings» stays in the menu</string>
+  <string name="Tgx101DrawerGap">Space</string>
+  <string name="Tgx101DrawerLine">Divider</string>
+  <string name="Tgx101DrawerAddGap">Add a space</string>
+  <string name="Tgx101DrawerAddLine">Add a divider</string>
+  <string name="Tgx101DrawerSpacerRemove">Remove</string>
+  <string name="Tgx101DrawerSpacerHint">A space is a gap of half an item; two in a row — a whole item. A divider is a line between items. Drag them where you want; to remove one, tap it or swipe it to the side.</string>
   <string name="Tgx101ProxyOn">Turn proxy on</string>
   <string name="Tgx101ProxyOff">Turn proxy off</string>
   <string name="Tgx101ProxyList">Proxy list</string>
