@@ -564,6 +564,11 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
   }
 
   protected void animateCurrentHeight (int toHeight, boolean fast, float velocity, @androidx.annotation.Nullable Runnable after) {
+    animateCurrentHeight(toHeight, fast, velocity, after, 0f);
+  }
+
+  /** endVelocity: the speed (px/s) the move goes on with once the sheet is there — the grid's fling — so it doesn't stop first */
+  protected void animateCurrentHeight (int toHeight, boolean fast, float velocity, @androidx.annotation.Nullable Runnable after, float endVelocity) {
     int distance = Math.abs(toHeight - currentHeight);
     // TGx101 (user 2026-11-19, recording: «открытие ещё более-менее, а скрытие плохо. Анимация должна быть без рывков.
     // Полностью»): frame by frame the grid came back to its top at ~28 px a frame and the sheet then left at 70–100 — it
@@ -586,21 +591,24 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       duration = fast ? 220l : 320l;
     }
     float slope = distance > 0 ? Math.min(3f, speed * duration / distance) : 0f;
-    android.view.animation.Interpolator curve = new Tgx101GlideCurve(slope);
+    // (user 2026-11-19 «а свайпом вверх рывок есть?», same recording): at the top the sheet came to rest and the grid
+    // then set off again — it now gets there at the speed the grid goes on with
+    float endSlope = distance > 0 ? Math.min(3f, Math.abs(endVelocity) / 1000f * duration / distance) : 0f;
+    android.view.animation.Interpolator curve = new Tgx101GlideCurve(slope, endSlope);
     org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: " + currentHeight + " → " + toHeight + " px, finger " + Math.round(velocity) + " px/s, start " + Math.round(speed * 1000f) + " px/s, " + duration + " ms" + (animatingHeight ? " (one already running)" : ""));
     animateCurrentHeightImpl(toHeight, duration, curve, after);
   }
 
-  /** Starts at the given speed (slope at 0, in distance per duration) and comes to rest at 1 with no jolt on either end */
+  /** Starts at the given speed (slope at 0, in distance per duration) and ends at the other one (0: comes to rest), no jolt on either end */
   private static final class Tgx101GlideCurve implements android.view.animation.Interpolator {
-    private final float m;
-    Tgx101GlideCurve (float m) { this.m = m; }
+    private final float m0, m1;
+    Tgx101GlideCurve (float m0, float m1) { this.m0 = m0; this.m1 = m1; }
     @Override
     public float getInterpolation (float s) {
       if (s <= 0f) return 0f;
       if (s >= 1f) return 1f;
       float r = 1f - s;
-      return m * s * r * r + s * s * (3f - 2f * s);
+      return m0 * s * r * r + s * s * (3f - 2f * s) - m1 * s * s * r; // cubic Hermite: speeds m0 at the start, m1 at the end
     }
   }
 
@@ -747,7 +755,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
           // scrolling by the rest of the flick, as one move
           // the grid takes the rest of the flick once the sheet is at the top, as one move
           final int fling = velocityY < 0 ? Math.round(-velocityY * .7f) : 0;
-          animateCurrentHeight(getMaxHeight(), false, velocityY, fling > 0 && recyclerView != null ? () -> recyclerView.fling(0, fling) : null);
+          animateCurrentHeight(getMaxHeight(), false, velocityY, fling > 0 && recyclerView != null ? () -> recyclerView.fling(0, fling) : null, fling);
         } else {
           animateCurrentHeight(startHeight, true);
         }
