@@ -578,7 +578,7 @@ public class TGMessageText extends TGMessage {
 
   // TGx101 (user 2026-10-21 «кнопку вверху справа, как в оффе, чтобы не листать до конца», mockup «Кратко-значки» 1 —
   // «сжатие»): a small circle at the post's top right, in the line of its header; lit while the summary is shown
-  private static final float TGX101_SHORT_SIZE = 30f; // (user 2026-10-25 «иконка "кратко" маловата»: was 24)
+  static final float TGX101_SHORT_SIZE = 30f; // (user 2026-10-25 «иконка "кратко" маловата»: was 24)
   private final android.graphics.RectF tgx101ShortRect = new android.graphics.RectF();
   private boolean tgx101ShortPressed;
 
@@ -590,14 +590,18 @@ public class TGMessageText extends TGMessage {
     float size = Screen.dp(TGX101_SHORT_SIZE);
     float right = startX + maxWidth, top = startY;
     tgx101ShortRect.set(right - size, top, right, top + size);
-    int accent = Theme.getColor(ColorId.textLink);
     // (user 2026-10-27 10:00 «пока он думает, нажатие никак не отображается»): lit at once, and a ring runs round it
-    boolean lit = tgx101SummaryShown || tgx101ShortPressed || tgx101SummaryLoading;
+    if (tgx101DrawShortIcon(c, tgx101ShortRect, tgx101SummaryShown || tgx101ShortPressed || tgx101SummaryLoading, tgx101SummaryLoading)) invalidate();
+  }
+
+  /** the «Short» sign in {@code r}: a magic wand over two short lines in a round; true while its ring runs (draw again) */
+  static boolean tgx101DrawShortIcon (Canvas c, android.graphics.RectF r, boolean lit, boolean loading) {
+    float size = r.width();
+    int accent = Theme.getColor(ColorId.textLink);
     android.graphics.Paint fill = Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(lit ? 1f : .16f, accent));
-    c.drawCircle(tgx101ShortRect.centerX(), tgx101ShortRect.centerY(), size / 2f, fill);
-    android.graphics.Paint line = Paints.getProgressPaint(lit ? 0xffffffff : accent, Screen.dp(1.6f));
+    c.drawCircle(r.centerX(), r.centerY(), size / 2f, fill);
     // (user 2026-10-25, mockup «И2»): a magic wand over two short lines; the icon is drawn on a 24-unit grid
-    float u = size * .78f / 24f, ox = tgx101ShortRect.centerX() - 12 * u, oy = tgx101ShortRect.centerY() - 12 * u;
+    float u = size * .78f / 24f, ox = r.centerX() - 12 * u, oy = r.centerY() - 12 * u;
     android.graphics.Paint thin = Paints.getProgressPaint(lit ? 0xffffffff : accent, 2f * u);
     c.drawLine(ox + 4 * u, oy + 15 * u, ox + 13 * u, oy + 15 * u, thin);
     c.drawLine(ox + 4 * u, oy + 19 * u, ox + 10 * u, oy + 19 * u, thin);
@@ -605,14 +609,15 @@ public class TGMessageText extends TGMessage {
     android.graphics.Paint spark = Paints.fillingPaint(lit ? 0xffffffff : accent);
     tgx101Spark(c, ox + 6.5f * u, oy + 6.2f * u, 2.2f * u, spark);
     tgx101Spark(c, ox + 19f * u, oy + 13.1f * u, 2.1f * u, spark);
-    if (tgx101SummaryLoading) {
+    if (loading) {
       float inset = Screen.dp(1.5f);
       android.graphics.RectF arc = Paints.getRectF();
-      arc.set(tgx101ShortRect.left - inset, tgx101ShortRect.top - inset, tgx101ShortRect.right + inset, tgx101ShortRect.bottom + inset);
+      arc.set(r.left - inset, r.top - inset, r.right + inset, r.bottom + inset);
       float angle = (android.os.SystemClock.uptimeMillis() % 900L) / 900f * 360f;
       c.drawArc(arc, angle, 100f, false, Paints.getProgressPaint(accent, Screen.dp(2f)));
-      invalidate();
+      return true;
     }
+    return false;
   }
 
   private static final android.graphics.Path tgx101SparkPath = new android.graphics.Path();
@@ -886,12 +891,8 @@ public class TGMessageText extends TGMessage {
       list.add(entity(b.length(), more.length(), new TdApi.TextEntityTypeTextUrl(TGX101_FULL_LINK)));
       b.append(more);
     } else {
-      b.append(t.text);
-      if (t.entities != null) java.util.Collections.addAll(list, t.entities);
-      b.append('\n');
-      String chip = "✨ " + Lang.getString(tgx101SummaryLoading ? R.string.Tgx101AiShortLoading : R.string.Tgx101AiShort);
-      list.add(entity(b.length(), chip.length(), new TdApi.TextEntityTypeTextUrl(TGX101_SUMMARY_LINK)));
-      b.append(chip);
+      // (user 2026-11-19 «во всех вариантах не нужно "кратко" в конце текста, только иконка вверху»): the post as it is
+      return t;
     }
     return new TdApi.FormattedText(b.toString(), list.toArray(new TdApi.TextEntity[0]));
   }

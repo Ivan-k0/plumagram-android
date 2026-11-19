@@ -430,12 +430,7 @@ public class TGMessageMedia extends TGMessage {
       list.add(new TdApi.TextEntity(b.length(), more.length(), new TdApi.TextEntityTypeTextUrl(TGMessageText.TGX101_FULL_LINK)));
       b.append(more);
     } else {
-      b.append(t.text);
-      if (t.entities != null) java.util.Collections.addAll(list, t.entities);
-      b.append('\n');
-      String chip = "✨ " + Lang.getString(tgx101SummaryLoading ? R.string.Tgx101AiShortLoading : R.string.Tgx101AiShort);
-      list.add(new TdApi.TextEntity(b.length(), chip.length(), new TdApi.TextEntityTypeTextUrl(TGMessageText.TGX101_SUMMARY_LINK)));
-      b.append(chip);
+      return t; // (user 2026-11-19 «просто убери кнопку кратко, значок уже есть»): no «✨ Short» at the end
     }
     return new TdApi.FormattedText(b.toString(), list.toArray(new TdApi.TextEntity[0]));
   }
