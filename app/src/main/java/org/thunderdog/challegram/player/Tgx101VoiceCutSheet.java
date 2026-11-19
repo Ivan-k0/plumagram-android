@@ -512,12 +512,13 @@ public final class Tgx101VoiceCutSheet {
         case MotionEvent.ACTION_CANCEL:
           if (dragging == EDGE_START || dragging == EDGE_END) {
             edit.commitEdges();
-            // (user 2026-11-19 «передвигаю ползунок укорачивания — должны включаться последние 2–3 секунды отрывка»): let
-            // go of an edge, the note plays right there — the last 2.5 s up to the end edge, the first 2.5 s from the start
+            // (user 2026-11-19 «передвигаю ползунок укорачивания — должны включаться последние 2–3 секунды отрывка», then «не
+            // должно начинаться само, только по нажатию плэй»): let go of an edge, the listening slider goes where ▶ tells
+            // the cut — 2.5 s before the end edge (▶ plays the last 2.5 s), or the new start
             if (e.getActionMasked() == MotionEvent.ACTION_UP) {
               int ts = edit.trimStartShown(), te = edit.trimEndShown(), span = Math.round(Tgx101VoiceEdit.RATE * 2.5f);
-              if (dragging == EDGE_END) edit.playShown(Math.max(ts, te - span), te);
-              else edit.playShown(ts, Math.min(te, ts + span));
+              edit.setPosition(dragging == EDGE_END ? Math.max(ts, te - span) : ts);
+              invalidate();
             }
             if (onChanged != null) onChanged.run();
             org.thunderdog.challegram.Tgx101Diag.mark("voice edit: edges " + (edit.trimStartShown() * 1000L / Tgx101VoiceEdit.RATE) + "–" + (edit.trimEndShown() * 1000L / Tgx101VoiceEdit.RATE) + " ms of " + (edit.shownLength() * 1000L / Tgx101VoiceEdit.RATE));
