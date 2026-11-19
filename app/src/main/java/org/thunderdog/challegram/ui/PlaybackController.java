@@ -3384,7 +3384,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       // 👎 across the title from it
       View dislike = controller.tgx101Dislike;
       dislike.setTranslationX(startX);
-      dislike.setTranslationY(heart.getTranslationY());
+      // (user 2026-11-20 «лайк налез на полосу»): by its own height — with ♥ hidden (a profile song) ♥ measured 0 and 👎 sank
+      dislike.setTranslationY(buttonsY - Screen.dp(98f) + Screen.dp(11f) - dislike.getMeasuredHeight() / 2f);
       dislike.setAlpha(heartAlpha);
       dislike.setEnabled(heartAlpha > .5f);
     }

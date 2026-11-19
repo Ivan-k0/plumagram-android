@@ -2953,6 +2953,35 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         return;
       }
       final java.util.List<TdApi.Message> queue = Tgx101ProfileMusicController.asMessages(result.audios);
+      // (user 2026-11-20, screenshot of the first opening): the covers weren't there yet and the player drew notes —
+      // they are fetched first (half a second at most); and a song already playing isn't paused by the tap
+      final int[] waiting = {0};
+      final boolean[] went = {false};
+      final Runnable go = () -> {
+        if (went[0] || isDestroyed()) return;
+        went[0] = true;
+        tgx101StartProfileQueue(queue);
+      };
+      for (TdApi.Audio a : result.audios) {
+        if (a.albumCoverThumbnail != null && a.albumCoverThumbnail.file != null && !a.albumCoverThumbnail.file.local.isDownloadingCompleted) {
+          waiting[0]++;
+          tdlib.send(new TdApi.DownloadFile(a.albumCoverThumbnail.file.id, 32, 0, 0, true), (file, err) -> UI.post(() -> {
+            if (--waiting[0] <= 0) go.run();
+          }));
+        }
+      }
+      if (waiting[0] == 0) go.run(); else UI.post(go, 500);
+    }));
+  }
+
+  private void tgx101StartProfileQueue (java.util.List<TdApi.Message> queue) {
+    {
+      int firstFile = TD.getFileId(queue.get(0));
+      if (tdlib.context().player().isPlayingFileId(firstFile) && tdlib.context().player().getState() == org.thunderdog.challegram.player.TGPlayerController.STATE_PLAYING) {
+        PlaybackController player = new PlaybackController(context, tdlib);
+        if (player.prepare() != -1) navigateTo(player);
+        return;
+      }
       tdlib.context().player().playPauseMessage(tdlib, queue.get(0), new org.thunderdog.challegram.player.TGPlayerController.PlayListBuilder() {
         @Override
         public org.thunderdog.challegram.player.TGPlayerController.PlayList buildPlayList (TdApi.Message fromMessage) {
@@ -2971,7 +3000,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         PlaybackController player = new PlaybackController(context, tdlib);
         if (player.prepare() != -1) navigateTo(player);
       }, 120);
-    }));
+    }
   }
 
   private void tgx101CheckPersonalChannel () {
