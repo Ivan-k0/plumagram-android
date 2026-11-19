@@ -1501,13 +1501,22 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
   }
 
+  /**
+   * TGx101 (user 2026-11-19 «текст не по центру, не органично», «… закрепил(а)» between posts): a service line in «Journal»
+   * got a post's room for the separator under it but draws none — the pill sat at the top of its band with ~30 dp empty
+   * below. It keeps the usual even gaps above and below
+   */
+  private boolean tgx101JournalServiceRow () {
+    return this instanceof TGMessageServiceImpl;
+  }
+
   private int getBubbleViewPaddingTop () {
-    if (tgx101Journal() && !isOutgoing()) return 0; // the post starts right under the stripe (no chat background between)
+    if (tgx101Journal() && !isOutgoing() && !tgx101JournalServiceRow()) return 0; // the post starts right under the stripe (no chat background between)
     return useBubble() ? ((flags & FLAG_HEADER_ENABLED) != 0 ? xBubbleViewPadding : tgx101SmallViewPadding()) : xBubbleViewPadding;
   }
 
   private int getBubbleViewPaddingBottom () {
-    if (tgx101Journal() && !isOutgoing()) return Screen.dp(TGX101_JOURNAL_STRIPE); // the stripe with the channel's name
+    if (tgx101Journal() && !isOutgoing() && !tgx101JournalServiceRow()) return Screen.dp(TGX101_JOURNAL_STRIPE); // the stripe with the channel's name
     return useBubble() ? (isBottomMessage() || (inlineKeyboard != null && !inlineKeyboard.isEmpty()) ? xBubbleViewPadding : tgx101SmallViewPadding()) : xBubbleViewPadding;
   }
 
