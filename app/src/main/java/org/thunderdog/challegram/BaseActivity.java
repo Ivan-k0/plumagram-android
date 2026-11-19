@@ -3129,6 +3129,7 @@ public abstract class BaseActivity extends FragmentActivity implements View.OnTo
 
   /** every touch of the app's windows passes here — the activity's own and its popup windows' */
   public void tgx101TrackFinger (MotionEvent ev) {
+    org.thunderdog.challegram.navigation.Tgx101CompactMenu.onTouch(ev); // where an options card opens
     switch (ev.getActionMasked()) {
       case MotionEvent.ACTION_DOWN:
         tgx101FingerDown = true;

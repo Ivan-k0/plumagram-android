@@ -2674,6 +2674,8 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     public final OptionItem[] items;
     public boolean ignoreOtherPopUps;
     public final int maxLineCount;
+    /** TGx101: keep the wide card from the bottom instead of the compact card at the finger (its view is patched later) */
+    public boolean tgx101Wide;
 
     public Options (CharSequence info, CharSequence header, OptionItem subtitle, OptionItem[] items, int maxLineCount) {
       this.info = info;
@@ -2793,6 +2795,12 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     if (tgx101M3 != null) {
       onCreatePopupLayout(tgx101M3);
       return tgx101M3;
+    }
+    // TGx101 (user 2026-11-20 «все подобные меню… компактные окна»): the other options are a small card at the finger
+    PopupLayout tgx101Compact = Tgx101CompactMenu.show(this, options, delegate, forcedTheme);
+    if (tgx101Compact != null) {
+      onCreatePopupLayout(tgx101Compact);
+      return tgx101Compact;
     }
 
     final PopupLayout popupLayout = new PopupLayout(context);

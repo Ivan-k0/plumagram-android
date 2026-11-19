@@ -6428,6 +6428,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
               });
             }
           } else {
+            messageOptions.tgx101Wide = true; // its view is patched below as the wide card
             PopupLayout popupLayout = showOptions(messageOptions, messageHandler);
             patchReadReceiptsOptions(popupLayout, messageContext);
             patchUsedEmojiPacks(popupLayout, messageContext);
