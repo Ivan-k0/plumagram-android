@@ -1100,6 +1100,7 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
   private long tgx101HoldSince;
 
   private long tgx101HoldFrameNo;
+  private long tgx101HoldTarget; // where the viewer left the video, ms (0 — not known)
 
   // TGx101 (user 2026-11-12 «секунды в превью считаются в реальном времени», as in the reference recording): a video
   // playing by itself in its post counts down what is left of it in the corner — the plain «0:27» there stood still;
@@ -1133,6 +1134,7 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
 
   private void tgx101DrawHold (View view, Canvas c, Receiver receiver) {
     if (!(receiver instanceof GifReceiver) || video == null) return;
+    org.thunderdog.challegram.mediaview.Tgx101VideoResume.markInline(video.video.id);
     GifReceiver gif = (GifReceiver) receiver;
     long frameNo = gif.needPlaceholder() ? -2 : gif.tgx101FrameNo();
     if (tgx101Hold == null) {
@@ -1141,10 +1143,19 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
       // the bubble may still show its old frame from before the viewer: held until the video shows a new one
       tgx101HoldSince = android.os.SystemClock.uptimeMillis();
       tgx101HoldFrameNo = frameNo;
+      tgx101HoldTarget = org.thunderdog.challegram.loader.gif.GifActor.tgx101Position(video.video.id);
       org.thunderdog.challegram.Tgx101Diag.mark("chat bubble: holds the viewer's frame until its video plays (frame " + frameNo + ")");
     }
     android.graphics.Bitmap hold = tgx101Hold;
-    if (hold.isRecycled() || frameNo != tgx101HoldFrameNo || android.os.SystemClock.uptimeMillis() - tgx101HoldSince > 2000) {
+    // (user 2026-11-19 «то обложка мигнёт, то последний кадр не так встанет», recording 20:37): the bubble's own copy went
+    // on with its old place for a frame or two before it jumped to the viewer's — the hold let go at its first new frame
+    // and that old picture flashed in. It lets go only once the video shows the place the viewer left it at
+    boolean arrived = frameNo != tgx101HoldFrameNo && frameNo >= 0
+      && !org.thunderdog.challegram.loader.gif.GifActor.tgx101JumpPending(video.video.id)
+      && (tgx101HoldTarget <= 0 || Math.abs(frameNo - tgx101HoldTarget) <= 400);
+    long held = android.os.SystemClock.uptimeMillis() - tgx101HoldSince;
+    if (hold.isRecycled() || arrived || held > 3000) {
+      org.thunderdog.challegram.Tgx101Diag.mark("chat bubble: lets the viewer's frame go — " + (arrived ? "its video is at " + frameNo + " ms (left at " + tgx101HoldTarget + ")" : hold.isRecycled() ? "recycled" : "3 s passed, video at " + frameNo + " ms (left at " + tgx101HoldTarget + ")") + " after " + held + " ms");
       tgx101Hold = null;
       return;
     }

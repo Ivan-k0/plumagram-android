@@ -279,10 +279,12 @@ JNI_FUNC(jlong, createDecoder, jstring src, jlongArray data, jdouble startMediaT
   if (startMediaTimestamp != 0) {
     int ret = 0;
     int64_t ts = (int64_t) (startMediaTimestamp * (double) AV_TIME_BASE);
+    // TGx101 (user 2026-11-19 «последний кадр не так встанет»): the keyframe at or before the place, never after it —
+    // the Java side then decodes on to the exact frame (GifActor#tgx101DecodeTo)
     ret = avformat_seek_file(
       info->fmt_ctx, -1,
       std::numeric_limits<int64_t>::min(), ts,
-      std::numeric_limits<int64_t>::max(), 0);
+      ts, 0);
     if (ret < 0) {
       loge(TAG_GIF_LOADER, "can't seek to startMediaTimestamp %s, %s", info->path.c_str(), av_err2str(ret));
     }

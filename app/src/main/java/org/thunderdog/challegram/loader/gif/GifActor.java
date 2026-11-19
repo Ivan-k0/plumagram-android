@@ -371,6 +371,9 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
       width = (int) metadata[0];
       height = (int) metadata[1];
       error = (width <= 0 || height <= 0);
+      if (!error && start > 0 && nativePtr != 0) {
+        tgx101DecodeTo(nativePtr, width, height, (long) (start * 1000.0));
+      }
     }
     if (error) {
       org.thunderdog.challegram.Tgx101Diag.mark("gif: file " + file.getFileId() + " type " + file.getGifType() + " didn't open — " + width + "x" + height + ", " + tgx101WhyNot(path)); // TGx101 (user 2026-10-31 «гифка так и не играет»)
@@ -454,6 +457,39 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
   public static void tgx101SetPosition (int fileId, long positionMs) {
     tgx101Positions.put(fileId, positionMs);
     tgx101JumpTo.put(fileId, positionMs); // a copy playing now jumps there with its next frame
+  }
+
+  /** TGx101 (user 2026-11-19 «последний кадр не так встанет»): the decoder starts at the keyframe before the place — the
+   *  frames up to it are decoded and dropped here, so the first frame shown is the one the viewer left on, not one a
+   *  second or two earlier (the picture jumped back as the video went on in its post) */
+  private void tgx101DecodeTo (long ptr, int width, int height, long targetMs) {
+    if (ptr == 0 || width <= 0 || height <= 0 || targetMs <= 0) return;
+    long interval = metadata[2] > 0 ? Math.max(8, 1000000L / metadata[2]) : 33;
+    Bitmap scratch;
+    try {
+      scratch = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888);
+    } catch (Throwable t) {
+      return;
+    }
+    long started = android.os.SystemClock.uptimeMillis();
+    int skipped = 0;
+    long at = -1;
+    try {
+      while (skipped < 400 && android.os.SystemClock.uptimeMillis() - started < 400) {
+        if (N.getVideoFrame(ptr, scratch, metadata) != 1) break;
+        at = metadata[3];
+        skipped++;
+        if (at >= targetMs - interval * 3 / 2) break; // the next frame is the one at the place
+      }
+    } finally {
+      scratch.recycle();
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("gif: file " + file.getFileId() + " decoded on to " + at + " ms for " + targetMs + " (" + skipped + " frames, " + (android.os.SystemClock.uptimeMillis() - started) + " ms)");
+  }
+
+  /** a jump to where the viewer left this file's video is still waiting for its copy in the feed */
+  public static boolean tgx101JumpPending (int fileId) {
+    return tgx101JumpTo.containsKey(fileId);
   }
 
   // TGx101: where the viewer left a file's video, until the copy in the feed has jumped there
@@ -576,6 +612,7 @@ public class GifActor implements GifState.Callback, TGPlayerController.TrackChan
         if (jump != null) {
           long jumped = N.createDecoder(tgx101Path, metadata, jump / 1000.0);
           if (jumped != 0) {
+            tgx101DecodeTo(jumped, (int) metadata[0], (int) metadata[1], jump);
             synchronized (nativeSync) {
               long old = nativePtr;
               nativePtr = jumped;

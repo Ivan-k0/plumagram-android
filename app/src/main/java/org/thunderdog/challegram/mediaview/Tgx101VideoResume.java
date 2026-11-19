@@ -114,6 +114,21 @@ public final class Tgx101VideoResume {
     noCover.clear();
   }
 
+  // (user 2026-11-19 «обложка мигнёт», recording 20:50): a post whose video doesn't play by itself shows its cover again —
+  // the viewer's frame landed there and the cover came in over it six frames later. Posts tell which videos play in them
+  private static final java.util.Map<Integer, Long> inline = new java.util.concurrent.ConcurrentHashMap<>();
+
+  public static void markInline (int videoFileId) {
+    if (inline.size() > 300) inline.clear();
+    inline.put(videoFileId, android.os.SystemClock.uptimeMillis());
+  }
+
+  /** this video was drawn playing by itself in a post during the last minute */
+  public static boolean playsInline (int videoFileId) {
+    Long at = inline.get(videoFileId);
+    return at != null && android.os.SystemClock.uptimeMillis() - at < 60000;
+  }
+
   public static void backFrame (int fileId, @Nullable android.graphics.Bitmap frame) {
     synchronized (Tgx101VideoResume.class) {
       backFrameFileId = frame != null ? fileId : 0;

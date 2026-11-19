@@ -3166,19 +3166,28 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     // viewer left it — until it shows a new frame (it may still have its old one from before the viewer), the viewer's
     // last frame stands here instead of the cover or that old frame
     private @Nullable android.graphics.Bitmap hold;
-    private long holdSince, holdFrameNo;
+    private long holdSince, holdFrameNo, holdTarget;
 
     @Override
     protected void onDraw (android.graphics.Canvas c) {
       long frameNo = receiver.needPlaceholder() ? -2 : receiver.tgx101FrameNo();
+      if (fileId != 0) org.thunderdog.challegram.mediaview.Tgx101VideoResume.markInline(fileId);
       if (hold == null) {
         hold = org.thunderdog.challegram.mediaview.Tgx101VideoResume.takeBackFrame(fileId);
         holdSince = android.os.SystemClock.uptimeMillis();
         holdFrameNo = frameNo;
+        holdTarget = org.thunderdog.challegram.loader.gif.GifActor.tgx101Position(fileId);
         if (hold != null) org.thunderdog.challegram.Tgx101Diag.mark("gazeta post: holds the viewer's frame until its video plays (frame " + frameNo + ")");
       }
-      if (hold != null && (hold.isRecycled() || frameNo != holdFrameNo || android.os.SystemClock.uptimeMillis() - holdSince > 2000)) {
-        hold = null;
+      // (user 2026-11-19 «то обложка мигнёт, то последний кадр не так встанет»): the post's own copy showed its old place
+      // for a frame or two before it jumped to the viewer's — held until the video is at the place the viewer left it
+      if (hold != null) {
+        boolean arrived = frameNo != holdFrameNo && frameNo >= 0
+          && !org.thunderdog.challegram.loader.gif.GifActor.tgx101JumpPending(fileId)
+          && (holdTarget <= 0 || Math.abs(frameNo - holdTarget) <= 400);
+        if (hold.isRecycled() || arrived || android.os.SystemClock.uptimeMillis() - holdSince > 3000) {
+          hold = null;
+        }
       }
       if (hold == null) {
         if (frameNo != -2) receiver.draw(c); // until the first frame the cover under it shows

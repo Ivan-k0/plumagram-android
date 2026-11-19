@@ -972,9 +972,14 @@ public class MediaCellView extends ViewGroup implements
   // (user video 2026-11-10 11:18 «обложка мелькает в начале»): a video opened from where it plays by itself in the feed
   // showed the post's cover (a different picture) until the player's first frame; the feed's frame stands in instead
   private @Nullable android.graphics.Bitmap tgx101StartFrame;
+  private boolean tgx101FadeToCover;
 
   /** fitted the way the receiver fits its picture (FIT_CENTER), so it stands exactly where the cover would */
   private void tgx101DrawFitted (android.graphics.Canvas c, android.graphics.Bitmap frame) {
+    tgx101DrawFitted(c, frame, 1f);
+  }
+
+  private void tgx101DrawFitted (android.graphics.Canvas c, android.graphics.Bitmap frame, float alpha) {
     // (user video 2026-11-01 21:18 «ужас убирания видео свайпом»): stretched over the receiver's whole bounds — the
     // full-screen height — the clip into the post cut a blown-up face out of it
     android.graphics.Rect dst = Paints.getRect();
@@ -984,7 +989,7 @@ public class MediaCellView extends ViewGroup implements
     dst.set(Math.round(receiver.centerX() - frameW / 2f), Math.round(receiver.centerY() - frameH / 2f), Math.round(receiver.centerX() + frameW / 2f), Math.round(receiver.centerY() + frameH / 2f));
     android.graphics.Paint paint = Paints.getBitmapPaint();
     int was = paint.getAlpha();
-    paint.setAlpha(Math.round(255 * Math.max(0f, Math.min(1f, receiver.getAlpha() * receiver.getPaintAlpha()))));
+    paint.setAlpha(Math.round(255 * Math.max(0f, Math.min(1f, receiver.getAlpha() * receiver.getPaintAlpha() * alpha))));
     c.drawBitmap(frame, null, dst, paint);
     paint.setAlpha(was);
   }
@@ -998,7 +1003,10 @@ public class MediaCellView extends ViewGroup implements
 
   public void setDisappearing (boolean disappearing) {
     this.disappearing = disappearing;
-    if (!disappearing) tgx101Frame = null;
+    if (!disappearing) {
+      tgx101Frame = null;
+      tgx101FadeToCover = false;
+    }
     if (disappearing && hideStaticView && videoReady && playerView != null && media != null && media.isVideo()) {
       tgx101Frame = playerView.tgx101CurrentFrame();
     }
@@ -1006,8 +1014,10 @@ public class MediaCellView extends ViewGroup implements
       // (user video 2026-11-10 11:18 «обложка мелькает в конце»): the post the video lands in keeps this frame until its
       // own video plays again, instead of showing its cover in between
       android.graphics.Bitmap back = tgx101Frame != null ? tgx101Frame : tgx101StartFrame;
-      if (back != null) Tgx101VideoResume.backFrame(media.getFileId(), back);
-      org.thunderdog.challegram.Tgx101Diag.mark("viewer close: " + (back != null ? "hands its frame " + back.getWidth() + "x" + back.getHeight() + " back" : "no frame to hand back (ready " + videoReady + ", hidden static " + hideStaticView + ")"));
+      // a post that shows its cover (its video doesn't play by itself): the frame melts into the cover on the way
+      tgx101FadeToCover = back != null && !Tgx101VideoResume.playsInline(media.getFileId());
+      if (back != null && !tgx101FadeToCover) Tgx101VideoResume.backFrame(media.getFileId(), back);
+      org.thunderdog.challegram.Tgx101Diag.mark("viewer close: " + (tgx101FadeToCover ? "its post shows the cover — the frame melts into it on the way, " : "") + (back != null ? "hands its frame " + back.getWidth() + "x" + back.getHeight() + " back" : "no frame to hand back (ready " + videoReady + ", hidden static " + hideStaticView + ")"));
     }
     if (disappearing) {
       if (isPlaying && media != null) {
@@ -2272,7 +2282,8 @@ public class MediaCellView extends ViewGroup implements
         }
         receiver.draw(c);
         if (disappearing && tgx101Frame != null && !tgx101Frame.isRecycled()) {
-          tgx101DrawFitted(c, tgx101Frame);
+          // fades out over the last 70 % of the way when the post will show its cover, so it lands as the cover
+          tgx101DrawFitted(c, tgx101Frame, tgx101FadeToCover ? MathUtils.clamp(revealFactor / .7f) : 1f);
         } else if (!disappearing && tgx101StartFrame != null && !tgx101StartFrame.isRecycled()) {
           tgx101DrawFitted(c, tgx101StartFrame); // the feed's frame until the player has its own
         }

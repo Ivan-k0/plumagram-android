@@ -204,7 +204,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   // TGx101 (user video 2026-10-21 17:00 «плавности не хватает», vs the official app): 260 ms, was 180 (90 at 0.5× animations)
   private static final long REVEAL_ANIMATION_DURATION = /*BuildConfig.DEBUG ? 1800l :*/ 260;
-  private static final long REVEAL_OPEN_ANIMATION_DURATION = /*BuildConfig.DEBUG ? 1800l :*/ 260l;
+  // (user 2026-11-19 «как в эталоне», recordings 20:30 side by side): the other client's video grows out of its post in
+  // about half our time (~60 ms of movement at the phone's 0.5 animation scale against our 130) — the same curve, 200 ms
+  private static final long REVEAL_OPEN_ANIMATION_DURATION = /*BuildConfig.DEBUG ? 1800l :*/ 200l;
   // (user 2026-11-03, recording 120 fps next to another client: «скорость открытия и плавность по кадрам») the soft start
   // (.25, .1) stood still for the first 3–4 frames while the backdrop already darkened, then hurried — slow-fast-slow
   // and a dark frame before the light photo. Now it starts at ~1.7× the average speed (the other client's measured first
@@ -1143,6 +1145,39 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
     if (animationType == ANIMATION_TYPE_REVEAL) {
       revealAnimator.setDuration(tgx101SlideReveal ? TGX101_SLIDE_REVEAL_DURATION : TGX101_BACK_REVEAL_DURATION);
+      if (tgx101SlideReveal && tgx101FlyFromSlide) {
+        // TGx101 (user 2026-11-19 «полностью переделать… как в эталоне», «со скоростью пальца»): one move from where the
+        // finger let go straight into the post — the offset now rides on the reveal's own curve (no second animator, no
+        // arc), and that curve starts at the finger's speed toward the post and comes to rest in it
+        long duration = TGX101_SLIDE_REVEAL_DURATION;
+        float scale = Math.max(.01f, U.getAnimationScale(context()));
+        float along = tgx101FlySpeedToward(location); // px per ms
+        float distance = Math.abs(tgx101FlyDistance(location));
+        float slope = distance > 0f ? along * duration * scale / distance : 0f;
+        if (slope > 3f) {
+          duration = Math.max(140, Math.round(3f * distance / along / scale));
+          slope = Math.min(3f, along * duration * scale / distance);
+        }
+        slope = MathUtils.clamp(slope, 0f, 3f);
+        revealAnimator.setInterpolator(new Tgx101GlideCurve(slope));
+        revealAnimator.setDuration(duration);
+        // (user 2026-11-19 «да, давай так»): pulled down with its post above, the picture went from rest the other way —
+        // now it goes on down a little at the finger's speed, slows and turns into the post, all on the same flight
+        float fingerY = tgx101FingerSpeedY();
+        float toward = tgx101FlyDistance(location);
+        tgx101InertiaV = fingerY * toward < 0f ? fingerY : 0f;
+        tgx101InertiaT = duration * scale;
+        if (tgx101InertiaV != 0f && tgx101InertiaT > 0f) {
+          // no further than 80 dp past where it was let go — a hard flick would throw it half a screen away first
+          float maxV = Screen.dp(80f) * 27f / 4f / tgx101InertiaT;
+          tgx101InertiaV = Math.max(-maxV, Math.min(maxV, tgx101InertiaV));
+        }
+        tgx101InertiaStart = android.os.SystemClock.uptimeMillis();
+        if (tgx101InertiaV != 0f) {
+          org.thunderdog.challegram.Tgx101Diag.mark("media viewer: goes on " + Math.round(tgx101InertiaV * 1000f) + " px/s away first, up to " + Math.round(tgx101InertiaV * tgx101InertiaT * 4f / 27f) + " px, then into the post");
+        }
+        org.thunderdog.challegram.Tgx101Diag.mark("media viewer: flies into the post " + Math.round(distance) + " px, finger " + Math.round(along * 1000f) + " px/s toward it, " + duration + " ms, start slope " + slope);
+      }
     }
     tgx101SlideReveal = false;
     revealAnimator.animateTo(0f);
@@ -1294,6 +1329,18 @@ public class MediaViewController extends ViewController<MediaViewController.Args
               hideCurrentCell();
             }
             mediaView.getBaseCell().getDetector().setPositionFactor(fraction);
+            if (tgx101FlyFromSlide) {
+              // the finger's offset shrinks with the same factor as the picture: full + offset → post on one straight line
+              mediaView.setTranslationX(tgx101FlyFromX * factor);
+              float extra = 0f;
+              if (tgx101InertiaV != 0f && tgx101InertiaT > 0f) {
+                // speed v at the start, back to 0 offset (and rest) at the end: v·T·s·(1−s)²
+                float s = MathUtils.clamp((android.os.SystemClock.uptimeMillis() - tgx101InertiaStart) / tgx101InertiaT);
+                if (factor <= 0f) s = 1f;
+                extra = tgx101InertiaV * tgx101InertiaT * s * (1f - s) * (1f - s);
+              }
+              mediaView.setTranslationY(tgx101FlyFromY * factor + extra);
+            }
             mediaView.setRevealFactor(factor);
             break;
           }
@@ -4804,6 +4851,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         (along >= Screen.dp(TGX101_CLOSE_FLING_DP) && distance >= Screen.dp(TGX101_CLOSE_FLING_MIN_DISTANCE_DP) && Math.abs(velocityY) > Math.abs(velocityX)) ||
         (distance >= Screen.dp(TGX101_CLOSE_DISTANCE_DP) && along >= 0f);
       org.thunderdog.challegram.Tgx101Diag.mark("media viewer: slide let go by a fling — " + Math.round(lastSlideY / Screen.dp(1f)) + " dp, speed " + Math.round(velocityY / Screen.dp(1f)) + "/" + Math.round(velocityX / Screen.dp(1f)) + " dp/s → " + (apply ? "closes" : "back"));
+      tgx101FlingSpeedY = velocityY / 1000f;
+      tgx101FlingAt = android.os.SystemClock.uptimeMillis();
       dropSlideMode(apply ? 0f : velocityX, velocityY, apply);
     }
     return false;
@@ -4829,6 +4878,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private void setInSlideMode (float x, float y) {
     slideItem = stack.getCurrent();
     inSlideMode = true;
+    tgx101SlideSpeedY = 0f;
+    tgx101SlideSpeedAt = 0;
+    tgx101FlingAt = 0;
     org.thunderdog.challegram.Tgx101Diag.mark("media viewer: slide starts at " + Math.round(x / Screen.dp(1f)) + "," + Math.round(y / Screen.dp(1f)) + " dp");
     if (tgx101LandscapeWindow() && !tgx101FullscreenDeferred) {
       // TGx101 (user's Vivo recording 2026-10-04): in landscape the chat behind showed without the status bar while
@@ -4916,7 +4968,23 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
   }
 
+  // the picture's speed under the finger a moment ago, px per ms (+ = down), for the flight into the post
+  private float tgx101SlideSpeedY;
+  private long tgx101SlideSpeedAt;
+
+  private void tgx101TrackSlideSpeed (float y) {
+    long now = android.os.SystemClock.uptimeMillis();
+    if (tgx101SlideSpeedAt != 0 && now > tgx101SlideSpeedAt && now - tgx101SlideSpeedAt < 100) {
+      float v = (y - lastSlideY) / (float) (now - tgx101SlideSpeedAt);
+      tgx101SlideSpeedY = tgx101SlideSpeedY == 0f ? v : tgx101SlideSpeedY * .4f + v * .6f;
+    } else if (now != tgx101SlideSpeedAt) {
+      tgx101SlideSpeedY = 0f;
+    }
+    tgx101SlideSpeedAt = now;
+  }
+
   private void setSlide (float x, float y, float sourceX, boolean noRotation, boolean byTouch) {
+    if (byTouch) tgx101TrackSlideSpeed(y);
     lastSlideX = x;
     lastSlideY = y;
     lastSlideSourceX = sourceX;
@@ -4930,7 +4998,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         // TGx101 (user 2026-11-01 «фото так плохо сворачивает, блимает сильно»): the dark backdrop was gone after 125dp
         // of pull — a quick flick cleared it in a few frames and the chat flashed in under the photo. It now pales over a
         // long pull and never all the way, the rest dissolving with the flight into the post
-        float dim = .8f * MathUtils.clamp(Math.abs(y) / (float) Screen.dp(420f));
+        // (user 2026-11-19 «как в эталоне»): half of the dimming goes over a quarter of the screen's width of pull and
+        // stays there, the other half dissolves with the flight into the post
+        float quarter = Math.max(1f, mediaView.getMeasuredWidth() / 4f);
+        float dim = .5f * MathUtils.clamp(Math.abs(y) / quarter);
         if (Float.isNaN(dim)) dim = 0f;
         tgx101SlideDim = dim;
         setCommonFactor(1f - dim);
@@ -5065,8 +5136,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private boolean tgx101SlideReveal;
   // exteraGram's glide frame by frame (user's recording 01:07): no pause, one smooth move a bit longer than a tap-close,
   // the drag offset and the shrink on the same curve so the photo doesn't sit still and then jump into the post
-  private static final long TGX101_SLIDE_REVEAL_DURATION = 220; // 260 → 220, 280 → 240 (user 2026-11-03: closing ~40 ms longer than the other client's)
-  private static final long TGX101_BACK_REVEAL_DURATION = 240;
+  private static final long TGX101_SLIDE_REVEAL_DURATION = 200; // 2026-11-19: 220 → 200, as the other client's (recording 20:30) // 260 → 220, 280 → 240 (user 2026-11-03: closing ~40 ms longer than the other client's)
+  private static final long TGX101_BACK_REVEAL_DURATION = 200; // 2026-11-19: 240 → 200 — its «back» lands in ~30–60 ms at 0.5×
 
   private boolean tgx101UnzoomedForClose;
 
@@ -5107,23 +5178,79 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       return true;
     }
     if (target == null) return false;
-    final float fromX = mediaView.getTranslationX(), fromY = mediaView.getTranslationY(), fromRotation = mediaView.getRotation();
     tgx101RevealAlphaScale = MathUtils.clamp(1f - tgx101SlideDim);
-    android.animation.ValueAnimator back = android.animation.ValueAnimator.ofFloat(1f, 0f);
-    back.setDuration(TGX101_SLIDE_REVEAL_DURATION);
-    back.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
-    back.addUpdateListener(a -> {
-      float f = (float) a.getAnimatedValue();
-      mediaView.setTranslationX(fromX * f);
-      mediaView.setTranslationY(fromY * f);
-      mediaView.setRotation(fromRotation * f);
-    });
-    back.start();
+    // the offset rides on the reveal (see onFactorChanged): one curve for the move and the shrink
+    tgx101FlyFromX = mediaView.getTranslationX();
+    tgx101FlyFromY = mediaView.getTranslationY();
+    tgx101FlyFromSlide = true;
+    mediaView.setRotation(0f);
     lastSlideX = lastSlideY = 0f;
     tgx101SlideReveal = true;
     org.thunderdog.challegram.Tgx101Diag.mark("media viewer: swipe closes into the post (dim " + tgx101RevealAlphaScale + ", animator scale " + (android.os.Build.VERSION.SDK_INT >= 17 ? android.provider.Settings.Global.getFloat(context().getContentResolver(), android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) : 1f) + ")");
     close();
     return true;
+  }
+
+  private float tgx101FlyFromX, tgx101FlyFromY;
+  private boolean tgx101FlyFromSlide;
+  private float tgx101FlingSpeedY; // px per ms, from the fling detector
+  private long tgx101FlingAt;
+
+  private float tgx101FingerY; // where the finger was on the screen during the slide, px
+
+  /** How far the point under the finger goes to its place in the post, along y, px (+ = down). (2026-11-19 log 20:50: the
+   *  picture's centre hardly moves for a wide video — its post lies about the screen's middle — the speed matched to it
+   *  came out 3× and the flight was cut to 140 ms; the point the finger holds is what the eye follows) */
+  private float tgx101FlyDistance (MediaViewThumbLocation target) {
+    if (target == null || slideItem == null) return 0f;
+    float viewW = mediaView.getMeasuredWidth(), viewH = mediaView.getMeasuredHeight();
+    int mw = slideItem.getWidth(), mh = slideItem.getHeight();
+    if (viewW <= 0 || viewH <= 0 || mw <= 0 || mh <= 0) return 0f;
+    float fit = Math.min(viewW / mw, viewH / mh);
+    float h = mh * fit;
+    float top = (viewH - h) / 2f + tgx101FlyFromY;
+    float r = MathUtils.clamp((tgx101FingerY - top) / h);
+    float toY = target.top + r * (target.bottom - target.top);
+    return toY - tgx101FingerY;
+  }
+
+  /** The finger's speed toward its place in the post as it let go, px per ms (0 when it went away from it or had stopped) */
+  private float tgx101InertiaV, tgx101InertiaT; // px per ms, ms (real)
+  private long tgx101InertiaStart;
+
+  /** The finger's vertical speed as it let go, px per ms (+ = down); 0 when it had stopped */
+  private float tgx101FingerSpeedY () {
+    long now = android.os.SystemClock.uptimeMillis();
+    float vy;
+    if (tgx101FlingAt != 0 && now - tgx101FlingAt < 100) {
+      vy = tgx101FlingSpeedY;
+    } else if (tgx101SlideSpeedAt != 0 && now - tgx101SlideSpeedAt < 80) {
+      vy = tgx101SlideSpeedY;
+    } else {
+      vy = 0f;
+    }
+    return Float.isNaN(vy) ? 0f : vy;
+  }
+
+  private float tgx101FlySpeedToward (MediaViewThumbLocation target) {
+    if (target == null) return 0f;
+    float vy = tgx101FingerSpeedY();
+    float dy = tgx101FlyDistance(target);
+    if (dy == 0f || Float.isNaN(vy)) return 0f;
+    return Math.max(0f, vy * Math.signum(dy));
+  }
+
+  /** Starts at the given speed (slope at 0, in distance per duration) and comes to rest at 1 with no jolt */
+  private static final class Tgx101GlideCurve implements Interpolator {
+    private final float m0;
+    Tgx101GlideCurve (float m0) { this.m0 = m0; }
+    @Override
+    public float getInterpolation (float s) {
+      if (s <= 0f) return 0f;
+      if (s >= 1f) return 1f;
+      float r = 1f - s;
+      return m0 * s * r * r + s * s * (3f - 2f * s); // cubic Hermite: speed m0 at the start, 0 at the end
+    }
   }
 
   private void setSlideFactor (float factor) {
@@ -6679,7 +6806,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             if (inSlideMode) {
               float x = e.getX();
               float y = e.getY();
-              setSlide(x - slideStartX, y - slideStartY, slideStartX, false, true); // up or down
+              // TGx101 (user 2026-11-19 «как в эталоне»): the picture follows the finger only up and down — no sideways
+              // drift, no tilt
+              tgx101FingerY = y;
+              setSlide(0f, y - slideStartY, slideStartX, false, true); // up or down
               return true;
             }
             break;
