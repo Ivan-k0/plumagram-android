@@ -93,6 +93,15 @@ public class CustomItemAnimator extends SimpleItemAnimator {
     this.customInterpolator = customInterpolator;
   }
 
+  // TGx101 (user 2026-11-20 «анимация раскрытия профилей резкая, сделай по уму»): the side menu's accounts — the rows
+  // fade while the items under them slide, all at once; one after the other the slide came late, short and looked like a jump
+  private boolean tgx101Together;
+
+  public CustomItemAnimator tgx101Together () {
+    this.tgx101Together = true;
+    return this;
+  }
+
   public CustomItemAnimator (Interpolator customInterpolator, long defaultDuration) {
     this.customInterpolator = customInterpolator;
     setMoveDuration(defaultDuration);
@@ -130,7 +139,7 @@ public class CustomItemAnimator extends SimpleItemAnimator {
         moves.clear();
         mMovesList.remove(moves);
       };
-      if (removalsPending) {
+      if (removalsPending && !tgx101Together) {
         View view = moves.get(0).holder.itemView;
         ViewCompat.postOnAnimationDelayed(view, mover, getRemoveDuration());
       } else {
@@ -170,13 +179,16 @@ public class CustomItemAnimator extends SimpleItemAnimator {
         additions.clear();
         mAdditionsList.remove(additions);
       };
-      if (removalsPending || movesPending || changesPending) {
+      if (!tgx101Together && (removalsPending || movesPending || changesPending)) {
         long removeDuration = removalsPending ? getRemoveDuration() : 0;
         long moveDuration = movesPending ? getMoveDuration() : 0;
         long changeDuration = changesPending ? getChangeDuration() : 0;
         long totalDelay = removeDuration + Math.max(moveDuration, changeDuration);
         View view = additions.get(0).itemView;
         ViewCompat.postOnAnimationDelayed(view, adder, totalDelay);
+      } else if (tgx101Together && movesPending) {
+        // the new rows come in once the items under them have made some room, so they don't lie over them
+        ViewCompat.postOnAnimationDelayed(additions.get(0).itemView, adder, getMoveDuration() / 3);
       } else {
         adder.run();
       }

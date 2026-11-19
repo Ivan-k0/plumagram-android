@@ -32,7 +32,7 @@ import me.vkryl.core.ColorUtils;
 
 public class ExpanderView implements FactorAnimator.Target {
   private final Path path;
-  private final BoolAnimator expandAnimator = new BoolAnimator(0, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);
+  private final BoolAnimator expandAnimator = new BoolAnimator(0, this, androidx.core.view.animation.PathInterpolatorCompat.create(.4f, 0f, .2f, 1f), 280l); // TGx101: in step with the accounts' rows (2026-11-20)
 
   private Counter counter;
 

@@ -1406,7 +1406,7 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
 
   private float factor;
 
-  private final RecyclerView.ItemAnimator recyclerAnimator = new CustomItemAnimator(AnimatorUtils.DECELERATE_INTERPOLATOR, 160l);
+  private final RecyclerView.ItemAnimator recyclerAnimator = new CustomItemAnimator(androidx.core.view.animation.PathInterpolatorCompat.create(.4f, 0f, .2f, 1f), 280l).tgx101Together(); // TGx101: see CustomItemAnimator.tgx101Together
 
   public void setFactor (float factor) {
     if (this.factor != factor) {
