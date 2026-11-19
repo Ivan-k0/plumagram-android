@@ -643,6 +643,11 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     return false;
   }
 
+  /** music, which has a queue: a swipe to a side goes to the next song */
+  private boolean tgx101IsMusic () {
+    return playingMessage != null && playingMessage.content.getConstructor() == TdApi.MessageAudio.CONSTRUCTOR;
+  }
+
   public void openPlayer () {
     if (navigationController == null || playingMessageTdlib == null || playingMessage == null) {
       return;
@@ -845,7 +850,9 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   }
 
   private boolean tgx101ShowsNext () {
-    return playingMessage != null && playingMessage.content.getConstructor() == TdApi.MessageAudio.CONSTRUCTOR;
+    // TGx101 (user 2026-11-20 «зачем нам кнопка перемотки в закрепе плеера, если можно свайпать и музыка будет
+    // перелистываться?»): a swipe to a side already goes to the next song — no ⏭ on the bar
+    return false;
   }
 
   private void drawCloseIcon (Canvas c, int playerTop, float rectWidth, int playerBottom, boolean alignRight) {
@@ -1616,7 +1623,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
               tgx101SwipeMode = TGX101_SWIPE_SIDE;
               tgx101SwipeX = e.getX(); // no jump: it goes from here
               tgx101CancelClicks(e);
-            } else if (tgx101ShowsNext() && !(dy > 0 && needLongPress(tgx101SwipeX, tgx101SwipeY))) {
+            } else if (tgx101IsMusic() && !(dy > 0 && needLongPress(tgx101SwipeX, tgx101SwipeY))) {
               // (user 2026-11-05) up or down; only down over the speed stays its picker
               tgx101SwipeMode = TGX101_SWIPE_OPENED;
               tgx101CancelClicks(e);
@@ -1628,7 +1635,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
         }
         if (tgx101SwipeMode == TGX101_SWIPE_SIDE) {
           float dx = e.getX() - tgx101SwipeX;
-          if (tgx101ShowsNext() && !tgx101CanSwipeTo(dx)) {
+          if (tgx101IsMusic() && !tgx101CanSwipeTo(dx)) {
             dx *= .3f; // no track that way: it gives a little and comes back
           }
           tgx101SetSwipeDx(dx);
@@ -1652,7 +1659,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
           }
           final boolean flung = Math.abs(velocity) > Screen.dp(500f) && Math.signum(velocity) == Math.signum(tgx101SwipeDx);
           final boolean far = flung || Math.abs(tgx101SwipeDx) > width * .35f;
-          if (e.getActionMasked() == MotionEvent.ACTION_UP && far && tgx101ShowsNext()) {
+          if (e.getActionMasked() == MotionEvent.ACTION_UP && far && tgx101IsMusic()) {
             if (tgx101CanSwipeTo(tgx101SwipeDx)) {
               tgx101SwipeSkipNext = tgx101SwipeDx < 0;
               tgx101AnimateSwipeTo(Math.signum(tgx101SwipeDx) * width * .6f, false, velocity);
