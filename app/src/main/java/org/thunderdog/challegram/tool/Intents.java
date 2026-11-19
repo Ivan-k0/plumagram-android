@@ -562,6 +562,27 @@ public class Intents {
     }
   }
 
+  /**
+   * TGx101 (user 2026-11-20, recording: «каждый раз, когда я перехожу по подобным кнопкам, экран как бы заново стартует,
+   * то гаснет, то появляется»): «Share link» → the system's sheet → PlumaGram started the app again over itself only to
+   * show the same chat picker. Shared from inside the app, the app itself isn't offered there — its own picker does that
+   */
+  public static Intent tgx101ChooserWithoutSelf (android.content.Context context, Intent target, CharSequence title) {
+    Intent chooser = Intent.createChooser(target, title);
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+      try {
+        java.util.List<android.content.ComponentName> own = new java.util.ArrayList<>();
+        for (android.content.pm.ResolveInfo info : context.getPackageManager().queryIntentActivities(target, 0)) {
+          if (info.activityInfo != null && context.getPackageName().equals(info.activityInfo.packageName)) {
+            own.add(new android.content.ComponentName(info.activityInfo.packageName, info.activityInfo.name));
+          }
+        }
+        if (!own.isEmpty()) chooser.putExtra(Intent.EXTRA_EXCLUDE_COMPONENTS, own.toArray(new android.os.Parcelable[0]));
+      } catch (Throwable ignored) { }
+    }
+    return chooser;
+  }
+
   public static void shareText (String text) {
     try {
       Intent intent;
@@ -570,7 +591,7 @@ public class Intents {
       intent.setType("text/plain");
       intent.putExtra(Intent.EXTRA_TEXT, text);
 
-      UI.startActivity(Intent.createChooser(intent, Lang.getString(R.string.ShareTitleText)));
+      UI.startActivity(tgx101ChooserWithoutSelf(UI.getContext(), intent, Lang.getString(R.string.ShareTitleText)));
     } catch (Throwable t) {
       Log.w("Cannot share text", t);
     }

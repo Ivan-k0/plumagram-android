@@ -562,7 +562,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
       }
       title = files.length > 1 ? Lang.plural(title2, files.length) : Lang.getString(title1);
     }
-    context.startActivity(Intent.createChooser(shareIntent, title));
+    context.startActivity(org.thunderdog.challegram.tool.Intents.tgx101ChooserWithoutSelf(context, shareIntent, title));
   }
 
   private List<TdApi.File> awaitingFiles;
@@ -764,7 +764,7 @@ public class ShareController extends TelegramViewController<ShareController.Args
     shareIntent.setAction(Intent.ACTION_SEND);
     shareIntent.putExtra(Intent.EXTRA_STREAM, uri);
     shareIntent.setType(mimeType);
-    context.startActivity(Intent.createChooser(shareIntent, title));
+    context.startActivity(org.thunderdog.challegram.tool.Intents.tgx101ChooserWithoutSelf(context, shareIntent, title));
   }
 
   @SuppressWarnings("WrongConstant")
