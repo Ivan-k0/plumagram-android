@@ -3681,17 +3681,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         strings.append(Tgx101ProfileMusic.isMine(tdlib, tgx101Song) ? R.string.Tgx101ProfileMusicRemove : R.string.Tgx101ProfileMusicAdd);
       }
 
-      ids.append(R.id.btn_tgx101TrackInfo);
-      strings.append(R.string.Tgx101PlayerInfo);
-
       if (tracks.size() > 5 && isScrollUnlocked) {
         ids.append(R.id.btn_showInPlaylist);
         strings.append(R.string.PlayListHighlight);
-      }
-
-      if (tdlib.context().player().canReverseOrder()) {
-        ids.append(R.id.btn_reverseOrder);
-        strings.append(R.string.PlayListReverse);
       }
 
       // TGx101 (user 2026-11-20 «через три точки в плеере нужно добавить chromecast»)
@@ -3700,6 +3692,10 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         strings.append(org.thunderdog.challegram.player.Tgx101Cast.menuTitle(tdlib.context().audio().tgx101CastSource));
         org.thunderdog.challegram.player.Tgx101Cast.prewarm();
       }
+
+      // (user 2026-11-20 «обратный порядок убери, транслировать — предпоследний, перед сведениями»)
+      ids.append(R.id.btn_tgx101TrackInfo);
+      strings.append(R.string.Tgx101PlayerInfo);
 
       showMore(ids.get(), strings.get(), 0);
     }
