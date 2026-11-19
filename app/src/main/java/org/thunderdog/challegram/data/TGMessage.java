@@ -2328,12 +2328,17 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       if (TGX101_JOURNAL_EDGE_LINES) {
         // (user 2026-11-19 «неплохо было бы разделять все посты подобными линиями, а не тремя полосками — их убрать»):
         // two hairlines from the edges with a gap in the middle, as the «New messages» divider draws them
+        // (user 2026-11-19 «чуть толще и дай им менять цвет»): 1.5 dp, round ends, in the colour chosen for the lines between
+        // «Journal» posts (theme settings → «Полоски в Журнале»; rainbow: red on the left, blue on the right)
         float y = (top + bottom) / 2f;
         int w = view.getMeasuredWidth();
-        float edge = Screen.dp(12f), half = w * .22f;
-        android.graphics.Paint hair = Paints.strokeSmallPaint(Theme.separatorColor());
-        c.drawLine(edge, y, w / 2f - half, y, hair);
-        c.drawLine(w / 2f + half, y, w - edge, y, hair);
+        float edge = Screen.dp(12f), half = w * .22f, thick = Screen.dp(1.5f);
+        int[] colors = Settings.instance().tgx101JournalLineColors(Theme.isDark(), Theme.getColor(ColorId.textLink));
+        android.graphics.RectF lr = Paints.getRectF();
+        lr.set(edge, y - thick / 2f, w / 2f - half, y + thick / 2f);
+        c.drawRoundRect(lr, thick / 2f, thick / 2f, Paints.fillingPaint(colors[0]));
+        lr.set(w / 2f + half, y - thick / 2f, w - edge, y + thick / 2f);
+        c.drawRoundRect(lr, thick / 2f, thick / 2f, Paints.fillingPaint(colors[2]));
       } else {
       int[] colors = Settings.instance().tgx101JournalLineColors(Theme.isDark(), Theme.getColor(ColorId.textLink));
       float line = Screen.dp(TGX101_JOURNAL_LINE), gap = Screen.dp(TGX101_JOURNAL_LINE_GAP);
