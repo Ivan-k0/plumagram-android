@@ -2017,6 +2017,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     TdApi.Chat chat = tdlib.chat(item.getSourceChatId());
     TdApi.Message message = item.getMessage();
 
+    // TGx101 (user 2026-11-20 «через три точки в плеере нужно добавить chromecast, как и меню видеоплеера»)
+    org.thunderdog.challegram.player.Tgx101Cast.Source tgx101CastSource = mediaView != null && mode != MODE_SECRET ? mediaView.getBaseCell().tgx101CastSource() : null;
+    if (tgx101CastSource != null && org.thunderdog.challegram.player.Tgx101Cast.isAvailable()) {
+      ids.append(R.id.btn_tgx101Cast);
+      strings.append(org.thunderdog.challegram.player.Tgx101Cast.menuTitle(tgx101CastSource));
+      org.thunderdog.challegram.player.Tgx101Cast.prewarm();
+    }
+
     if (message != null && tdlib.canEditMedia(message, tdlib.getMessagePropertiesSync(message), true)) {
       ids.append(R.id.btn_replace);
       strings.append(item.isVideo() ? R.string.ReplaceVideo : R.string.ReplaceImage);
@@ -2132,7 +2140,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   @Override
   public void onMoreItemPressed (int id) {
     MediaItem item = stack.getCurrent();
-    if (id == R.id.btn_saveToGallery) {
+    if (id == R.id.btn_tgx101Cast) {
+      org.thunderdog.challegram.player.Tgx101Cast.Source source = mediaView != null ? mediaView.getBaseCell().tgx101CastSource() : null;
+      if (source != null) {
+        org.thunderdog.challegram.player.Tgx101Cast.onMenuItem(this, source);
+      }
+    } else if (id == R.id.btn_saveToGallery) {
       TdApi.File file = item.getTargetFile();
       tdlib.files().isFileLoadedAndExists(file, isLoadedAndExists -> {
         if (isLoadedAndExists) {

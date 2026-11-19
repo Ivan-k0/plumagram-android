@@ -131,10 +131,52 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
     if (this.volume != volume) {
       this.volume = volume;
       if (exoPlayer != null) {
-        exoPlayer.setVolume(volume);
+        exoPlayer.setVolume(tgx101CastMuted ? 0f : volume);
       }
     }
   }
+
+  // TGx101 (user 2026-11-20 «chromecast»): while the TV plays the song, this player goes on silently and the TV follows it
+
+  private boolean tgx101CastMuted;
+
+  public final Tgx101Cast.Source tgx101CastSource = new Tgx101Cast.Source() {
+    @Override
+    public @Nullable Tgx101Cast.Item castItem () {
+      if (playbackMode != PLAYBACK_MODE_EXOPLAYER_LIST || exoPlayer == null) return null;
+      return Tgx101Cast.itemFor(tdlib, tgx101MessageAt(exoPlayer.getCurrentWindowIndex()));
+    }
+
+    @Override
+    public boolean castIsPlaying () {
+      return exoPlayer != null && exoPlayer.getPlayWhenReady();
+    }
+
+    @Override
+    public long castPosition () {
+      return exoPlayer != null ? Math.max(0, exoPlayer.getCurrentPosition()) : 0;
+    }
+
+    @Override
+    public void castSeekLocal (long positionMs) {
+      if (exoPlayer != null) exoPlayer.seekTo(positionMs);
+    }
+
+    @Override
+    public void castSetPlaying (boolean playing) {
+      if (castIsPlaying() != playing && context.player().getCurrentTrack() != null) {
+        context.player().playPauseCurrent(playing);
+      }
+    }
+
+    @Override
+    public void castSetMuted (boolean muted) {
+      if (tgx101CastMuted != muted) {
+        tgx101CastMuted = muted;
+        if (exoPlayer != null) exoPlayer.setVolume(muted ? 0f : volume);
+      }
+    }
+  };
 
   @Override
   public void onFactorChanged (int id, float factor, float fraction, FactorAnimator callee) {
@@ -373,7 +415,7 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
     exoPlayer.addListener(this);
     setExoPlayerParameters();
     setExoPlayerSpeed();
-    exoPlayer.setVolume(volume);
+    exoPlayer.setVolume(tgx101CastMuted ? 0f : volume);
     switch (TGPlayerController.getPlayRepeatFlag(playFlags)) {
       case TGPlayerController.PLAY_FLAG_REPEAT:
         exoPlayer.setRepeatMode(Player.REPEAT_MODE_ALL);

@@ -116,6 +116,11 @@ public class MediaCellView extends ViewGroup implements
   private ForegroundView overlayView;
   private CellImageView imageView;
   private @Nullable VideoPlayerView playerView;
+
+  /** TGx101 (user 2026-11-20 «chromecast»): the player to cast from, when a video is shown */
+  public @Nullable org.thunderdog.challegram.player.Tgx101Cast.Source tgx101CastSource () {
+    return playerView != null && media != null && media.isVideo() && !media.isGifType() && !media.isSecret() ? playerView.tgx101CastSource : null;
+  }
   private CellButtonView buttonView;
   private CellVideoView videoParentView;
   private BufferingProgressBarWrap bufferingProgressView;

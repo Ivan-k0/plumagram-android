@@ -7574,6 +7574,17 @@
   <string name="Tgx101LyricsNotLoaded">The file hasn\'t finished loading yet</string>
   <string name="Tgx101PlayerSearchMore">Show more</string>
   <string name="Tgx101PlayerNothing">Nothing found</string>
+  <string name="Tgx101Cast">Cast</string>
+  <string name="Tgx101CastStopOn">Stop casting on %1$s</string>
+  <string name="Tgx101CastHere">Cast to %1$s</string>
+  <string name="Tgx101CastTo">Cast to</string>
+  <string name="Tgx101CastSearching">Looking for devices…</string>
+  <string name="Tgx101CastNone">No devices found. The phone and the TV have to be on the same Wi‑Fi network.</string>
+  <string name="Tgx101CastNoWifi">Casting needs Wi‑Fi</string>
+  <string name="Tgx101CastConnecting">Connecting to %1$s…</string>
+  <string name="Tgx101CastFailed">Couldn\'t connect to %1$s</string>
+  <string name="Tgx101CastPlaying">Playing on %1$s</string>
+  <string name="Tgx101CastError">The TV can\'t play this file</string>
   <string name="Tgx101PlayerInfo">File details</string>
   <string name="Tgx101PlayerInfoFormat">Format</string>
   <string name="Tgx101PlayerInfoLength">Length</string>

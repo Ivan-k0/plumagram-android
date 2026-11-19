@@ -1074,6 +1074,13 @@ dependencies {
     libs.google.play.services.basement.marshmallow,
     libs.google.play.services.basement.latest
   )
+  // TGx101 (user 2026-11-20 «через три точки в плеере нужно добавить chromecast»): casting songs and videos to a TV
+  flavorImplementation(
+    libs.google.play.services.cast.framework.legacy,
+    libs.google.play.services.cast.framework.lollipop,
+    libs.google.play.services.cast.framework.marshmallow,
+    libs.google.play.services.cast.framework.latest
+  )
   flavorImplementation(
     libs.google.play.services.safetynet.legacy,
     libs.google.play.services.safetynet.latest

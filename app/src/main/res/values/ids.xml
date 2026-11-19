@@ -2001,4 +2001,5 @@
   <item name="btn_tgx101OwnAiUrl" type="id"/>
   <item name="btn_tgx101OwnAiTest" type="id"/>
   <item name="btn_tgx101OwnAiForget" type="id"/>
+  <item name="btn_tgx101Cast" type="id"/>
 </resources>

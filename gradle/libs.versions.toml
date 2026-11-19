@@ -75,6 +75,7 @@ google-play-services-base-latest = "18.11.0"
 google-play-services-basement-latest = "18.12.0"
 google-play-services-safetynet-latest = "18.1.0"
 google-play-services-mlkit-barcode-scanning-latest = "18.3.1"
+google-play-services-cast-latest = "23.0.0"
 
 google-mlkit-language-id-latest = "17.0.6"
 google-mlkit-translate-latest = "17.0.3"
@@ -89,6 +90,7 @@ google-recaptcha-marshmallow = "18.8.0"
 
 google-play-services-base-marshmallow = "18.10.1"
 google-play-services-basement-marshmallow = "18.11.0"
+google-play-services-cast-marshmallow = "22.3.1" # 23.0.0+ requires minSdk 24
 
 # lollipop
 
@@ -107,6 +109,7 @@ google-play-billing-lollipop = "8.0.0" # 9.1.0+ requires minSdk 23
 google-play-integrity-lollipop = "1.4.0" # 1.5.0+ requires minSdk 23
 google-play-services-base-lollipop = "18.7.2" # 18.8.0+ requires minSdk 23
 google-play-services-basement-lollipop = "18.7.1" # 18.7.2 was not released
+google-play-services-cast-lollipop = "22.1.0" # 22.2.0+ requires play-services-base newer than lollipop has
 
 # legacy
 
@@ -131,6 +134,7 @@ google-recaptcha-legacy = "18.4.0" # 18.5.0+ requires minSdk 21
 
 google-play-integrity-legacy = "1.3.0" # 1.4.0+ requires minSdk 21
 google-play-services-base-legacy = "17.6.0" # 18.0.0+ requires minSdk 21
+google-play-services-cast-legacy = "20.1.0" # 21.0.0+ requires play-services-base 18.0.0 (minSdk 21)
 google-play-services-safetynet-legacy = "18.0.1" # 18.1.0+ requires minSdk 21
 google-play-services-mlkit-barcode-scanning-legacy = "16.2.1" # 18.3.0+ requires minSdk 21, 18.3.1+ requires minSdk 26
 
@@ -253,6 +257,11 @@ google-play-services-basement-legacy = { module = "com.google.android.gms:play-s
 google-play-services-basement-lollipop = { module = "com.google.android.gms:play-services-basement", version.ref = "google-play-services-basement-lollipop" }
 google-play-services-basement-marshmallow = { module = "com.google.android.gms:play-services-basement", version.ref = "google-play-services-basement-marshmallow" }
 google-play-services-basement-latest = { module = "com.google.android.gms:play-services-basement", version.ref = "google-play-services-basement-latest" }
+
+google-play-services-cast-framework-legacy = { module = "com.google.android.gms:play-services-cast-framework", version.ref = "google-play-services-cast-legacy" }
+google-play-services-cast-framework-lollipop = { module = "com.google.android.gms:play-services-cast-framework", version.ref = "google-play-services-cast-lollipop" }
+google-play-services-cast-framework-marshmallow = { module = "com.google.android.gms:play-services-cast-framework", version.ref = "google-play-services-cast-marshmallow" }
+google-play-services-cast-framework-latest = { module = "com.google.android.gms:play-services-cast-framework", version.ref = "google-play-services-cast-latest" }
 
 osmdroid = { module = "org.osmdroid:osmdroid-android", version.ref = "osmdroid" }
 

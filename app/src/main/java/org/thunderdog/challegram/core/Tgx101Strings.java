@@ -1963,6 +1963,17 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101LyricsNotLoaded, "Файл ещё не загрузился");
     RU.put(R.string.Tgx101PlayerSearchMore, "Показать ещё");
     RU.put(R.string.Tgx101PlayerNothing, "Ничего не найдено");
+    RU.put(R.string.Tgx101Cast, "Транслировать");
+    RU.put(R.string.Tgx101CastStopOn, "Остановить трансляцию на %1$s");
+    RU.put(R.string.Tgx101CastHere, "Транслировать на %1$s");
+    RU.put(R.string.Tgx101CastTo, "Транслировать на");
+    RU.put(R.string.Tgx101CastSearching, "Ищу устройства…");
+    RU.put(R.string.Tgx101CastNone, "Устройства не найдены. Телефон и ТВ должны быть в одной сети Wi‑Fi.");
+    RU.put(R.string.Tgx101CastNoWifi, "Для трансляции нужен Wi‑Fi");
+    RU.put(R.string.Tgx101CastConnecting, "Подключаюсь к %1$s…");
+    RU.put(R.string.Tgx101CastFailed, "Не удалось подключиться к %1$s");
+    RU.put(R.string.Tgx101CastPlaying, "Играет на %1$s");
+    RU.put(R.string.Tgx101CastError, "ТВ не может воспроизвести этот файл");
     RU.put(R.string.Tgx101PlayerInfo, "Сведения о файле");
     RU.put(R.string.Tgx101PlayerInfoFormat, "Формат");
     RU.put(R.string.Tgx101PlayerInfoLength, "Длина");

@@ -3691,13 +3691,22 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       ids.append(R.id.btn_tgx101TrackInfo);
       strings.append(R.string.Tgx101PlayerInfo);
 
+      // TGx101 (user 2026-11-20 «через три точки в плеере нужно добавить chromecast»)
+      if (org.thunderdog.challegram.player.Tgx101Cast.isAvailable()) {
+        ids.append(R.id.btn_tgx101Cast);
+        strings.append(org.thunderdog.challegram.player.Tgx101Cast.menuTitle(tdlib.context().audio().tgx101CastSource));
+        org.thunderdog.challegram.player.Tgx101Cast.prewarm();
+      }
+
       showMore(ids.get(), strings.get(), 0);
     }
   }
 
   @Override
   public void onMoreItemPressed (int id) {
-    if (id == R.id.btn_tgx101ProfileMusicToggle) {
+    if (id == R.id.btn_tgx101Cast) {
+      org.thunderdog.challegram.player.Tgx101Cast.onMenuItem(this, tdlib.context().audio().tgx101CastSource);
+    } else if (id == R.id.btn_tgx101ProfileMusicToggle) {
       TdApi.Audio song = currentItem != null ? Tgx101ProfileMusic.audioOf(currentItem.getMessage()) : null;
       if (song != null) Tgx101ProfileMusic.toggle(tdlib, song);
     } else if (id == R.id.btn_tgx101Playlists) {

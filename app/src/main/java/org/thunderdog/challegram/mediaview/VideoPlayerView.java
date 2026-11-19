@@ -628,6 +628,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
 
   public void destroy () {
     destroyed = true;
+    org.thunderdog.challegram.player.Tgx101Cast.detach(tgx101CastSource);
     setVideo(null);
     // TGx101: the viewer closed — other players get the sound back
     org.thunderdog.challegram.player.ExternalAudioFocus.instance().setActive(org.thunderdog.challegram.player.ExternalAudioFocus.REASON_VIDEO, false);
@@ -655,6 +656,11 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
   }
 
   public void detach () {
+    if (org.thunderdog.challegram.player.Tgx101Cast.isCasting(tgx101CastSource)) {
+      // TGx101: the video plays on the TV — leaving the app (or turning the screen off) doesn't pause it there
+      org.thunderdog.challegram.Tgx101Diag.mark("player: to the background while casting — keeps playing");
+      return;
+    }
     if (!isDetached) {
       // TGx101: the app goes to the background — the video only pauses and the player is kept. Rebuilding it on the
       // way back showed a black frame until the first picture came (the video «blinked» after returning).
@@ -760,6 +766,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     if (this.isPlaying != isPlaying) {
       this.isPlaying = isPlaying;
       if (isPlaying) {
+        org.thunderdog.challegram.player.Tgx101Cast.onViewerPlays(tgx101CastSource); // the next video in the viewer goes to the TV too
         updateTimes();
       } else {
         seekHandler.removeMessages(0);
@@ -814,8 +821,81 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
     }
   }
 
+  // TGx101 (user 2026-11-20 «chromecast… как и меню видеоплеера»): while the TV plays the video, this player goes on
+  // silently and the TV follows it — pause, seek bar, the next video
+
+  private boolean tgx101CastMuted;
+
+  public final org.thunderdog.challegram.player.Tgx101Cast.Source tgx101CastSource = new org.thunderdog.challegram.player.Tgx101Cast.Source() {
+    @Override
+    public @Nullable org.thunderdog.challegram.player.Tgx101Cast.Item castItem () {
+      MediaItem item = currentItem;
+      if (item == null || player == null || isDetached || !item.isVideo() || item.isSecret() || item.getTargetFile() == null) return null;
+      String mime = null, name = null;
+      long durationMs = 0;
+      TdApi.File cover = null;
+      TdApi.Video video = item.getSourceVideo();
+      if (video != null) {
+        mime = video.mimeType;
+        name = video.fileName;
+        durationMs = video.duration * 1000L;
+        cover = video.thumbnail != null ? video.thumbnail.file : null;
+      } else if (item.getSourceAnimation() != null) {
+        TdApi.Animation animation = item.getSourceAnimation();
+        mime = animation.mimeType;
+        name = animation.fileName;
+        durationMs = animation.duration * 1000L;
+      } else if (item.getSourceDocument() != null) {
+        mime = item.getSourceDocument().mimeType;
+        name = item.getSourceDocument().fileName;
+      }
+      if (StringUtils.isEmpty(mime) || !mime.startsWith("video/")) mime = "video/mp4";
+      TdApi.FormattedText caption = item.getCaption();
+      String title = caption != null && !StringUtils.isEmpty(caption.text) ? caption.text : name;
+      if (title != null && title.length() > 120) title = title.substring(0, 120) + "…";
+      if (durationMs <= 0 && player.getDuration() != C.TIME_UNSET) durationMs = player.getDuration();
+      return new org.thunderdog.challegram.player.Tgx101Cast.Item(item.tdlib(), item.getTargetFile(), mime, true, title, null, durationMs, cover);
+    }
+
+    @Override
+    public boolean castIsPlaying () {
+      return isPlaying;
+    }
+
+    @Override
+    public long castPosition () {
+      return player != null ? Math.max(0, player.getCurrentPosition()) : 0;
+    }
+
+    @Override
+    public void castSeekLocal (long positionMs) {
+      if (player != null) {
+        player.seekTo(positionMs);
+        updateTimes();
+      }
+    }
+
+    @Override
+    public void castSetPlaying (boolean playing) {
+      setPlaying(playing);
+    }
+
+    @Override
+    public void castSetMuted (boolean muted) {
+      if (tgx101CastMuted != muted) {
+        tgx101CastMuted = muted;
+        checkMuted();
+      }
+    }
+
+    @Override
+    public boolean castFollowsViewer () {
+      return true;
+    }
+  };
+
   private void checkMuted () {
-    boolean muted = isMuted || forcelyMuted;
+    boolean muted = isMuted || forcelyMuted || tgx101CastMuted;
     if (player != null) {
       player.setVolume(muted ? 0f : 1f);
     }
