@@ -353,6 +353,15 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     if (context().getDrawer() != null) context().getDrawer().tgx101RebuildMenu();
   }
 
+  @Override
+  public void onDragStarted (ListItem item) {
+    // (user 2026-11-20 «по удержанию на низ нужно простое описание действия»)
+    if (item.getId() == R.id.btn_tgx101DrawerSpacer) {
+      boolean gap = Tgx101BarOrder.isDrawerGap((String) item.getData());
+      UI.showToast(gap ? R.string.Tgx101DrawerGapHold : R.string.Tgx101DrawerLineHold, android.widget.Toast.LENGTH_SHORT);
+    }
+  }
+
   /** (user 2026-11-20) A new space or divider goes to the end of the shown items — next to the buttons, to be dragged up */
   private void addSpacer (String kind) {
     List<String> list = new ArrayList<>(Tgx101BarOrder.getOrder(bar()));

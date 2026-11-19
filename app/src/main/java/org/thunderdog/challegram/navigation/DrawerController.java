@@ -972,8 +972,8 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
         continue;
       }
       if (org.thunderdog.challegram.ui.Tgx101BarOrder.isDrawerLine(entry)) {
-        // never first, never two in a row (an item between them may be hidden, e.g. «Proxy» without proxies)
-        if (items.size() > start && items.get(items.size() - 1).getViewType() != ListItem.TYPE_SEPARATOR_FULL) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+        // exactly where it was put — first, last, next to a space or another divider (user 2026-11-20 «должны быть»)
+        items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
         continue;
       }
       switch (entry) {
@@ -998,12 +998,11 @@ public class DrawerController extends ViewController<Void> implements View.OnCli
       }
       items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIdOf(entry), org.thunderdog.challegram.ui.Tgx101BarOrder.drawerIconOf(entry), org.thunderdog.challegram.ui.Tgx101BarOrder.drawerNameOf(entry)));
     }
-    if (items.size() > start && items.get(items.size() - 1).getViewType() == ListItem.TYPE_SEPARATOR_FULL) items.remove(items.size() - 1); // a divider last: no line under the menu
     // TGx101 (user 2026-10-12): a newer release sits at the very bottom — «Обновить PlumaGram · 0.1.N» → progress → «Установить»
     org.thunderdog.challegram.service.Tgx101Updates.restore(context);
     tgx101UpdateShown = tgx101HasUpdateRow();
     if (tgx101UpdateShown) {
-      if (items.size() > start) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      if (items.size() > start && items.get(items.size() - 1).getViewType() != ListItem.TYPE_SEPARATOR_FULL) items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL)); // the user's divider can be the update row's line
       items.add(new ListItem(ListItem.TYPE_DRAWER_ITEM, R.id.btn_tgx101Update, R.drawable.baseline_system_update_24, org.thunderdog.challegram.service.Tgx101Updates.rowTitle()));
     }
     return items.size() - start;

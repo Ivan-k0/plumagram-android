@@ -57,8 +57,11 @@ public final class Tgx101DragOrder {
       return false;
     }
 
-    /** The item was swiped away; it is still in the list */
+    /** The item was swiped away (or its «✕» tapped); it is still in the list */
     default void onSwipedAway (ListItem item) { }
+
+    /** The item was picked up (a hold) — e.g. a short hint at the bottom about what it is */
+    default void onDragStarted (ListItem item) { }
   }
 
   public static boolean isDropTarget (ListItem item, Callback callback) {
@@ -142,6 +145,8 @@ public final class Tgx101DragOrder {
           holder.itemView.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS);
           holder.itemView.setAlpha(.92f);
           org.thunderdog.challegram.Tgx101Diag.mark("order: drag started at " + holder.getBindingAdapterPosition());
+          ListItem item = itemAt(holder);
+          if (item != null) callback.onDragStarted(item);
         }
       }
 
@@ -157,13 +162,42 @@ public final class Tgx101DragOrder {
       }
     });
     helper.attachToRecyclerView(recyclerView);
-    // the icon (and the «≡» of rows without a switch) picks the item up right away
+    // the icon (and the «≡» of rows without a switch) picks the item up right away; the «✕» of a removable row
+    // (canSwipe) removes it on a tap (user 2026-11-20 «не могу удалить разделитель и пробел»)
     recyclerView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+      private ListItem closing;
+      private float closeX, closeY;
+
+      @Override
+      public void onTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) {
+        if (closing == null) return;
+        int slop = android.view.ViewConfiguration.get(rv.getContext()).getScaledTouchSlop();
+        switch (e.getActionMasked()) {
+          case MotionEvent.ACTION_MOVE:
+            if (Math.abs(e.getX() - closeX) > slop || Math.abs(e.getY() - closeY) > slop) closing = null;
+            break;
+          case MotionEvent.ACTION_UP: {
+            ListItem item = closing;
+            closing = null;
+            if (adapter.indexOfView(item) != -1) {
+              rv.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY);
+              org.thunderdog.challegram.Tgx101Diag.mark("order: ✕ tapped at " + adapter.indexOfView(item));
+              callback.onSwipedAway(item);
+            }
+            break;
+          }
+          case MotionEvent.ACTION_CANCEL:
+            closing = null;
+            break;
+        }
+      }
+
       @Override
       public boolean onInterceptTouchEvent (@NonNull RecyclerView rv, @NonNull MotionEvent e) {
         if (e.getActionMasked() != MotionEvent.ACTION_DOWN) {
           return false;
         }
+        closing = null;
         View child = rv.findChildViewUnder(e.getX(), e.getY());
         if (child == null) {
           return false;
@@ -177,6 +211,12 @@ public final class Tgx101DragOrder {
         ListItem item = items.get(position);
         float x = e.getX() - child.getLeft();
         float start = Lang.rtl() ? child.getWidth() - x : x;
+        if (callback.canSwipe(item) && start > child.getWidth() - Screen.dp(56f)) {
+          closing = item; // the «✕»: a tap removes, the rest of the touch is ours
+          closeX = e.getX();
+          closeY = e.getY();
+          return true;
+        }
         boolean atHandle = start < Screen.dp(64f) || (item.getViewType() != ListItem.TYPE_RADIO_SETTING && start > child.getWidth() - Screen.dp(56f));
         if (atHandle) {
           helper.startDrag(holder);
@@ -207,13 +247,21 @@ public final class Tgx101DragOrder {
       boolean rtl = Lang.rtl();
       // the «≡» handle at the end of rows without a switch, on the name's line (0.1.635: data text fell under the name)
       android.graphics.drawable.Drawable handle = org.thunderdog.challegram.tool.Drawables.get(parent.getResources(), R.drawable.baseline_drag_handle_24);
+      android.graphics.drawable.Drawable close = org.thunderdog.challegram.tool.Drawables.get(parent.getResources(), R.drawable.baseline_close_24);
       for (int i = 0; i < parent.getChildCount(); i++) {
         View child = parent.getChildAt(i);
         int adapterPosition = parent.getChildAdapterPosition(child);
         if (handle != null && adapterPosition >= 0 && adapterPosition < items.size() && callback.canDrag(items.get(adapterPosition)) && items.get(adapterPosition).getViewType() != ListItem.TYPE_RADIO_SETTING) {
           float cx = rtl ? child.getLeft() + Screen.dp(28f) : child.getRight() - Screen.dp(28f);
           float cy = child.getTop() + child.getTranslationY() + child.getHeight() / 2f;
-          org.thunderdog.challegram.tool.Drawables.drawCentered(c, handle, cx, cy, Paints.getPorterDuffPaint(Theme.iconColor()));
+          boolean removable = callback.canSwipe(items.get(adapterPosition)) && close != null;
+          float alpha = Math.max(0f, 1f - Math.abs(child.getTranslationX()) / Math.max(1, child.getWidth())); // fades out with a swipe
+          cx += child.getTranslationX();
+          Paint iconPaint = Paints.getPorterDuffPaint(Theme.iconColor());
+          int oldAlpha = iconPaint.getAlpha();
+          iconPaint.setAlpha((int) (oldAlpha * alpha));
+          org.thunderdog.challegram.tool.Drawables.drawCentered(c, removable ? close : handle, cx, cy, iconPaint);
+          iconPaint.setAlpha(oldAlpha);
         }
       }
       for (int i = 0; i < parent.getChildCount(); i++) {
