@@ -52,6 +52,11 @@ public class Tgx101ProfileMusicController extends SharedCommonController {
     return R.drawable.baseline_music_note_24;
   }
 
+  @Override
+  protected String getExplainedTitle () {
+    return Lang.getString(R.string.Tgx101ProfileMusic); // (crash 2026-11-19 22:32 «Stub!»: the base has none)
+  }
+
   private long userId () {
     return tdlib.chatUserId(getChatId());
   }

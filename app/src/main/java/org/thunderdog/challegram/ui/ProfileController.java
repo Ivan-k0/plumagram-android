@@ -2558,61 +2558,25 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET));
 
     int addedCount = 0;
-    if (Settings.instance().showPeerIds()) {
-      items.add(newPeerIdItem());
-      addedCount++;
-    }
-
+    // TGx101: phone, about, username, birthday, note, then the ID (the music and the channel come in above them, see
+    // TGX101_USER_ORDER)
+    java.util.List<ListItem> rows = new ArrayList<>();
+    if (!TD.isBot(user) && needPhoneCell()) rows.add(newPhoneItem());
+    if (userFull != null && (!Td.isEmpty(userFull.bio) || (userFull.botInfo != null && !StringUtils.isEmpty(userFull.botInfo.shortDescription)))) rows.add(newDescriptionItem());
     if (Td.hasUsername(user)) {
       final ListItem usernameItem = newUsernameItem();
-      if (usernameItem != null) {
-        if (addedCount > 0) {
-          items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-        }
-        items.add(usernameItem);
-        addedCount++;
-      }
+      if (usernameItem != null) rows.add(usernameItem);
     }
-
-    if (userFull != null) {
-      if (userFull.birthdate != null) {
-        if (addedCount > 0) {
-          items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-        }
-        items.add(newBirthdateItem());
-        addedCount++;
+    if (userFull != null && userFull.birthdate != null) rows.add(newBirthdateItem());
+    if (userFull != null && tgx101CanHaveNote()) rows.add(tgx101NewNoteItem());
+    if (Settings.instance().showPeerIds()) rows.add(newPeerIdItem());
+    if (!TD.isBot(user) && mode == Mode.SECRET && TD.hasEncryptionKey(secretChat)) rows.add(newEncryptionKeyItem());
+    for (ListItem row : rows) {
+      if (addedCount > 0) {
+        items.add(new ListItem(ListItem.TYPE_SEPARATOR));
       }
-      if (!Td.isEmpty(userFull.bio) || (userFull.botInfo != null && !StringUtils.isEmpty(userFull.botInfo.shortDescription))) {
-        if (addedCount > 0) {
-          items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-        }
-        items.add(newDescriptionItem());
-        addedCount++;
-      }
-      if (tgx101CanHaveNote()) {
-        if (addedCount > 0) {
-          items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-        }
-        items.add(tgx101NewNoteItem());
-        addedCount++;
-      }
-    }
-
-    if (!TD.isBot(user)) {
-      if (needPhoneCell()) {
-        if (addedCount > 0) {
-          items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-        }
-        items.add(newPhoneItem());
-        addedCount++;
-      }
-      if (mode == Mode.SECRET && TD.hasEncryptionKey(secretChat)) {
-        if (addedCount > 0) {
-          items.add(new ListItem(ListItem.TYPE_SEPARATOR));
-        }
-        items.add(newEncryptionKeyItem());
-        addedCount++;
-      }
+      items.add(row);
+      addedCount++;
     }
 
     this.baseHeaderItemCount = addedCount;
@@ -2750,7 +2714,26 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     }
   }
 
+  // TGx101 (user 2026-11-20 «расположить как в эталоне: музыка, канал, телефон, о себе, имя пользователя, день рождения»):
+  // a person's rows always stand in this order, whoever adds them and when
+  private static final int[] TGX101_USER_ORDER = {
+    R.id.btn_tgx101ProfileMusic, R.id.btn_tgx101PersonalChannel, R.id.btn_phone, R.id.btn_description, R.id.btn_username,
+    R.id.btn_birthdate, R.id.btn_tgx101UserNote, R.id.btn_tgx101Posts, R.id.btn_peer_id
+  };
+
+  private static int tgx101Rank (int id) {
+    for (int i = 0; i < TGX101_USER_ORDER.length; i++) if (TGX101_USER_ORDER[i] == id) return i;
+    return -1;
+  }
+
+  private int tgx101TopIndex (int id) {
+    int rank = tgx101Rank(id), index = 0;
+    for (int i = 0; i < rank; i++) if (baseAdapter.indexOfViewById(TGX101_USER_ORDER[i]) != -1) index++;
+    return index;
+  }
+
   private void addTopItem (ListItem item, int index) {
+    if (user != null && tgx101Rank(item.getId()) != -1) index = tgx101TopIndex(item.getId());
     index = Math.min(baseHeaderItemCount, index);
     if (baseHeaderItemCount == 0) {
       baseAdapter.getItems().add(1, item);
@@ -2981,6 +2964,13 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           return false;
         }
       });
+      // (user 2026-11-20 «нажатие на музыку профиля должно открывать отдельный плейлист — внизу вся музыка профиля, она
+      // подчиняется всем функциям нашего плеера»): the player opens on this queue
+      UI.post(() -> {
+        if (isDestroyed()) return;
+        PlaybackController player = new PlaybackController(context, tdlib);
+        if (player.prepare() != -1) navigateTo(player);
+      }, 120);
     }));
   }
 

@@ -167,13 +167,34 @@ public class DrawerHeaderView extends View implements Destroyable, GlobalAccount
     return expanderView;
   }
 
+  // TGx101 (user 2026-11-20 «в боковом меню в профиль можно попасть, нажав на аватарку»): the avatar opens one's profile
+  private boolean tgx101OnAvatar (float x, float y) {
+    int r = Screen.dp(32f) + Screen.dp(8f);
+    float cx = org.thunderdog.challegram.core.Lang.rtl() ? getMeasuredWidth() - contentLeft() - Screen.dp(32f) : contentLeft() + Screen.dp(32f);
+    float cy = avatarTop() + Screen.dp(32f);
+    return Math.abs(x - cx) <= r && Math.abs(y - cy) <= r;
+  }
+
   @Override
   public boolean needClickAt (View view, float x, float y) {
-    return y >= getMeasuredHeight() - Screen.dp(54f);
+    return y >= getMeasuredHeight() - Screen.dp(54f) || tgx101OnAvatar(x, y);
   }
 
   @Override
   public void onClickAt (View view, float x, float y) {
+    if (tgx101OnAvatar(x, y) && y < getMeasuredHeight() - Screen.dp(54f)) {
+      ViewUtils.onClick(this);
+      org.thunderdog.challegram.BaseActivity context = org.thunderdog.challegram.tool.UI.getContext(getContext());
+      org.thunderdog.challegram.telegram.Tdlib tdlib = context.currentTdlib();
+      long me = tdlib.myUserId();
+      if (me != 0) {
+        parent.close(0f, () -> {
+          ViewController<?> current = context.navigation().getCurrentStackItem();
+          if (current != null) tdlib.ui().openPrivateProfile(current, me, null);
+        });
+      }
+      return;
+    }
     if (y >= getMeasuredHeight() - Screen.dp(54f)) {
       ViewUtils.onClick(this);
       parent.setShowAccounts(expanderView.toggleExpanded());
