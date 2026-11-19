@@ -1298,6 +1298,11 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           }), 200);
         }));
       }
+      // (user 2026-11-20, the ⋮ order: «Поток (внутри добавь "Скрыто из потока")»)
+      body.addView(Tgx101Sheet.row(context, R.drawable.tgx101_thumb_down_outline_24, 0, Lang.getString(R.string.Tgx101DislikeHidden), null, false, v -> {
+        handle[0].dismiss();
+        tgx101ShowHidden();
+      }));
       final org.thunderdog.challegram.unsorted.Settings settings = org.thunderdog.challegram.unsorted.Settings.instance();
       final boolean on = settings.tgx101WaveHints();
       body.addView(Tgx101Sheet.row(context, R.drawable.baseline_search_24, 0, Lang.getString(on ? R.string.Tgx101WaveHintsOff : R.string.Tgx101WaveHintsOn), null, on, v -> {
@@ -3659,6 +3664,26 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         strings.append(R.string.ShowInChat);
       }
 
+      // TGx101 (user 2026-11-20, screenshot of ⋮: «порядок: Сохранить, Поделиться, Показать в чате, Поток (внутри — «Скрыто из потока»), Плейлисты, Поиск музыки, Добавить в профиль, Сведения о файле»); the rest after them
+      ids.append(R.id.btn_tgx101Wave);
+      strings.append(R.string.Tgx101Wave);
+
+      ids.append(R.id.btn_tgx101Playlists);
+      strings.append(R.string.Tgx101Playlists);
+
+      ids.append(R.id.btn_tgx101QueueSearch);
+      strings.append(R.string.Tgx101PlayerSearch);
+
+      // TGx101 (user 2026-11-19, mockup «Музыка профиля»): the song playing goes onto one's profile, or off it
+      TdApi.Audio tgx101Song = currentItem != null ? Tgx101ProfileMusic.audioOf(currentItem.getMessage()) : null;
+      if (tgx101Song != null) {
+        ids.append(R.id.btn_tgx101ProfileMusicToggle);
+        strings.append(Tgx101ProfileMusic.isMine(tdlib, tgx101Song) ? R.string.Tgx101ProfileMusicRemove : R.string.Tgx101ProfileMusicAdd);
+      }
+
+      ids.append(R.id.btn_tgx101TrackInfo);
+      strings.append(R.string.Tgx101PlayerInfo);
+
       if (tracks.size() > 5 && isScrollUnlocked) {
         ids.append(R.id.btn_showInPlaylist);
         strings.append(R.string.PlayListHighlight);
@@ -3668,28 +3693,6 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         ids.append(R.id.btn_reverseOrder);
         strings.append(R.string.PlayListReverse);
       }
-
-      ids.append(R.id.btn_tgx101Wave);
-      strings.append(R.string.Tgx101Wave);
-
-      ids.append(R.id.btn_tgx101Playlists);
-      strings.append(R.string.Tgx101Playlists);
-
-      // TGx101 (user 2026-11-19, mockup «Музыка профиля»): the song playing goes onto one's profile, or off it
-      TdApi.Audio tgx101Song = currentItem != null ? Tgx101ProfileMusic.audioOf(currentItem.getMessage()) : null;
-      if (tgx101Song != null) {
-        ids.append(R.id.btn_tgx101ProfileMusicToggle);
-        strings.append(Tgx101ProfileMusic.isMine(tdlib, tgx101Song) ? R.string.Tgx101ProfileMusicRemove : R.string.Tgx101ProfileMusicAdd);
-      }
-
-      ids.append(R.id.btn_tgx101QueueSearch);
-      strings.append(R.string.Tgx101PlayerSearch);
-
-      ids.append(R.id.btn_tgx101HiddenMusic);
-      strings.append(R.string.Tgx101DislikeHidden);
-
-      ids.append(R.id.btn_tgx101TrackInfo);
-      strings.append(R.string.Tgx101PlayerInfo);
 
       // TGx101 (user 2026-11-20 «через три точки в плеере нужно добавить chromecast»)
       if (org.thunderdog.challegram.player.Tgx101Cast.isAvailable()) {
