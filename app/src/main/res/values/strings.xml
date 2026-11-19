@@ -6653,6 +6653,7 @@
   <string name="Tgx101LinesGreen">Green</string>
   <string name="Tgx101LinesOrange">Orange</string>
   <string name="Tgx101LinesRainbow">Red · yellow · blue</string>
+  <string name="Tgx101LinesChannel">Channel colour</string>
   <string name="Tgx101ChannelStyleBubbles">Bubbles</string>
   <string name="Tgx101ChannelStyleBlocks">Blocks</string>
   <string name="Tgx101ChannelStyleJournal">Journal</string>

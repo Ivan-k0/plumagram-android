@@ -783,6 +783,18 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
   private long tgx101PlaceholderChatId;
   private int tgx101PlaceholderSize;
 
+  /**
+   * TGx101 (user 2026-11-19 «опять пропадают аватарки, этому багу уже 3 месяца», screenshot: a row with nothing at all where
+   * the avatar is, and no journal line): the letters were drawn under a photo only when they were asked for along with it —
+   * for chats with a photo they mostly aren't, so a photo that didn't come or came in invisible left an empty place. Until
+   * the photo is drawn in full the chat's letters lie under it; a whole photo covers them
+   */
+  private void tgx101LettersUnderPhoto (Canvas c) {
+    if (chat == null || avatarReceiver.isEmpty()) return;
+    if (!avatarReceiver.tgx101PhotoMissing() && avatarReceiver.tgx101PhotoVisibility() >= 1f) return;
+    tgx101PeekPlaceholder().draw(c, avatarReceiver.centerX(), avatarReceiver.centerY(), 1f, avatarReceiver.getWidth() / 2f);
+  }
+
   /** The avatar's stand-in where there is no blur, made once per chat */
   private org.thunderdog.challegram.data.AvatarPlaceholder tgx101PeekPlaceholder () {
     long chatId = chat.getChatId();
@@ -1065,10 +1077,12 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
     avatarReceiver.forceAllowOnline(!isSelected.getValue(), 1f - isSelected.getFloatValue());
     layoutReceiver();
     int spread = Screen.dp(10f);
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) tgx101CheckAvatar(); // the blurred («Не подглядывай!») rows too
     if (peekAvatar <= 0) {
-      if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG) tgx101CheckAvatar();
       if (avatarReceiver.needPlaceholder()) {
         avatarReceiver.drawPlaceholder(c);
+      } else {
+        tgx101LettersUnderPhoto(c);
       }
       avatarReceiver.draw(c);
       tgx101DrawStoryRing(c);
@@ -1076,6 +1090,8 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
     tgx101PeekAvatar.draw(c, avatarReceiver.getLeft() - spread, avatarReceiver.getTop() - spread, avatarReceiver.getRight() + spread, avatarReceiver.getBottom() + spread, peekAvatar, cc -> {
       if (avatarReceiver.needPlaceholder()) {
         avatarReceiver.drawPlaceholder(cc);
+      } else {
+        tgx101LettersUnderPhoto(cc);
       }
       avatarReceiver.draw(cc);
       tgx101DrawStoryRing(cc);

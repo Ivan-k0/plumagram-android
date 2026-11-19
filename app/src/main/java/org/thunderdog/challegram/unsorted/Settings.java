@@ -3777,9 +3777,10 @@ public class Settings {
   public void setTgx101ChannelPlainStyle (int style) { pmc.putInt(KEY_TGX101_CHANNEL_PLAIN_STYLE, style); }
 
   // user 2026-10-09 00:25: colours of the three lines between «Journal» posts, chosen by the user
-  public static final int TGX101_LINES_GREY = 0, TGX101_LINES_ACCENT = 1, TGX101_LINES_BLUE = 2, TGX101_LINES_GREEN = 3, TGX101_LINES_ORANGE = 4, TGX101_LINES_RAINBOW = 5;
+  // (user 2026-11-19 «по умолчанию берётся цвет имени канала»): the channel's own name colour, first and by default
+  public static final int TGX101_LINES_GREY = 0, TGX101_LINES_ACCENT = 1, TGX101_LINES_BLUE = 2, TGX101_LINES_GREEN = 3, TGX101_LINES_ORANGE = 4, TGX101_LINES_RAINBOW = 5, TGX101_LINES_CHANNEL = 6;
   private static final String KEY_TGX101_JOURNAL_LINES = "tgx101_journal_lines";
-  public int tgx101JournalLines () { return pmc.getInt(KEY_TGX101_JOURNAL_LINES, TGX101_LINES_GREY); }
+  public int tgx101JournalLines () { return pmc.getInt(KEY_TGX101_JOURNAL_LINES, TGX101_LINES_CHANNEL); }
   public void setTgx101JournalLines (int v) { pmc.putInt(KEY_TGX101_JOURNAL_LINES, v); }
   public int[] tgx101JournalLineColors (boolean dark, int accent) {
     switch (tgx101JournalLines()) {

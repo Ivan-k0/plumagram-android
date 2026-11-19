@@ -1758,6 +1758,7 @@
   <item name="btn_tgx101Lines3" type="id"/>
   <item name="btn_tgx101Lines4" type="id"/>
   <item name="btn_tgx101Lines5" type="id"/>
+  <item name="btn_tgx101Lines6" type="id"/>
   <item name="btn_tgx101ChannelStyleBubbles" type="id"/>
   <item name="btn_tgx101ChannelStyleBlocks" type="id"/>
   <item name="btn_tgx101ChannelStyleJournal" type="id"/>

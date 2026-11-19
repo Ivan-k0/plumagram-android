@@ -1234,7 +1234,10 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
     } else if (viewId == R.id.btn_tgx101JournalLines) {
       int cur = Settings.instance().tgx101JournalLines();
       ListItem[] opts = new ListItem[TGX101_LINE_NAMES.length];
-      for (int i = 0; i < opts.length; i++) opts[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, TGX101_LINE_IDS[i], 0, TGX101_LINE_NAMES[i], R.id.btn_tgx101JournalLines, cur == i);
+      for (int k = 0; k < opts.length; k++) {
+        int i = TGX101_LINE_ORDER[k];
+        opts[k] = new ListItem(ListItem.TYPE_RADIO_OPTION, TGX101_LINE_IDS[i], 0, TGX101_LINE_NAMES[i], R.id.btn_tgx101JournalLines, cur == i);
+      }
       showSettings(new SettingsWrapBuilder(R.id.btn_tgx101JournalLines).setRawItems(opts).setIntDelegate((id, result) -> {
         int picked = result.get(R.id.btn_tgx101JournalLines);
         for (int i = 0; i < TGX101_LINE_IDS.length; i++) if (TGX101_LINE_IDS[i] == picked) Settings.instance().setTgx101JournalLines(i);
@@ -1739,8 +1742,10 @@ public class SettingsThemeController extends RecyclerViewController<SettingsThem
     }
   }
 
-  private static final int[] TGX101_LINE_NAMES = {R.string.Tgx101LinesGrey, R.string.Tgx101LinesAccent, R.string.Tgx101LinesBlue, R.string.Tgx101LinesGreen, R.string.Tgx101LinesOrange, R.string.Tgx101LinesRainbow};
-  private static final int[] TGX101_LINE_IDS = {R.id.btn_tgx101Lines0, R.id.btn_tgx101Lines1, R.id.btn_tgx101Lines2, R.id.btn_tgx101Lines3, R.id.btn_tgx101Lines4, R.id.btn_tgx101Lines5};
+  // index = the setting's value; the list shows «channel colour» first (TGX101_LINE_ORDER)
+  private static final int[] TGX101_LINE_NAMES = {R.string.Tgx101LinesGrey, R.string.Tgx101LinesAccent, R.string.Tgx101LinesBlue, R.string.Tgx101LinesGreen, R.string.Tgx101LinesOrange, R.string.Tgx101LinesRainbow, R.string.Tgx101LinesChannel};
+  private static final int[] TGX101_LINE_IDS = {R.id.btn_tgx101Lines0, R.id.btn_tgx101Lines1, R.id.btn_tgx101Lines2, R.id.btn_tgx101Lines3, R.id.btn_tgx101Lines4, R.id.btn_tgx101Lines5, R.id.btn_tgx101Lines6};
+  private static final int[] TGX101_LINE_ORDER = {6, 0, 1, 2, 3, 4, 5};
 
   private int tgx101ChannelStyleName () {
     if (!tdlib.settings().forcePlainModeInChannels()) return R.string.Tgx101ChannelStyleBubbles;

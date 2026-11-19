@@ -1680,6 +1680,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   /** «Journal» posts parted by two hairlines from the edges (user 2026-11-19); the channel photo with three lines kept, off */
   private static final boolean TGX101_JOURNAL_EDGE_LINES = true;
 
+  private static int[] tgx101Same (int color) {
+    return new int[] {color, color, color};
+  }
+
   /** user 2026-10-11 «увеличь аватарку канала на разделении постов»: 24 dp (was 15 % taller than the three lines, ~17 dp) */
   private static int tgx101JournalIconSize () {
     return Screen.dp(24f);
@@ -2333,7 +2337,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         float y = (top + bottom) / 2f;
         int w = view.getMeasuredWidth();
         float edge = Screen.dp(12f), half = w * .22f, thick = Screen.dp(1.5f);
-        int[] colors = Settings.instance().tgx101JournalLineColors(Theme.isDark(), Theme.getColor(ColorId.textLink));
+        int[] colors = Settings.instance().tgx101JournalLines() == Settings.TGX101_LINES_CHANNEL && sender != null && sender.getAccentColor() != null
+          ? tgx101Same(sender.getAccentColor().getNameColor())
+          : Settings.instance().tgx101JournalLineColors(Theme.isDark(), Theme.getColor(ColorId.textLink));
         android.graphics.RectF lr = Paints.getRectF();
         lr.set(edge, y - thick / 2f, w / 2f - half, y + thick / 2f);
         c.drawRoundRect(lr, thick / 2f, thick / 2f, Paints.fillingPaint(colors[0]));

@@ -1471,6 +1471,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101TranslateGoogleWarning, "Переводимый текст будет отправляться на сервер Google. Если Google не ответит, сработает перевод Telegram.");
     RU.put(R.string.Tgx101JournalLines, "Полоски между постами (Журнал)");
     RU.put(R.string.Tgx101LinesGrey, "Серые");
+    RU.put(R.string.Tgx101LinesChannel, "Цвет канала");
     RU.put(R.string.Tgx101LinesAccent, "Цвет темы");
     RU.put(R.string.Tgx101LinesBlue, "Синие");
     RU.put(R.string.Tgx101LinesGreen, "Зелёные");
