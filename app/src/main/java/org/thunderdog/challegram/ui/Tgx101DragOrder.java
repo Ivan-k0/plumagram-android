@@ -251,7 +251,8 @@ public final class Tgx101DragOrder {
       for (int i = 0; i < parent.getChildCount(); i++) {
         View child = parent.getChildAt(i);
         int adapterPosition = parent.getChildAdapterPosition(child);
-        if (handle != null && adapterPosition >= 0 && adapterPosition < items.size() && callback.canDrag(items.get(adapterPosition)) && items.get(adapterPosition).getViewType() != ListItem.TYPE_RADIO_SETTING) {
+        if (handle != null && adapterPosition >= 0 && adapterPosition < items.size() && callback.canDrag(items.get(adapterPosition)) && items.get(adapterPosition).getViewType() != ListItem.TYPE_RADIO_SETTING
+          && child.getHeight() >= Screen.dp(40f)) { // thin rows (the side menu's spaces and dividers) draw their own small ones
           float cx = rtl ? child.getLeft() + Screen.dp(28f) : child.getRight() - Screen.dp(28f);
           float cy = child.getTop() + child.getTranslationY() + child.getHeight() / 2f;
           boolean removable = callback.canSwipe(items.get(adapterPosition)) && close != null;

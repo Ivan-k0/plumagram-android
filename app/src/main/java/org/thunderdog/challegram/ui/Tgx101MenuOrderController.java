@@ -50,7 +50,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     }
   }
 
-  private static final int CUSTOM_PREVIEW = 0, CUSTOM_TABS = 1;
+  private static final int CUSTOM_PREVIEW = 0, CUSTOM_TABS = 1, CUSTOM_GAP = 2, CUSTOM_LINE = 3;
 
   private SettingsAdapter adapter;
   private Tgx101OrderPreviewView preview;
@@ -101,6 +101,11 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         View view;
         if (customViewType == CUSTOM_TABS) {
           view = new ProfileTabs(context);
+        } else if (customViewType == CUSTOM_GAP || customViewType == CUSTOM_LINE) {
+          view = new SpacerRow(context, customViewType == CUSTOM_GAP);
+          view.setId(R.id.btn_tgx101DrawerSpacer);
+          view.setOnClickListener(Tgx101MenuOrderController.this);
+          org.thunderdog.challegram.support.RippleSupport.setSimpleWhiteBackground(view, Tgx101MenuOrderController.this);
         } else {
           preview = new Tgx101OrderPreviewView(context);
           view = preview;
@@ -114,6 +119,9 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         if (customViewType == CUSTOM_PREVIEW) {
           preview = (Tgx101OrderPreviewView) view;
           updatePreview();
+        } else if (customViewType == CUSTOM_GAP || customViewType == CUSTOM_LINE) {
+          view.setTag(item);
+          view.invalidate();
         } else {
           view.invalidate();
         }
@@ -228,8 +236,9 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         String key = hidden ? entry.substring(1) : entry;
         if (mode() == MODE_DRAWER && Tgx101BarOrder.isDrawerSpacer(key)) {
           // (user 2026-11-20): a space or a divider — no switch, it is moved, or tapped / swiped away
+          // (user 2026-11-20, «тонкие строки»): a divider is the line itself, a space a low strip in a dashed frame
           boolean gap = Tgx101BarOrder.isDrawerGap(key);
-          rows.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101DrawerSpacer, gap ? R.drawable.tgx101_drawer_gap_24 : R.drawable.tgx101_drawer_line_24, gap ? R.string.Tgx101DrawerGap : R.string.Tgx101DrawerLine).setData(key));
+          rows.add(new ListItem(ListItem.TYPE_CUSTOM - (gap ? CUSTOM_GAP : CUSTOM_LINE), R.id.btn_tgx101DrawerSpacer, 0, gap ? R.string.Tgx101DrawerGap : R.string.Tgx101DrawerLine).setData(key));
           continue;
         }
         rows.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeItem, iconOf(key), nameOf(key)).setData(entry));
@@ -488,6 +497,60 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     Settings.instance().setTgx101MessageMenuHidden(toArray(hidden));
     org.thunderdog.challegram.Tgx101Diag.mark("order: menu " + editProfile + " saved, " + menu.size() + " in the menu, " + more.size() + " in More, " + hidden.size() + " hidden");
     rebuild();
+  }
+
+  /**
+   * (user 2026-11-20, «тонкие строки») A space or a divider in the list: a third of a row high (a space a little more),
+   * a small «≡» at the start to pick it up, a small «✕» at the end to remove it (Tgx101DragOrder handles both zones)
+   */
+  private static class SpacerRow extends View {
+    private final boolean gap;
+    private final RectF rect = new RectF();
+    private final android.graphics.Paint dash = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+    SpacerRow (Context context, boolean gap) {
+      super(context);
+      this.gap = gap;
+      dash.setStyle(android.graphics.Paint.Style.STROKE);
+      dash.setStrokeWidth(Screen.dp(1.5f));
+      dash.setPathEffect(new android.graphics.DashPathEffect(new float[] {Screen.dp(5f), Screen.dp(4f)}, 0));
+    }
+
+    @Override
+    protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
+      setMeasuredDimension(MeasureSpec.getSize(widthMeasureSpec), Screen.dp(gap ? 26f : 18f));
+    }
+
+    private void drawSmall (Canvas c, int res, float cx, float cy) {
+      android.graphics.drawable.Drawable d = org.thunderdog.challegram.tool.Drawables.get(getResources(), res);
+      if (d == null) return;
+      c.save();
+      c.scale(.66f, .66f, cx, cy);
+      org.thunderdog.challegram.tool.Drawables.drawCentered(c, d, cx, cy, Paints.getPorterDuffPaint(Theme.iconColor()));
+      c.restore();
+    }
+
+    @Override
+    protected void onDraw (Canvas c) {
+      int width = getMeasuredWidth(), height = getMeasuredHeight();
+      boolean rtl = Lang.rtl();
+      float cy = height / 2f;
+      float handleX = rtl ? width - Screen.dp(32f) : Screen.dp(32f);
+      float closeX = rtl ? Screen.dp(28f) : width - Screen.dp(28f);
+      drawSmall(c, R.drawable.baseline_drag_handle_24, handleX, cy);
+      drawSmall(c, R.drawable.baseline_close_24, closeX, cy);
+      float left = rtl ? Screen.dp(56f) : Screen.dp(56f), right = width - Screen.dp(56f);
+      if (gap) {
+        float inset = Screen.dp(4f);
+        rect.set(left, inset, right, height - inset);
+        dash.setColor(Theme.getColor(ColorId.textLight));
+        c.drawRoundRect(rect, Screen.dp(6f), Screen.dp(6f), dash);
+      } else {
+        float thick = Screen.dp(2f);
+        rect.set(left, cy - thick / 2f, right, cy + thick / 2f);
+        c.drawRoundRect(rect, thick / 2f, thick / 2f, Paints.fillingPaint(Theme.getColor(ColorId.textLight)));
+      }
+    }
   }
 
   /** Text / Media / Voice: which of the three menus is set up */
