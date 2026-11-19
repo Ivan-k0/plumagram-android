@@ -1822,6 +1822,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101EditWaitDownload, "Фото ещё загружается — нажмите через пару секунд");
     RU.put(R.string.Tgx101PersonalChannel, "Личный канал");
     RU.put(R.string.Tgx101ProfileMusic, "Музыка профиля");
+    RU.put(R.string.Tgx101TabLeft, "Сдвинуть влево");
+    RU.put(R.string.Tgx101TabRight, "Сдвинуть вправо");
     RU.put(R.string.Tgx101ProfileMusicTab, "Музыка профиля");
     RU.put(R.string.Tgx101ProfileMusicMore, "ещё %1$d");
     RU.put(R.string.Tgx101ProfileMusicAdd, "Добавить в профиль");

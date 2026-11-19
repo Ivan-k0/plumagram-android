@@ -5800,6 +5800,56 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   }
 
   @Override
+  public boolean onPagerItemLongClick (int index) {
+    if (index < 0 || index >= controllers.size() || controllers.get(index).provideSearchFilter() == null) return false;
+    boolean canLeft = index > 0 && controllers.get(index - 1).provideSearchFilter() != null;
+    boolean canRight = index + 1 < controllers.size() && controllers.get(index + 1).provideSearchFilter() != null;
+    if (!canLeft && !canRight) return false;
+    IntList ids = new IntList(2), icons = new IntList(2);
+    StringList strings = new StringList(2);
+    if (canLeft) {
+      ids.append(R.id.btn_tgx101TabLeft);
+      strings.append(Lang.getString(R.string.Tgx101TabLeft));
+      icons.append(R.drawable.baseline_arrow_back_24);
+    }
+    if (canRight) {
+      ids.append(R.id.btn_tgx101TabRight);
+      strings.append(Lang.getString(R.string.Tgx101TabRight));
+      icons.append(R.drawable.baseline_arrow_forward_24);
+    }
+    showOptions(controllers.get(index).getName().toString(), ids.get(), strings.get(), null, icons.get(), (v, id) -> {
+      tgx101MoveTab(index, id == R.id.btn_tgx101TabLeft ? index - 1 : index + 1);
+      return true;
+    });
+    return true;
+  }
+
+  private void tgx101MoveTab (int from, int to) {
+    if (from < 0 || to < 0 || from >= controllers.size() || to >= controllers.size()) return;
+    java.util.Collections.swap(controllers, from, to);
+    // the kinds of the media tabs in the order they stand now; remembered for every profile
+    StringBuilder b = new StringBuilder();
+    java.util.Set<Integer> seen = new java.util.HashSet<>();
+    for (SharedBaseController<?> c : controllers) {
+      TdApi.SearchMessagesFilter f = c.provideSearchFilter();
+      if (f != null && seen.add(f.getConstructor())) {
+        if (b.length() > 0) b.append(',');
+        b.append(f.getConstructor());
+      }
+    }
+    for (TdApi.SearchMessagesFilter f : getFiltersOrder()) {
+      if (seen.add(f.getConstructor())) b.append(',').append(f.getConstructor());
+    }
+    Settings.instance().pmc().putString(TGX101_TAB_ORDER, b.toString());
+    filtersOrder = filtersOrder2 = null;
+    topCellView.getTopView().setItems(getPagerTitles());
+    pagerAdapter.notifyDataSetChanged();
+    pager.setCurrentItem(to, false);
+    topCellView.getTopView().setSelectionFactor(to);
+    org.thunderdog.challegram.Tgx101Diag.mark("profile tabs: " + from + " → " + to + ", order " + b);
+  }
+
+  @Override
   public void onPagerItemClick (int index) {
     invalidateCachedPosition();
     if (pager.getCurrentItem() != index) {
@@ -6514,13 +6564,32 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     return false;
   }
 
+  // TGx101 (user 2026-11-20 «плашки медиа, файлы, музыка… нужно дать возможность менять местами по удержанию»): the
+  // order a person gave the media tabs, by the filters' kinds; kinds not in it keep their places after them
+  private static final String TGX101_TAB_ORDER = "tgx101_media_tab_order";
+
+  private static TdApi.SearchMessagesFilter[] tgx101Ordered (TdApi.SearchMessagesFilter[] filters) {
+    String saved = Settings.instance().pmc().getString(TGX101_TAB_ORDER, null);
+    if (StringUtils.isEmpty(saved)) return filters;
+    java.util.List<Integer> order = new ArrayList<>();
+    for (String part : saved.split(",")) {
+      try { order.add(Integer.parseInt(part)); } catch (NumberFormatException ignored) { }
+    }
+    java.util.List<TdApi.SearchMessagesFilter> list = new ArrayList<>(java.util.Arrays.asList(filters));
+    java.util.Collections.sort(list, (a, b) -> {
+      int ia = order.indexOf(a.getConstructor()), ib = order.indexOf(b.getConstructor());
+      return Integer.compare(ia == -1 ? Integer.MAX_VALUE : ia, ib == -1 ? Integer.MAX_VALUE : ib);
+    });
+    return list.toArray(new TdApi.SearchMessagesFilter[0]);
+  }
+
   public static TdApi.SearchMessagesFilter[] getFiltersOrder () {
     boolean separate = Settings.instance().needSeparateMediaTab();
     TdApi.SearchMessagesFilter[] filters = separate ? filtersOrder2 : filtersOrder;
     if (filters != null)
       return filters;
     if (separate) {
-      return (filtersOrder2 = new TdApi.SearchMessagesFilter[]{
+      return (filtersOrder2 = tgx101Ordered(new TdApi.SearchMessagesFilter[]{
         new TdApi.SearchMessagesFilterPhoto(),
         new TdApi.SearchMessagesFilterVideo(),
         new TdApi.SearchMessagesFilterDocument(),
@@ -6529,9 +6598,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         new TdApi.SearchMessagesFilterAnimation(),
         new TdApi.SearchMessagesFilterVoiceNote(),
         new TdApi.SearchMessagesFilterVideoNote()
-      });
+      }));
     } else {
-      return (filtersOrder = new TdApi.SearchMessagesFilter[]{
+      return (filtersOrder = tgx101Ordered(new TdApi.SearchMessagesFilter[]{
         new TdApi.SearchMessagesFilterPhotoAndVideo(),
         new TdApi.SearchMessagesFilterDocument(),
         new TdApi.SearchMessagesFilterUrl(),
@@ -6539,7 +6608,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         new TdApi.SearchMessagesFilterAnimation(),
         new TdApi.SearchMessagesFilterVoiceNote(),
         new TdApi.SearchMessagesFilterVideoNote()
-      });
+      }));
     }
   }
 

@@ -7011,6 +7011,8 @@
   <string name="Tgx101EditWaitDownload">The photo is still loading — try again in a moment</string>
   <string name="Tgx101PersonalChannel">Personal channel</string>
   <string name="Tgx101ProfileMusic">Profile music</string>
+  <string name="Tgx101TabLeft">Move left</string>
+  <string name="Tgx101TabRight">Move right</string>
   <string name="Tgx101ProfileMusicTab">Profile music</string>
   <string name="Tgx101ProfileMusicMore">%1$d more</string>
   <string name="Tgx101ProfileMusicAdd">Add to profile</string>
