@@ -182,6 +182,7 @@ public class DrawerHeaderView extends View implements Destroyable, GlobalAccount
 
   @Override
   public void onClickAt (View view, float x, float y) {
+    org.thunderdog.challegram.Tgx101Diag.mark("drawer header: tap at " + Math.round(x) + "," + Math.round(y) + (tgx101OnAvatar(x, y) ? " on the avatar" : ""));
     if (tgx101OnAvatar(x, y) && y < getMeasuredHeight() - Screen.dp(54f)) {
       ViewUtils.onClick(this);
       org.thunderdog.challegram.BaseActivity context = org.thunderdog.challegram.tool.UI.getContext(getContext());

@@ -2751,7 +2751,29 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       baseAdapter.notifyItemRangeInserted(targetIndex, 2);
     }
     baseHeaderItemCount++;
+    tgx101RestyleGaps();
     onItemsHeightProbablyChanged();
+  }
+
+  // TGx101 (user 2026-11-20 «музыку и канал нужно отделить, в нашем стиле»): the music and the channel stand apart from
+  // the details — the separator under each of them is a gap of the screen's ground. A gap is still one item where a
+  // separator was, so the positions of the rows are counted as before
+  private void tgx101RestyleGaps () {
+    if (user == null) return;
+    java.util.List<ListItem> items = baseAdapter.getItems();
+    int end = Math.min(items.size() - 1, 1 + baseHeaderItemCount * 2 - 1);
+    for (int i = 2; i < end; i += 2) {
+      ListItem separator = items.get(i), above = items.get(i - 1);
+      int vt = separator.getViewType();
+      if (vt != ListItem.TYPE_SEPARATOR && vt != ListItem.TYPE_SEPARATOR_FULL && vt != ListItem.TYPE_PADDING) continue;
+      boolean gap = above.getId() == R.id.btn_tgx101ProfileMusic || above.getId() == R.id.btn_tgx101PersonalChannel;
+      int want = gap ? ListItem.TYPE_PADDING : ListItem.TYPE_SEPARATOR;
+      if (vt != want && !(vt == ListItem.TYPE_SEPARATOR_FULL && !gap)) {
+        separator.setViewType(want);
+        if (gap) separator.setHeight(Screen.dp(10f));
+        baseAdapter.notifyItemChanged(i);
+      }
+    }
   }
 
   private void removeTopItem (int index) {
@@ -2783,6 +2805,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         }
       }
     }
+    tgx101RestyleGaps();
     onItemsHeightProbablyChanged();
   }
 
