@@ -5907,6 +5907,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
 
   private int calculateHeight (int position, int width, ListItem item) {
     final int itemId = item.getId();
+    if (item.getViewType() == ListItem.TYPE_PADDING) {
+      return item.getHeight(); // TGx101: the gap under the music and the channel (crash 2026-11-20 00:57 «AssertionError: 35»)
+    }
     switch (item.getViewType()) {
       case ListItem.TYPE_INFO_MULTILINE: {
         if (itemId == R.id.btn_username) {
