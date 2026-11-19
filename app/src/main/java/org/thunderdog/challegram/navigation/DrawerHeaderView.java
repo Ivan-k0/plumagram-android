@@ -169,21 +169,32 @@ public class DrawerHeaderView extends View implements Destroyable, GlobalAccount
 
   // TGx101 (user 2026-11-20 «в боковом меню в профиль можно попасть, нажав на аватарку»): the avatar opens one's profile
   private boolean tgx101OnAvatar (float x, float y) {
-    int r = Screen.dp(32f) + Screen.dp(8f);
-    float cx = org.thunderdog.challegram.core.Lang.rtl() ? getMeasuredWidth() - contentLeft() - Screen.dp(32f) : contentLeft() + Screen.dp(32f);
-    float cy = avatarTop() + Screen.dp(32f);
-    return Math.abs(x - cx) <= r && Math.abs(y - cy) <= r;
+    float rad = Screen.dp(TGX101_ROUND ? 36f : 32f);
+    int r = (int) rad + Screen.dp(8f);
+    float cx = org.thunderdog.challegram.core.Lang.rtl() ? getMeasuredWidth() - contentLeft() - rad : contentLeft() + rad;
+    float cy = avatarTop() + rad;
+    if (Math.abs(x - cx) <= r && Math.abs(y - cy) <= r) return true;
+    // the name and the @username under the avatar, left of the accounts' arrow
+    float top = Screen.dp(92f) + HeaderView.getTopOffset(), bottom = Screen.dp(140f) + HeaderView.getTopOffset();
+    boolean rtl = org.thunderdog.challegram.core.Lang.rtl();
+    return TGX101_ROUND && y >= top && y <= bottom && (rtl ? x > Screen.dp(60f) : x < getMeasuredWidth() - Screen.dp(60f));
   }
 
   @Override
   public boolean needClickAt (View view, float x, float y) {
-    return y >= getMeasuredHeight() - Screen.dp(54f) || tgx101OnAvatar(x, y);
+    return tgx101OnTheme(x, y) || tgx101OnAvatar(x, y) || y >= getMeasuredHeight() - Screen.dp(54f);
   }
 
   @Override
   public void onClickAt (View view, float x, float y) {
-    org.thunderdog.challegram.Tgx101Diag.mark("drawer header: tap at " + Math.round(x) + "," + Math.round(y) + (tgx101OnAvatar(x, y) ? " on the avatar" : ""));
-    if (tgx101OnAvatar(x, y) && y < getMeasuredHeight() - Screen.dp(54f)) {
+    org.thunderdog.challegram.Tgx101Diag.mark("drawer header: tap at " + Math.round(x) + "," + Math.round(y) + (tgx101OnTheme(x, y) ? " on the day / night switch" : tgx101OnAvatar(x, y) ? " on the avatar" : ""));
+    if (tgx101OnTheme(x, y)) {
+      ViewUtils.onClick(this);
+      org.thunderdog.challegram.theme.ThemeManager.instance().toggleNightMode();
+      invalidate();
+      return;
+    }
+    if (tgx101OnAvatar(x, y) && (TGX101_ROUND || y < getMeasuredHeight() - Screen.dp(54f))) {
       ViewUtils.onClick(this);
       org.thunderdog.challegram.BaseActivity context = org.thunderdog.challegram.tool.UI.getContext(getContext());
       org.thunderdog.challegram.telegram.Tdlib tdlib = context.currentTdlib();
@@ -341,7 +352,10 @@ public class DrawerHeaderView extends View implements Destroyable, GlobalAccount
       userId = account.getKnownUserId();
       if (account.hasUserInfo()) {
         name = account.getName();
-        if (Settings.instance().needHidePhoneNumber()) {
+        TdApi.Usernames usernames = account.getUsernames();
+        if (TGX101_ROUND && usernames != null && usernames.activeUsernames != null && usernames.activeUsernames.length > 0) {
+          phone = "@" + usernames.activeUsernames[0]; // (mockup «Шапка бокового меню» А): the @username under the name
+        } else if (Settings.instance().needHidePhoneNumber()) {
           phone = ""; // TGx101 (like moeGramX): MagiX → hide the phone number — nothing under the name
         } else {
           phone = Strings.formatPhone(account.getPhoneNumber());
@@ -398,8 +412,9 @@ public class DrawerHeaderView extends View implements Destroyable, GlobalAccount
     public static final int DRAW_MODE_TEXTS = 2;
 
     public void draw (DrawerHeaderView view, Canvas c, DoubleImageReceiver receiver, int viewWidth, int viewHeight, float factor, float avatarFactor, float avatarAlphaFactor, int drawMode, boolean rtl, int equalFlags, boolean drawEqual) {
+      if (TGX101_ROUND) avatarFactor = 0f; // the photo stays a round avatar, it never fills the header
       int contentLeft = contentLeft();
-      final int startRadius = Screen.dp(32f);
+      final int startRadius = Screen.dp(TGX101_ROUND ? 36f : 32f);
       final int startCx = rtl ? viewWidth - contentLeft - startRadius : contentLeft + startRadius;
       final int startCy = avatarTop() + startRadius;
 
@@ -412,7 +427,7 @@ public class DrawerHeaderView extends View implements Destroyable, GlobalAccount
       int cy = startCy + (int) ((float) (targetCy - startCy) * avatarFactor);
 
       if (drawMode == DRAW_MODE_IMAGES || drawMode == DRAW_MODE_REGULAR) {
-        final int cornerRadius = (int) ((float) startRadius * (1f - avatarFactor) * Theme.avatarRadiusDefault());
+        final int cornerRadius = (int) ((float) startRadius * (1f - avatarFactor) * (TGX101_ROUND ? 1f : Theme.avatarRadiusDefault()));
         final int avatarAlpha = (int) (255f * avatarAlphaFactor);
 
         int left = cx - radius;
@@ -465,7 +480,12 @@ public class DrawerHeaderView extends View implements Destroyable, GlobalAccount
           trimmedPhone.draw(c, contentLeft + leftPadding, contentLeft + leftPadding + trimmedPhone.getWidth(), 0, Screen.dp(119f) + HeaderView.getTopOffset(), null, (equalFlags & FLAG_EQUAL_NUMBERS) != 0 ? (drawEqual ? 1f : 0f) : factor);
         }
         if (emojiStatusHelper != null) {
-          emojiStatusHelper.draw(c, rtl ? Screen.dp(16 + 24 * 2) : viewWidth - Screen.dp(88), viewHeight - Screen.dp(18 + 24), (equalFlags & FLAG_EQUAL_STATUSES) != 0 ? (drawEqual ? 1f : 0f) : factor);
+          if (TGX101_ROUND) {
+            int nameEnd = contentLeft + leftPadding + (trimmedName != null ? trimmedName.getWidth() : 0);
+            emojiStatusHelper.draw(c, nameEnd + Screen.dp(6f), Screen.dp(94f) + HeaderView.getTopOffset(), (equalFlags & FLAG_EQUAL_STATUSES) != 0 ? (drawEqual ? 1f : 0f) : factor);
+          } else {
+            emojiStatusHelper.draw(c, rtl ? Screen.dp(16 + 24 * 2) : viewWidth - Screen.dp(88), viewHeight - Screen.dp(18 + 24), (equalFlags & FLAG_EQUAL_STATUSES) != 0 ? (drawEqual ? 1f : 0f) : factor);
+          }
         }
         /*c.drawText(trimmedName != null ? trimmedName : name.text, rtl ? (viewWidth - contentLeft - (trimmedName != null ? trimmedNameWidth : nameWidth)) : contentLeft, nameTop, context.namePaint(name.needFakeBold, avatarFactor, (equalFlags & FLAG_EQUAL_NAMES) != 0 ? (drawEqual ? 1f : 0f) : factor));
         c.drawText(trimmedPhone != null ? trimmedPhone : phone, rtl ? (viewWidth - contentLeft - (trimmedPhone != null ? trimmedPhoneWidth : phoneWidth)) : contentLeft, phoneTop, context.phonePaint(avatarFactor, (equalFlags & FLAG_EQUAL_NUMBERS) != 0 ? (drawEqual ? 1f : 0f) : factor));*/
@@ -638,7 +658,7 @@ public class DrawerHeaderView extends View implements Destroyable, GlobalAccount
       }
     } else {
       boolean avatarChanged = (displayInfo.avatar == null) != (displayInfoFuture.avatar == null);
-      boolean allowGradient = avatarChanged || displayInfo.avatar == null;
+      boolean allowGradient = TGX101_ROUND || avatarChanged || displayInfo.avatar == null;
 
       int drawMode = DisplayInfo.DRAW_MODE_REGULAR;
       if (!allowGradient) {
@@ -656,6 +676,31 @@ public class DrawerHeaderView extends View implements Destroyable, GlobalAccount
       displayInfoFuture.draw(this, c, receiver2, viewWidth, viewHeight, futureFactor, avatarFactor, futureFactor, drawMode, rtl, displayInfoFuture.equalFlags, true);
     }
 
+    if (TGX101_ROUND) avatarFactor = 0f;
     expanderView.draw(c, rtl ? Screen.dp(54f) / 2 : viewWidth - Screen.dp(54f) / 2, viewHeight - Screen.dp(54f) / 2, getTextColor(avatarFactor));
+    if (TGX101_ROUND) tgx101DrawThemeButton(c, viewWidth, getTextColor(0f));
+  }
+
+  // TGx101 (user 2026-11-20, mockup «Шапка бокового меню» А): a round avatar top left, the name with its emoji and the
+  // @username under it, a round day / night switch top right; the avatar and the name open one's profile
+  static final boolean TGX101_ROUND = true;
+
+  private float tgx101ThemeCx () {
+    return org.thunderdog.challegram.core.Lang.rtl() ? Screen.dp(16f + 20f) : getMeasuredWidth() - Screen.dp(16f + 20f);
+  }
+
+  private float tgx101ThemeCy () {
+    return avatarTop() + Screen.dp(20f);
+  }
+
+  private boolean tgx101OnTheme (float x, float y) {
+    return TGX101_ROUND && Math.abs(x - tgx101ThemeCx()) <= Screen.dp(28f) && Math.abs(y - tgx101ThemeCy()) <= Screen.dp(28f);
+  }
+
+  private void tgx101DrawThemeButton (Canvas c, int viewWidth, int color) {
+    float cx = tgx101ThemeCx(), cy = tgx101ThemeCy();
+    c.drawCircle(cx, cy, Screen.dp(20f), Paints.fillingPaint(ColorUtils.alphaColor(.12f, color)));
+    android.graphics.drawable.Drawable icon = Drawables.get(getResources(), Theme.isDark() ? R.drawable.baseline_brightness_5_24 : R.drawable.baseline_brightness_2_24);
+    Drawables.draw(c, icon, cx - icon.getMinimumWidth() / 2f, cy - icon.getMinimumHeight() / 2f, Paints.getPorterDuffPaint(color));
   }
 }
