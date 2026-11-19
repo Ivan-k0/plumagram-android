@@ -5843,7 +5843,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     Settings.instance().pmc().putString(TGX101_TAB_ORDER, b.toString());
     filtersOrder = filtersOrder2 = null;
     topCellView.getTopView().setItems(getPagerTitles());
-    pagerAdapter.notifyDataSetChanged();
+    pagerAdapter.notifyItemsSwapped(from, to);
     pager.setCurrentItem(to, false);
     topCellView.getTopView().setSelectionFactor(to);
     org.thunderdog.challegram.Tgx101Diag.mark("profile tabs: " + from + " → " + to + ", order " + b);

@@ -67,6 +67,16 @@ public class ViewControllerPagerAdapter extends PagerAdapter implements Destroya
     }
   }
 
+  /** TGx101 (user 2026-11-20 «переместил — поменялись иконки, а не сами медиа»): two pages change places, the pages with them */
+  public void notifyItemsSwapped (int a, int b) {
+    ViewController<?> ca = controllers.get(a), cb = controllers.get(b);
+    controllers.remove(a);
+    controllers.remove(b);
+    if (ca != null) controllers.put(b, ca);
+    if (cb != null) controllers.put(a, cb);
+    notifyDataSetChanged();
+  }
+
   public void notifyItemRemoved (int index) {
     int i = controllers.indexOfKey(index);
     if (i < 0) {
