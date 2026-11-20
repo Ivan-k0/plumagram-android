@@ -1388,6 +1388,7 @@ public class Settings {
 
     settings |= SETTING_FLAG_PAUSE_MEDIA_ON_RECORD;
     settings |= SETTING_FLAG_SELECT_TEXT_TO_QUOTE;
+    settings |= SETTING_FLAG_WRITE_CONTACTS_TO_PHONEBOOK; // TGx101 (user 2026-11-20): a new install has it on
     // SETTING_FLAG_KEEP_ALIVE_CONNECTION is off by default: push notifications work
     // through the mod's own Firebase project, the background connection is optional.
 
@@ -2429,6 +2430,18 @@ public class Settings {
     }
     // TGx101 (user 2026-11-20 «функции ИИ — включай только Кратко и всё»): a new install has only «Short» of the AI on;
     // who had the app already keeps what they had (the old default was on)
+    // (user 2026-11-20, the chat list's defaults for a new install: pull down — stories, ads hidden, «Join» shown, Telegram
+    // contacts in the phone book): who had the app keeps what they had
+    final String markerChats = "tgx101_defaults_2026_11_20_chats";
+    if (!pmc.getBoolean(markerChats, false)) {
+      if (!freshInstall) {
+        if (!pmc.contains("tgx101_pull_action")) pmc.putInt("tgx101_pull_action", isPullToSearchEnabled() ? TGX101_PULL_SEARCH : TGX101_PULL_NOTHING);
+        if (!pmc.contains(KEY_TGX101_HIDE_SPONSORED)) pmc.putBoolean(KEY_TGX101_HIDE_SPONSORED, false);
+        if (!pmc.contains(KEY_TGX101_HIDE_JOIN)) pmc.putBoolean(KEY_TGX101_HIDE_JOIN, true);
+        if (!pmc.contains(KEY_OTHER_NEW)) pmc.putLong(KEY_OTHER_NEW, makeDefaultNewSettings() & ~SETTING_FLAG_WRITE_CONTACTS_TO_PHONEBOOK);
+      }
+      pmc.putBoolean(markerChats, true);
+    }
     // (user 2026-11-20, the bird's defaults for a new install): who had the app keeps the old ones
     final String markerBird = "tgx101_defaults_2026_11_20_bird";
     if (!pmc.getBoolean(markerBird, false)) {
@@ -3691,7 +3704,7 @@ public class Settings {
   public static final int TGX101_PULL_SEARCH = 0, TGX101_PULL_STORIES = 1, TGX101_PULL_NOTHING = 2;
 
   public int tgx101PullAction () {
-    return pmc.getInt("tgx101_pull_action", isPullToSearchEnabled() ? TGX101_PULL_SEARCH : TGX101_PULL_NOTHING);
+    return pmc.getInt("tgx101_pull_action", TGX101_PULL_STORIES); // a new install: stories (user 2026-11-20)
   }
 
   public void setTgx101PullAction (int action) {
@@ -3846,13 +3859,13 @@ public class Settings {
     pmc.putString(KEY_TGX101_WEBAPP_OPEN_BOTS, list == null || list.isEmpty() ? String.valueOf(botUserId) : list + "," + botUserId);
   }
   private static final String KEY_TGX101_HIDE_JOIN = "tgx101_hide_join";
-  public boolean tgx101HideJoinButton () { return pmc.getBoolean(KEY_TGX101_HIDE_JOIN, true); } // new installs: hidden (see tgx101PinOldDefaults)
+  public boolean tgx101HideJoinButton () { return pmc.getBoolean(KEY_TGX101_HIDE_JOIN, false); } // a new install: shown (user 2026-11-20); older ones keep theirs (tgx101PinOldDefaults)
   private static final String KEY_TGX101_HIDE_SPONSORED = "tgx101_hide_sponsored";
   // TGx101 (user 2026-10-12): story audience profiles (JSON array) and the one used last
   public @androidx.annotation.Nullable String tgx101StoryProfiles () { return pmc.getString("tgx101_story_profiles", null); }
   public int tgx101StoryProfile () { return pmc.getInt("tgx101_story_profile", 0); }
   public void setTgx101StoryProfiles (String json, int current) { pmc.putString("tgx101_story_profiles", json); pmc.putInt("tgx101_story_profile", current); }
-  public boolean tgx101HideSponsored () { return pmc.getBoolean(KEY_TGX101_HIDE_SPONSORED, false); }
+  public boolean tgx101HideSponsored () { return pmc.getBoolean(KEY_TGX101_HIDE_SPONSORED, true); } // a new install: hidden (user 2026-11-20)
   public void setTgx101HideSponsored (boolean v) { pmc.putBoolean(KEY_TGX101_HIDE_SPONSORED, v); }
   // TGx101 (user 2026-10-12): holding the search button in the chat list opens the proxy options
   public boolean tgx101SearchHoldProxy () { return pmc.getBoolean("tgx101_search_hold_proxy", false); }
