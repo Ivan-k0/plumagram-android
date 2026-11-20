@@ -549,6 +549,14 @@ public class ContentPreview {
       case TdApi.MessageChatSetTheme.CONSTRUCTOR:
         alternativeText = Td.themeName(((TdApi.MessageChatSetTheme) message.content).theme);
         break;
+      case TdApi.MessageChatSetBackground.CONSTRUCTOR: {
+        // TGx101 (user 2026-11-20, screenshot: «смена фона в списке чатов пишет, что сообщение не поддерживается»)
+        TdApi.MessageChatSetBackground background = (TdApi.MessageChatSetBackground) message.content;
+        String text = message.isOutgoing
+          ? Lang.getString(background.onlyForSelf ? R.string.Tgx101BackgroundSetSelf_outgoing : R.string.Tgx101BackgroundSet_outgoing)
+          : Lang.getString(R.string.Tgx101BackgroundSet, tdlib.senderName(message.senderId, true));
+        return new ContentPreview(EMOJI_THEME, 0, text, true);
+      }
       case TdApi.MessageGiftedPremium.CONSTRUCTOR: {
         // TODO: R.string.ChatContent*
         TdApi.MessageGiftedPremium giftedPremium = (TdApi.MessageGiftedPremium) message.content;
@@ -778,7 +786,6 @@ public class ContentPreview {
       case TdApi.MessageSuggestProfilePhoto.CONSTRUCTOR:
       case TdApi.MessageSuggestBirthdate.CONSTRUCTOR:
       case TdApi.MessagePassportDataSent.CONSTRUCTOR:
-      case TdApi.MessageChatSetBackground.CONSTRUCTOR:
       case TdApi.MessageChecklist.CONSTRUCTOR:
       case TdApi.MessageChecklistTasksDone.CONSTRUCTOR:
       case TdApi.MessageChecklistTasksAdded.CONSTRUCTOR:
@@ -1633,8 +1640,11 @@ public class ContentPreview {
       case TdApi.MessageForumTopicEdited.CONSTRUCTOR:
       case TdApi.MessageForumTopicIsClosedToggled.CONSTRUCTOR:
       case TdApi.MessageForumTopicIsHiddenToggled.CONSTRUCTOR:
-      case TdApi.MessagePassportDataSent.CONSTRUCTOR:
       case TdApi.MessageChatSetBackground.CONSTRUCTOR:
+        // TGx101 (2026-11-20): a new chat wallpaper in a notification too, not «unsupported»
+        return new ContentPreview(EMOJI_THEME, 0, isOutgoing ? Lang.getString(R.string.Tgx101BackgroundSet_outgoing)
+          : Lang.getString(R.string.Tgx101BackgroundSet, senderName != null ? senderName : tdlib.senderName(sender, true)), true);
+      case TdApi.MessagePassportDataSent.CONSTRUCTOR:
       case TdApi.MessagePremiumGiftCode.CONSTRUCTOR:
       case TdApi.MessageGiveawayPrizeStars.CONSTRUCTOR:
       case TdApi.MessageGift.CONSTRUCTOR:
