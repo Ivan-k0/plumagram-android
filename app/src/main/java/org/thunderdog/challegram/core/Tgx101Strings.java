@@ -851,6 +851,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ChatBackgroundBoth, "Поставить текущий фон для обоих");
     RU.put(R.string.Tgx101ChatBackgroundReset, "Сбросить фон чата");
     RU.put(R.string.Tgx101ChatBackgroundNone, "Сначала выберите фон в настройках чатов");
+    RU.put(R.string.Tgx101ChatThemeTitle, "Выбрать тему");
+    RU.put(R.string.Tgx101ChatThemeNone, "Без темы");
+    RU.put(R.string.Tgx101ChatThemeOther, "Выбрать другие обои");
+    RU.put(R.string.Tgx101ChatThemeRemove, "Удалить обои");
+    RU.put(R.string.Tgx101ChatThemeWallpapers, "Обои");
+    RU.put(R.string.Tgx101ChatThemeBoth, "Поставить и собеседнику");
+    RU.put(R.string.Tgx101ChatThemeSelfOnly, "Эти обои увидите только вы");
     RU.put(R.string.Tgx101WebAppSubtitle, "мини-приложение");
     RU.put(R.string.Tgx101WebAppReload, "Перезагрузить");
     RU.put(R.string.Tgx101WebAppNoPayments, "Оплата внутри мини-приложений пока не поддерживается");
@@ -1839,6 +1846,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AutoDeleteOwn, "Своё время · %1$s");
     RU.put(R.string.Tgx101AutoDeleteOwnSet, "Своё время…");
     RU.put(R.string.Tgx101AutoDeleteOwnTitle, "Удалять через");
+    RU.put(R.string.Tgx101SearchMembers, "Поиск участников");
     RU.put(R.string.SendAtCustomTime, "Выбрать время");
     RU.put(R.string.RemindAtCustomTime, "Выбрать время");
     RU.put(R.string.Tgx101GazetaKeepScreen, "Не гасить экран");

@@ -666,6 +666,11 @@ public class ProfileController extends ViewController<ProfileController.Args> im
       strings.append(R.string.OpenCloudChat);
     }
 
+    if (user.id != myUserId) { // TGx101 (user 2026-11-20 «для личного — как в эталоне»): a home-screen shortcut, as for groups
+      ids.append(R.id.more_btn_tgx101Shortcut);
+      strings.append(R.string.Tgx101CreateShortcut);
+    }
+
     ids.append(R.id.more_btn_tgx101Cache); // TGx101 (approved mockup «Кэш» 3)
     strings.append(R.string.Tgx101ChatCache);
 
@@ -676,6 +681,11 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     IntList ids = new IntList(4);
     StringList strings = new StringList(4);
 
+    // TGx101 (user 2026-11-20 «в группе нужно добавить поиск участников», as the reference has it): first in ⋮
+    if ((mode == Mode.SUPERGROUP || mode == Mode.GROUP) && getMembersController() != null) {
+      ids.append(R.id.more_btn_tgx101SearchMembers);
+      strings.append(R.string.Tgx101SearchMembers);
+    }
     if (canAddAnyKindOfMembers()) {
       ids.append(R.id.more_btn_addMember);
       strings.append(Lang.getString(R.string.AddMember));
@@ -745,6 +755,21 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   @Override
   public void onMoreItemPressed (int id) {
     if (tdlib.ui().processLeaveButton(this, null, getChatId(), id, null)) {
+      return;
+    }
+    if (id == R.id.more_btn_tgx101SearchMembers) {
+      SharedMembersController members = getMembersController();
+      int index = members != null ? controllers.indexOf(members) : -1;
+      if (index != -1) {
+        onPagerItemClick(index);
+        UI.post(() -> {
+          if (!isDestroyed() && !inSearchMode()) openSearchMode();
+        }, 280);
+      }
+      return;
+    }
+    if (id == R.id.more_btn_tgx101Shortcut) {
+      tgx101CreateShortcut(); // any chat: a group, a channel or a person
       return;
     }
     if (id == R.id.more_btn_tgx101Cache) {

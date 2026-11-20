@@ -6526,6 +6526,13 @@
   <string name="Tgx101ChatBackgroundBoth">Set the current wallpaper for both</string>
   <string name="Tgx101ChatBackgroundReset">Reset the chat wallpaper</string>
   <string name="Tgx101ChatBackgroundNone">Choose a wallpaper in the chat settings first</string>
+  <string name="Tgx101ChatThemeTitle">Choose a theme</string>
+  <string name="Tgx101ChatThemeNone">No theme</string>
+  <string name="Tgx101ChatThemeOther">Choose other wallpaper</string>
+  <string name="Tgx101ChatThemeRemove">Remove wallpaper</string>
+  <string name="Tgx101ChatThemeWallpapers">Wallpaper</string>
+  <string name="Tgx101ChatThemeBoth">Set for the other person too</string>
+  <string name="Tgx101ChatThemeSelfOnly">Only you will see this wallpaper</string>
   <string name="Tgx101WebAppSubtitle">mini app</string>
   <string name="Tgx101WebAppReload">Reload</string>
   <string name="Tgx101WebAppNoPayments">Payments inside mini apps aren\'t supported yet</string>
@@ -7028,6 +7035,7 @@
   <string name="Tgx101AutoDeleteOwn">My period · %1$s</string>
   <string name="Tgx101AutoDeleteOwnSet">My period…</string>
   <string name="Tgx101AutoDeleteOwnTitle">Auto-delete after</string>
+  <string name="Tgx101SearchMembers">Search members</string>
   <string name="Tgx101GazetaKeepScreen">Keep the screen on</string>
   <string name="Tgx101TabRight">Move right</string>
   <string name="Tgx101ProfileMusicTab">Profile music</string>
