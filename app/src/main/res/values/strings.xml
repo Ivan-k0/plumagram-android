@@ -7020,6 +7020,10 @@
   <string name="Tgx101PersonalChannel">Personal channel</string>
   <string name="Tgx101ProfileMusic">Profile music</string>
   <string name="Tgx101TabLeft">Move left</string>
+  <string name="Tgx101SendTomorrowMorning">Send tomorrow at 8:30</string>
+  <string name="Tgx101RemindTomorrowMorning">Remind tomorrow at 8:30</string>
+  <string name="Tgx101SendOwnTime">At my time · %1$s</string>
+  <string name="Tgx101SendSetOwnTime">Set my time</string>
   <string name="Tgx101GazetaKeepScreen">Keep the screen on</string>
   <string name="Tgx101TabRight">Move right</string>
   <string name="Tgx101ProfileMusicTab">Profile music</string>

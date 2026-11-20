@@ -7623,6 +7623,18 @@ public class TdlibUi extends Handler {
     );
   }
 
+  /** seconds until the given time of day (minutes after midnight): today if still ahead, else tomorrow; or tomorrow always */
+  private long tgx101SecondsUntil (int minutesOfDay, boolean tomorrow) {
+    long now = tdlib.currentTimeMillis();
+    Calendar c = DateUtils.calendarInstance(now);
+    c.set(Calendar.HOUR_OF_DAY, minutesOfDay / 60);
+    c.set(Calendar.MINUTE, minutesOfDay % 60);
+    c.set(Calendar.SECOND, 0);
+    c.set(Calendar.MILLISECOND, 0);
+    if (tomorrow || c.getTimeInMillis() <= now + 60_000) c.add(Calendar.DAY_OF_MONTH, 1);
+    return Math.max(60, TimeUnit.MILLISECONDS.toSeconds(c.getTimeInMillis() - now));
+  }
+
   public boolean pickSchedulingState (ViewController<?> context, RunnableData<TdApi.MessageSendOptions> callback, long chatId, boolean needOnline, boolean needSendWithoutSound, @Nullable TdApi.MessageSendOptions defaultSendOptions, @Nullable ThemeDelegate forcedTheme) {
     if (ChatId.isSecret(chatId)) {
       return false;
@@ -7657,13 +7669,18 @@ public class TdlibUi extends Handler {
     strings.append(Lang.plural(isSelfChat ? R.string.RemindInXHours : R.string.SendInXHours, 2));
     icons.append(R.drawable.dotvhs_baseline_time_2h_24);
 
+    // TGx101 (user 2026-11-20 «запланировать отправку через удержание»): 30 minutes, 2 hours, tomorrow at 8:30, one's own
+    // time (picked once on the wheels, remembered), any time
     ids.append(R.id.btn_sendScheduled8Hr);
-    strings.append(Lang.plural(isSelfChat ? R.string.RemindInXHours : R.string.SendInXHours, 8));
-    icons.append(R.drawable.dotvhs_baseline_time_8h_24);
+    strings.append(Lang.getString(isSelfChat ? R.string.Tgx101RemindTomorrowMorning : R.string.Tgx101SendTomorrowMorning));
+    icons.append(R.drawable.baseline_brightness_5_24);
 
+    final int ownMinutes = Settings.instance().pmc().getInt("tgx101_schedule_own_minutes", -1);
     ids.append(R.id.btn_sendScheduled1Yr);
-    strings.append(Lang.plural(isSelfChat ? R.string.RemindInXYears : R.string.SendInXYears, 1));
-    icons.append(R.drawable.dotvhs_baseline_time_1y_24);
+    strings.append(ownMinutes >= 0
+      ? Lang.getString(R.string.Tgx101SendOwnTime, String.format(java.util.Locale.US, "%d:%02d", ownMinutes / 60, ownMinutes % 60))
+      : Lang.getString(R.string.Tgx101SendSetOwnTime));
+    icons.append(R.drawable.baseline_schedule_24);
 
     ids.append(R.id.btn_sendScheduledCustom);
     strings.append(Lang.getString(isSelfChat ? R.string.RemindAtCustomTime : R.string.SendAtCustomTime));
@@ -7682,13 +7699,21 @@ public class TdlibUi extends Handler {
       } else if (optionId == R.id.btn_sendScheduled2Hr) {
         seconds = TimeUnit.HOURS.toSeconds(2);
       } else if (optionId == R.id.btn_sendScheduled8Hr) {
-        seconds = TimeUnit.HOURS.toSeconds(8);
+        seconds = tgx101SecondsUntil(8 * 60 + 30, true); // tomorrow at 8:30
       } else if (optionId == R.id.btn_sendScheduled1Yr) {
-        long tdlibTimeMs = tdlib.currentTimeMillis();
-        Calendar c = DateUtils.calendarInstance(tdlibTimeMs);
-        c.add(Calendar.YEAR, 1);
-        long elapsedMs = c.getTimeInMillis() - tdlibTimeMs;
-        seconds = TimeUnit.MILLISECONDS.toSeconds(elapsedMs);
+        if (ownMinutes >= 0) {
+          seconds = tgx101SecondsUntil(ownMinutes, false); // the next time it's that o'clock
+        } else {
+          // not set yet: picked on the wheels, remembered, and this message goes then
+          context.showDateTimePicker(Lang.getString(R.string.Tgx101SendSetOwnTime), isSelfChat ? R.string.RemindTodayAt : R.string.SendTodayAt,
+            isSelfChat ? R.string.RemindTomorrowAt : R.string.SendTomorrowAt, isSelfChat ? R.string.RemindDateAt : R.string.SendDateAt, millis -> {
+            Calendar picked = DateUtils.calendarInstance(millis);
+            Settings.instance().pmc().putInt("tgx101_schedule_own_minutes", picked.get(Calendar.HOUR_OF_DAY) * 60 + picked.get(Calendar.MINUTE));
+            int sendDate = (int) TimeUnit.MILLISECONDS.toSeconds(millis);
+            callback.runWithData(Td.newSendOptions(defaultSendOptions, new TdApi.MessageSchedulingStateSendAtDate(sendDate, 0)));
+          }, forcedTheme);
+          return true;
+        }
       } else if (optionId == R.id.btn_sendScheduledCustom) {
         int titleRes, todayRes, tomorrowRes, futureRes;
         if (isSelfChat) {

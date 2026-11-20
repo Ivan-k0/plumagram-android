@@ -1831,6 +1831,12 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PersonalChannel, "Личный канал");
     RU.put(R.string.Tgx101ProfileMusic, "Музыка профиля");
     RU.put(R.string.Tgx101TabLeft, "Сдвинуть влево");
+    RU.put(R.string.Tgx101SendTomorrowMorning, "Завтра в 8:30");
+    RU.put(R.string.Tgx101RemindTomorrowMorning, "Напомнить завтра в 8:30");
+    RU.put(R.string.Tgx101SendOwnTime, "В своё время · %1$s");
+    RU.put(R.string.Tgx101SendSetOwnTime, "Задать своё время");
+    RU.put(R.string.SendAtCustomTime, "Выбрать время");
+    RU.put(R.string.RemindAtCustomTime, "Выбрать время");
     RU.put(R.string.Tgx101GazetaKeepScreen, "Не гасить экран");
     RU.put(R.string.Tgx101TabRight, "Сдвинуть вправо");
     RU.put(R.string.Tgx101ProfileMusicTab, "Музыка профиля");
