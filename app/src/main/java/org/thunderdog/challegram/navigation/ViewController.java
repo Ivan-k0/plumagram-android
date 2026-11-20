@@ -2864,6 +2864,12 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       }
       TextView text = OptionsLayout.genOptionView(context, item.id, item.name, item.textColor, item.icon, item.iconColor, onClickListener, getThemeListeners(), forcedTheme);
       RippleSupport.setTransparentSelector(text);
+      if (delegate != null) text.setOnLongClickListener(lv -> {
+        if (!delegate.onOptionItemLongPressed(lv, lv.getId())) return false;
+        popupLayout.hideWindow(true);
+        return true;
+      });
+
       if (forcedTheme != null)
         Theme.forceTheme(text, forcedTheme);
       text.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(54f)));

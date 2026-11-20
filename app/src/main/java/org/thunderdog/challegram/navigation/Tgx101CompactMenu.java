@@ -190,6 +190,11 @@ public final class Tgx101CompactMenu {
       TextView row = row(context, item, forcedTheme);
       if (delegate != null) row.setTag(delegate.getTagForItem(index));
       row.setOnClickListener(onClick);
+      if (delegate != null) row.setOnLongClickListener(lv -> {
+        if (!delegate.onOptionItemLongPressed(lv, lv.getId())) return false;
+        popup.hideWindow(true);
+        return true;
+      });
       list.addView(row);
       index++;
     }

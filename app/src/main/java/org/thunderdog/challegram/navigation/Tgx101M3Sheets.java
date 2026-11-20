@@ -175,6 +175,7 @@ public final class Tgx101M3Sheets {
     button.setBackground(pressable(ColorUtils.alphaColor(.14f, textColor), Screen.dp(20f)));
     if (delegate != null) button.setTag(delegate.getTagForItem(index));
     button.setOnClickListener(onClick);
+    if (delegate != null) button.setOnLongClickListener(lv -> delegate.onOptionItemLongPressed(lv, lv.getId()));
     return button;
   }
 

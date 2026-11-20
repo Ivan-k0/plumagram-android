@@ -20,6 +20,11 @@ public interface OptionDelegate {
   // return true if popup should be closed
   boolean onOptionItemPressed (View optionItemView, int id);
 
+  /** TGx101 (user 2026-11-20 «по удержанию»): a hold on an item; true — handled (the menu closes) */
+  default boolean onOptionItemLongPressed (android.view.View optionItemView, int id) {
+    return false;
+  }
+
   default Object getTagForItem (int position) {
     return null;
   }

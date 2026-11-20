@@ -7677,16 +7677,21 @@ public class TdlibUi extends Handler {
 
     final int ownMinutes = Settings.instance().pmc().getInt("tgx101_schedule_own_minutes", -1);
     ids.append(R.id.btn_sendScheduled1Yr);
-    strings.append(ownMinutes >= 0
+    String ownLabel = ownMinutes >= 0
       ? Lang.getString(R.string.Tgx101SendOwnTime, String.format(java.util.Locale.US, "%d:%02d", ownMinutes / 60, ownMinutes % 60))
-      : Lang.getString(R.string.Tgx101SendSetOwnTime));
+      : Lang.getString(R.string.Tgx101SendSetOwnTime);
+    if (ownMinutes >= 0 && !Settings.instance().pmc().getBoolean("tgx101_schedule_own_hint", false)) {
+      Settings.instance().pmc().putBoolean("tgx101_schedule_own_hint", true); // «hold to change», once
+      UI.showToast(R.string.Tgx101SendOwnTimeHint, android.widget.Toast.LENGTH_LONG); // the menu's rows are one line each
+    }
+    strings.append(ownLabel);
     icons.append(R.drawable.baseline_schedule_24);
 
     ids.append(R.id.btn_sendScheduledCustom);
     strings.append(Lang.getString(isSelfChat ? R.string.RemindAtCustomTime : R.string.SendAtCustomTime));
     icons.append(R.drawable.baseline_date_range_24);
 
-    context.showOptions(null, ids.get(), strings.get(), null, icons.get(), (v, optionId) -> {
+    final org.thunderdog.challegram.util.OptionDelegate tgx101Base = (v, optionId) -> {
       long seconds = 0;
       if (optionId == R.id.btn_sendNoSound) {
         callback.runWithData(Td.newSendOptions(defaultSendOptions, null, true));
@@ -7738,6 +7743,26 @@ public class TdlibUi extends Handler {
         callback.runWithData(Td.newSendOptions(defaultSendOptions, new TdApi.MessageSchedulingStateSendAtDate(sendDate, 0 /*TODO: repeat period*/)));
       }
       return true;
+    };
+    // (user 2026-11-20 «чтобы открывался барабан своего времени по удержанию»): a hold on one's own time picks it anew
+    context.showOptions(null, ids.get(), strings.get(), null, icons.get(), new org.thunderdog.challegram.util.OptionDelegate() {
+      @Override
+      public boolean onOptionItemPressed (View optionItemView, int id) {
+        return tgx101Base.onOptionItemPressed(optionItemView, id);
+      }
+
+      @Override
+      public boolean onOptionItemLongPressed (View optionItemView, int id) {
+        if (id != R.id.btn_sendScheduled1Yr || ownMinutes < 0) return false;
+        context.showDateTimePicker(Lang.getString(R.string.Tgx101SendSetOwnTime), isSelfChat ? R.string.RemindTodayAt : R.string.SendTodayAt,
+          isSelfChat ? R.string.RemindTomorrowAt : R.string.SendTomorrowAt, isSelfChat ? R.string.RemindDateAt : R.string.SendDateAt, millis -> {
+          Calendar picked = DateUtils.calendarInstance(millis);
+          Settings.instance().pmc().putInt("tgx101_schedule_own_minutes", picked.get(Calendar.HOUR_OF_DAY) * 60 + picked.get(Calendar.MINUTE));
+          int sendDate = (int) TimeUnit.MILLISECONDS.toSeconds(millis);
+          callback.runWithData(Td.newSendOptions(defaultSendOptions, new TdApi.MessageSchedulingStateSendAtDate(sendDate, 0)));
+        }, forcedTheme);
+        return true;
+      }
     }, forcedTheme);
     return true;
   }
