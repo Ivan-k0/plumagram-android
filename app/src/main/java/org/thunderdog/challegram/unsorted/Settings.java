@@ -2441,6 +2441,12 @@ public class Settings {
         pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_MESSAGE, "copy,quote,selectAll,apps,-editor");
         pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_INPUT, "copy,cut,paste,selectAll,apps");
         pmc.putString(KEY_TGX101_FORMAT_MENU, "btn_bold,btn_italic,btn_monospace,btn_strikethrough,btn_underline,btn_link,btn_spoiler,btn_quote,btn_plain");
+        // (user 2026-11-20, messages and menus): no quick reactions in the swipe, no actions column; the column, if switched
+        // on, holds translate, share, reply, copy, edit
+        pmc.putBoolean(KEY_TGX101_SWIPE_REACTIONS, false);
+        pmc.putBoolean(KEY_TGX101_SWIPE_ACTIONS, false);
+        pmc.putInt("tgx101_haptic_strength", 0); // a light vibration (user 2026-11-20)
+        pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_SWIPE, "translate,forward,reply,copy,edit,-pin,-save,-select,-delete,-reaction,-deleteAll,-link,-saveFile,-report");
         pmc.edit()
           .putInt(KEY_TGX101_CAPSULE_MENU, 1 | 1 << 2 | 1 << 5 | 1 << 7)
           .putBoolean("tgx101_capsule_menu_peek", true)
