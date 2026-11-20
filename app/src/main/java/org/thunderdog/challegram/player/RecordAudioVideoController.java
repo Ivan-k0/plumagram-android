@@ -104,6 +104,7 @@ public class RecordAudioVideoController implements
   private RecordBackgroundView videoBackgroundView;
   private ShadowView videoTopShadowView, videoBottomShadowView;
   private RecordButton recordBackground;
+  private Tgx101RecordParticles tgx101Particles; // TGx101 (user 2026-11-20): the voice's dots round the button
   private boolean tgx101WaveOverPanel;
   private VoiceVideoButtonView voiceVideoButtonView;
   private RecordLockView lockView;
@@ -343,6 +344,10 @@ public class RecordAudioVideoController implements
         }
       });
       this.durationView.setLayoutParams(Views.newLayoutParams(durationView, Gravity.LEFT | Gravity.BOTTOM));
+      // under the timer (its bin stays on top) and the round button (raised), over the field
+      this.tgx101Particles = new Tgx101RecordParticles(context);
+      this.tgx101Particles.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      this.rootLayout.addView(tgx101Particles);
       this.rootLayout.addView(durationView);
 
       this.recordBackground = new RecordButton(context);
@@ -719,12 +724,23 @@ public class RecordAudioVideoController implements
     recordBackground.setTranslationX(cx - recordBackground.getMeasuredWidth() / 2);
     recordBackground.setTranslationY(cy - recordBackground.getMeasuredHeight() / 2);
 
+    // TGx101 (user 2026-11-20 «Частицы»): the dots know where the button is, how far the finger went left (the timer's
+    // dot turns into a bin and pulls them in) or up (to the lock; once locked they circle round the button)
+    tgx101Particles.setActive(!recordingVideo);
+    tgx101Particles.setCircle(cx, cy, Screen.dp(41f));
+    float lockSlide = isReleased ? 1f : MathUtils.clamp(actualY / (float) threshold);
+    tgx101Particles.setGesture(recordingVideo ? 0f : closeFactor, lockSlide, releaseFactor);
+    tgx101Particles.setTarget(durationView.getLeft() + durationView.getTranslationX() + RecordDurationView.tgx101DotX(),
+      durationView.getTop() + durationView.getTranslationY() + durationView.getMeasuredHeight() / 2f);
+    durationView.tgx101SetTrash(recordingVideo ? 0f : closeFactor * (1f - releaseFactor));
+
     lockView.setTranslationX(cx - lockView.getMeasuredWidth() / 2);
     switchCameraButtonWrap.setTranslationX(cx - switchCameraButtonWrap.getMeasuredWidth() / 2f);
     disposableSwitchButton.setTranslationX(cx - disposableSwitchButton.getMeasuredWidth() / 2f);
     updateLockY();
 
     if (closeFactor * recordFactor == 1f) {
+      tgx101Particles.puff();
       stopRecording(CLOSE_MODE_CANCEL, false);
     }
   }
@@ -742,6 +758,7 @@ public class RecordAudioVideoController implements
     disposableSwitchButton.setScaleY(scale);
 
     recordBackground.setExpand(recordFactor);
+    tgx101Particles.setExpand(MathUtils.clamp(recordFactor));
   }
 
   private void updateVideoY () {
@@ -880,6 +897,7 @@ public class RecordAudioVideoController implements
     disposableSwitchButton.setActive(false, false);
     disposableSwitchButton.setVisibility(canSendSelfDestructMessages() ? View.VISIBLE : View.GONE);
     recordBackground.setVolume(0f, false);
+    tgx101Particles.reset();
     editAnimator.setValue(false, false);
     videoPreviewView.performDestroy();
     videoTimelineView.performDestroy();
@@ -1741,6 +1759,7 @@ public class RecordAudioVideoController implements
         // the two-layer drop always, whether the field line's wave is on or not
         recordBackground.tgx101SetHalo(RecordButton.TGX101_HALO_DROP);
         recordBackground.setVolume(amplitude, true);
+        if (!recordingVideo) tgx101Particles.setLevel(amplitude / 150f);
       } else {
         startTimers(SystemClock.uptimeMillis());
       }

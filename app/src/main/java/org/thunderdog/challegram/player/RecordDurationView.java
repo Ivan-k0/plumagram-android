@@ -155,6 +155,7 @@ public class RecordDurationView extends View {
 
   public void reset () {
     circleAlpha = 1f;
+    tgx101Trash = 0f;
     cells[0].reset(0);
     cells[1].reset(0);
     cells[3].reset(0);
@@ -168,8 +169,43 @@ public class RecordDurationView extends View {
     draw(c, getMeasuredHeight() / 2);
   }
 
+  // TGx101 (user 2026-11-20, mockups «Анимация записи голосового» → «Частицы», «корзина заменяет красную точку, а не
+  // становится поверх»): sliding left to cancel, the red dot shrinks and a red bin grows in its place — the voice's dots
+  // fly into it (Tgx101RecordParticles); back to the dot when the finger comes back
+  private float tgx101Trash;
+  private android.graphics.drawable.Drawable tgx101Bin;
+
+  public void tgx101SetTrash (float factor) {
+    factor = Math.max(0f, Math.min(1f, factor));
+    if (tgx101Trash != factor) {
+      tgx101Trash = factor;
+      invalidate();
+    }
+  }
+
+  /** the dot's centre, inside this view */
+  public static float tgx101DotX () {
+    if (circleRadius == 0) initSizes();
+    return circleCenterX;
+  }
+
   public void draw (Canvas c, float centerY) {
-    c.drawCircle(circleCenterX, centerY, circleRadius, Paints.fillingPaint(ColorUtils.alphaColor((float) alpha / 255f * circleAlpha, 0xffff3b36)));
+    float trash = AnimatorUtils.DECELERATE_INTERPOLATOR.getInterpolation(tgx101Trash);
+    float dot = 1f - trash;
+    if (dot > 0f) {
+      float dotAlpha = circleAlpha + (1f - circleAlpha) * trash; // stops blinking as it goes
+      c.drawCircle(circleCenterX, centerY, circleRadius * dot, Paints.fillingPaint(ColorUtils.alphaColor((float) alpha / 255f * dotAlpha, 0xffff3b36)));
+    }
+    if (trash > 0f) {
+      if (tgx101Bin == null) {
+        tgx101Bin = org.thunderdog.challegram.tool.Drawables.get(getResources(), org.thunderdog.challegram.R.drawable.baseline_delete_24);
+      }
+      float scale = (.4f + .6f * trash) * (Screen.dp(16f) / (float) Screen.dp(24f));
+      c.save();
+      c.scale(scale, scale, circleCenterX, centerY);
+      org.thunderdog.challegram.tool.Drawables.drawCentered(c, tgx101Bin, circleCenterX, centerY, Paints.getPorterDuffPaint(ColorUtils.alphaColor((float) alpha / 255f * trash, 0xffff3b36)));
+      c.restore();
+    }
 
     float cx = textLeft, cy = centerY + textOffset;
     for (Cell cell : cells) {
