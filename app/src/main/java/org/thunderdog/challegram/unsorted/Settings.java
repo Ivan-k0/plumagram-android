@@ -2450,6 +2450,10 @@ public class Settings {
         for (String suffix : new String[] {"", "_media", "_voice"}) {
           pmc.putString(KEY_TGX101_MESSAGE_MENU_HIDDEN + suffix, "btn_tgx101QuoteShare,btn_tgx101Summary");
         }
+        // the chat's ⋮ (user 2026-11-20): call, video call, search, notifications, mute, translate, linked chat, video chat,
+        // leave, background, scheduled, media, the rest, report; topics, Saved by chats, passcode, proxy, pinned — off
+        pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_CHAT_MENU,
+          "call,videoCall,search,notifications,mute,translate,linked,voiceChat,-topics,leave,background,-savedByChats,-passcode,-proxy,-pinned,scheduled,media,date,other,report");
         pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_SWIPE, "translate,forward,reply,copy,edit,-pin,-save,-select,-delete,-reaction,-deleteAll,-link,-saveFile,-report");
         pmc.edit()
           .putInt(KEY_TGX101_CAPSULE_MENU, 1 | 1 << 2 | 1 << 5 | 1 << 7)
