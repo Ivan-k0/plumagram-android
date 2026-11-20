@@ -1535,7 +1535,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MenuProfileVoice, "Голосовых и кружков");
     RU.put(R.string.Tgx101MenuProfileHint, "У текста, у фото, видео, файлов и у голосовых с кружками — свои меню. Нажмите, чтобы выбрать, какое настраиваете. В меню медиа по умолчанию есть «Сохранить», у голосовых — «Сохранить в музыку», у текста — «Копировать».");
     RU.put(R.string.Tgx101SelectInPlace, "Выделить");
-    RU.put(R.string.Tgx101MenuSectionMenu, "В меню: от 5 до 9 пунктов");
+    RU.put(R.string.Tgx101MenuSectionMenu, "В меню: от 5 до 10 пунктов");
     RU.put(R.string.Tgx101MenuTooMany, "В меню не больше %1$d пунктов — сначала уберите один в «Ещё»");
     RU.put(R.string.Tgx101MenuTooFew, "В меню должно остаться не меньше %1$d пунктов");
     RU.put(R.string.Tgx101MenuSectionMore, "В «Ещё»");

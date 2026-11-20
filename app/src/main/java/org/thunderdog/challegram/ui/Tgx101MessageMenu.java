@@ -105,21 +105,24 @@ public final class Tgx101MessageMenu {
     R.drawable.baseline_more_horiz_24, R.drawable.baseline_delete_24
   };
 
-  /** user 2026-10-06: a light menu by default — these stay in it, everything else orderable goes under «More…» */
+  /** (user 2026-11-20, the default menu): reply, copy, share, edit, copy link, to Saved Messages, save, More…, Delete (and
+   *  «Select» last); one list for every kind of message — what a message can't do isn't there */
   public static final int[] DEFAULT_SHOWN = {
-    R.id.btn_messageReply, R.id.btn_messageCopy, R.id.btn_tgx101SelectInPlace, R.id.btn_messageEdit, R.id.btn_messageShare,
-    R.id.btn_tgx101SaveFavorite, R.id.btn_messageMore, R.id.btn_messageDelete
+    R.id.btn_messageReply, R.id.btn_messageCopy, R.id.btn_messageShare, R.id.btn_messageEdit, R.id.btn_messageCopyLink,
+    R.id.btn_tgx101SaveFavorite, R.id.btn_saveFile, R.id.btn_messageMore, R.id.btn_messageDelete
   };
+  public static final int[] DEFAULT_SHOWN_MEDIA = DEFAULT_SHOWN;
+  public static final int[] DEFAULT_SHOWN_VOICE = DEFAULT_SHOWN;
 
-  /** user 2026-10-06: photos, videos and files have their own menu — «Save» always there, «Copy» / «Select» not */
-  public static final int[] DEFAULT_SHOWN_MEDIA = {
-    R.id.btn_messageReply, R.id.btn_saveFile, R.id.btn_messageShare, R.id.btn_tgx101SaveFavorite, R.id.btn_messageEdit,
-    R.id.btn_messageMore, R.id.btn_messageDelete
-  };
-
-  /** user 2026-10-06 12:04: voice and video messages have their own menu — «Save to music», transcription in «More…» */
-  public static final int[] DEFAULT_SHOWN_VOICE = {
-    R.id.btn_messageReply, R.id.btn_saveFile, R.id.btn_messageShare, R.id.btn_tgx101SaveFavorite,
+  /** The default order: the menu's items, then «More…»'s — pin, translate, hide similar, the thread, clear cache, report,
+   *  to the original, then the rest — and «More…», «Delete» at the end */
+  private static final int[] DEFAULT_ORDER = {
+    R.id.btn_messageReply, R.id.btn_messageCopy, R.id.btn_messageShare, R.id.btn_messageEdit, R.id.btn_messageCopyLink,
+    R.id.btn_tgx101SaveFavorite, R.id.btn_saveFile,
+    R.id.btn_messagePin, R.id.btn_chatTranslate, R.id.btn_tgx101FilterSimilar, R.id.btn_messageReplies, R.id.btn_deleteFile,
+    R.id.btn_messageReport, R.id.btn_messageShowSource,
+    R.id.btn_tgx101SelectInPlace, R.id.btn_messageSelectText, R.id.btn_tgx101QuoteShare, R.id.btn_tgx101EditorWindow,
+    R.id.btn_messageViewList, R.id.btn_tgx101Summary,
     R.id.btn_messageMore, R.id.btn_messageDelete
   };
 
@@ -147,9 +150,9 @@ public final class Tgx101MessageMenu {
 
   /** The default order of the current profile: its shown items first (More and Delete last), the rest in between */
   private static int[] defaultOrder () {
-    if (!Settings.instance().isTgx101MenuMediaProfile()) return ORDERABLE_IDS;
     ArrayList<Integer> result = new ArrayList<>();
     for (int id : defaultShown()) if (id != R.id.btn_messageMore && id != R.id.btn_messageDelete) result.add(id);
+    for (int id : DEFAULT_ORDER) if (!result.contains(id) && id != R.id.btn_messageMore && id != R.id.btn_messageDelete) result.add(id);
     for (int id : ORDERABLE_IDS) if (!result.contains(id) && id != R.id.btn_messageMore && id != R.id.btn_messageDelete) result.add(id);
     result.add(R.id.btn_messageMore);
     result.add(R.id.btn_messageDelete);
@@ -165,14 +168,15 @@ public final class Tgx101MessageMenu {
 
   /** user 2026-10-06: the menu keeps 5–9 items (with «Select»), the user decides; the rest under «More…» or hidden.
    *  Only a menu over the limit (an old setup, or the app's own extra items) scrolls. */
-  public static final int MIN_MENU_ITEMS = 5, MAX_MENU_ITEMS = 9, MAX_VISIBLE_ROWS = MAX_MENU_ITEMS;
+  public static final int MIN_MENU_ITEMS = 5, MAX_MENU_ITEMS = 10, // (user 2026-11-20 «пусть будет 10 доступных пунктов»)
+     MAX_VISIBLE_ROWS = MAX_MENU_ITEMS;
 
   /** The «More…» list in effect (the user's, or the default one) */
   public static int[] moreIds () {
     int[] saved = Settings.instance().getTgx101MessageMenuMore();
     if (saved != null) return saved;
     ArrayList<Integer> result = new ArrayList<>();
-    for (int id : ORDERABLE_IDS) {
+    for (int id : defaultOrder()) {
       boolean shown = false;
       for (int s : defaultShown()) if (s == id) shown = true;
       if (!shown) result.add(id);

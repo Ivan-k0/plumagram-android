@@ -6712,7 +6712,7 @@
   <string name="Tgx101MenuProfileVoice">Voice and video messages</string>
   <string name="Tgx101MenuProfileHint">Text messages and media / files have separate menus. Tap to switch which one you set up.</string>
   <string name="Tgx101SelectInPlace">Select text</string>
-  <string name="Tgx101MenuSectionMenu">In the menu: 5 to 9 items</string>
+  <string name="Tgx101MenuSectionMenu">In the menu: 5 to 10 items</string>
   <string name="Tgx101MenuTooMany">The menu holds at most %1$d items — move one to More first</string>
   <string name="Tgx101MenuTooFew">At least %1$d items stay in the menu</string>
   <string name="Tgx101MenuSectionMore">In More</string>

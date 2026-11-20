@@ -2446,6 +2446,10 @@ public class Settings {
         pmc.putBoolean(KEY_TGX101_SWIPE_REACTIONS, false);
         pmc.putBoolean(KEY_TGX101_SWIPE_ACTIONS, false);
         pmc.putInt("tgx101_haptic_strength", 0); // a light vibration (user 2026-11-20)
+        // the message menu: «✨ Short» hidden (with «Quote to…», hidden for everyone since 2026-10-23), every kind of message
+        for (String suffix : new String[] {"", "_media", "_voice"}) {
+          pmc.putString(KEY_TGX101_MESSAGE_MENU_HIDDEN + suffix, "btn_tgx101QuoteShare,btn_tgx101Summary");
+        }
         pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_SWIPE, "translate,forward,reply,copy,edit,-pin,-save,-select,-delete,-reaction,-deleteAll,-link,-saveFile,-report");
         pmc.edit()
           .putInt(KEY_TGX101_CAPSULE_MENU, 1 | 1 << 2 | 1 << 5 | 1 << 7)
