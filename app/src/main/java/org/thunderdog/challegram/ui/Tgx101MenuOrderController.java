@@ -38,7 +38,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /** TGx101: order of the actions in the compact message menu. "Delete" is always last. */
-public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101MenuOrderController.Args> implements View.OnClickListener, Tgx101DragOrder.Callback {
+public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101MenuOrderController.Args> implements View.OnClickListener, View.OnLongClickListener, Tgx101DragOrder.Callback {
   // TGx101 (user 2026-10-11): the message menu and the swipe column are set up on screens of their own
   public static final int MODE_MENU = 0, MODE_SWIPE = 1, MODE_DRAWER = 2, MODE_CHAT_MENU = 3, MODE_CAPSULE = 4;
 
@@ -127,6 +127,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         }
       }
     };
+    adapter.setOnLongClickListener(this);
     adapter.setItems(buildItems(), false);
     recyclerView.setAdapter(adapter);
     Tgx101DragOrder.attach(recyclerView, adapter, this);
@@ -362,13 +363,17 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     if (context().getDrawer() != null) context().getDrawer().tgx101RebuildMenu();
   }
 
+  // (user 2026-11-20 «описание … по удержанию — когда добавляешь новый»): a hold of «Add a space» / «Add a divider» says
+  // what it adds; a hold of one already in the list only picks it up
   @Override
-  public void onDragStarted (ListItem item) {
-    // (user 2026-11-20 «по удержанию на низ нужно простое описание действия»)
-    if (item.getId() == R.id.btn_tgx101DrawerSpacer) {
-      boolean gap = Tgx101BarOrder.isDrawerGap((String) item.getData());
-      UI.showToast(gap ? R.string.Tgx101DrawerGapHold : R.string.Tgx101DrawerLineHold, android.widget.Toast.LENGTH_SHORT);
+  public boolean onLongClick (View v) {
+    int id = v.getId();
+    if (id == R.id.btn_tgx101DrawerAddGap || id == R.id.btn_tgx101DrawerAddLine) {
+      v.performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+      UI.showToast(id == R.id.btn_tgx101DrawerAddGap ? R.string.Tgx101DrawerGapHold : R.string.Tgx101DrawerLineHold, android.widget.Toast.LENGTH_LONG);
+      return true;
     }
+    return false;
   }
 
   /** (user 2026-11-20) A new space or divider goes to the end of the shown items — next to the buttons, to be dragged up */

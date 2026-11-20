@@ -823,8 +823,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101DrawerAddGap, "Добавить пробел");
     RU.put(R.string.Tgx101DrawerAddLine, "Добавить разделитель");
     RU.put(R.string.Tgx101DrawerSpacerRemove, "Убрать");
-    RU.put(R.string.Tgx101DrawerGapHold, "Пробел — пустой отступ в половину пункта. Перетащите на нужное место, ✕ — убрать");
-    RU.put(R.string.Tgx101DrawerLineHold, "Разделитель — линия между пунктами меню. Перетащите на нужное место, ✕ — убрать");
+    RU.put(R.string.Tgx101DrawerGapHold, "Пробел — пустой отступ в половину пункта, два подряд — как целый пункт. Нажмите, чтобы добавить, потом перетащите на место");
+    RU.put(R.string.Tgx101DrawerLineHold, "Разделитель — линия между пунктами меню. Нажмите, чтобы добавить, потом перетащите на место");
     RU.put(R.string.Tgx101DrawerSpacerHint, "Пробел — отступ в половину пункта, два подряд — как целый пункт. Разделитель — линия между пунктами. Перетащите их куда нужно; ✕ — убрать.");
     RU.put(R.string.Tgx101ProxyOn, "Включить прокси");
     RU.put(R.string.Tgx101ProxyOff, "Выключить прокси");

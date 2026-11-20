@@ -6498,8 +6498,8 @@
   <string name="Tgx101DrawerAddGap">Add a space</string>
   <string name="Tgx101DrawerAddLine">Add a divider</string>
   <string name="Tgx101DrawerSpacerRemove">Remove</string>
-  <string name="Tgx101DrawerGapHold">Space: an empty gap of half an item in the side menu. Drag it where you want; ✕ removes it</string>
-  <string name="Tgx101DrawerLineHold">Divider: a line between items of the side menu. Drag it where you want; ✕ removes it</string>
+  <string name="Tgx101DrawerGapHold">Space: an empty gap of half an item, two in a row — a whole item. Tap to add, then drag it into place</string>
+  <string name="Tgx101DrawerLineHold">Divider: a line between items of the side menu. Tap to add, then drag it into place</string>
   <string name="Tgx101DrawerSpacerHint">A space is a gap of half an item; two in a row — a whole item. A divider is a line between items. Drag them where you want; ✕ removes one.</string>
   <string name="Tgx101ProxyOn">Turn proxy on</string>
   <string name="Tgx101ProxyOff">Turn proxy off</string>
