@@ -2436,6 +2436,11 @@ public class Settings {
     if (!pmc.getBoolean(markerNav, false)) {
       if (freshInstall) {
         pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_CAPSULE, org.thunderdog.challegram.ui.Tgx101BarOrder.CAPSULE_NEW_INSTALL);
+        // (user 2026-11-20, the input field): the selection bar in a message — copy, quote, select all, other apps (no
+        // editor); in the input — copy, cut, paste, select all, other apps; the format buttons with «Spoiler» before «Quote»
+        pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_MESSAGE, "copy,quote,selectAll,apps,-editor");
+        pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_INPUT, "copy,cut,paste,selectAll,apps");
+        pmc.putString(KEY_TGX101_FORMAT_MENU, "btn_bold,btn_italic,btn_monospace,btn_strikethrough,btn_underline,btn_link,btn_spoiler,btn_quote,btn_plain");
         pmc.edit()
           .putInt(KEY_TGX101_CAPSULE_MENU, 1 | 1 << 2 | 1 << 5 | 1 << 7)
           .putBoolean("tgx101_capsule_menu_peek", true)
