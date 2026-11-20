@@ -2427,6 +2427,17 @@ public class Settings {
       pmc.putBoolean(KEY_TGX101_BIRD_HIDE_HINT, true);
       pmc.putBoolean(markerBirdTry, true);
     }
+    // TGx101 (user 2026-11-20 «функции ИИ — включай только Кратко и всё»): a new install has only «Short» of the AI on;
+    // who had the app already keeps what they had (the old default was on)
+    final String markerAi = "tgx101_defaults_2026_11_20";
+    if (!pmc.getBoolean(markerAi, false)) {
+      if (!freshInstall) {
+        for (String key : new String[] {KEY_TGX101_AI_COMPOSE, KEY_TGX101_AI_MISSED, KEY_TGX101_AI_SORT, "tgx101_swipe_storage"}) {
+          if (!pmc.contains(key)) pmc.putBoolean(key, true); // (and the swipe to the Storage: off on a new install)
+        }
+      }
+      pmc.putBoolean(markerAi, true);
+    }
     final String markerCompact = "tgx101_defaults_2026_11_08";
     if (!pmc.getBoolean(markerCompact, false)) {
       if (!freshInstall && !pmc.contains(KEY_TGX101_COMPACT_BUBBLES)) pmc.putBoolean(KEY_TGX101_COMPACT_BUBBLES, false);
@@ -3960,12 +3971,12 @@ public class Settings {
 
   // (user 2026-10-26 12:54 «ИИ отключать опционально, не все разом»): each AI thing on its own, under the common switch
   private static final String KEY_TGX101_AI_COMPOSE = "tgx101_ai_compose", KEY_TGX101_AI_SORT = "tgx101_ai_sort";
-  public boolean tgx101AiCompose () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_COMPOSE, true); }
+  public boolean tgx101AiCompose () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_COMPOSE, false); }
   public void setTgx101AiCompose (boolean v) { pmc.putBoolean(KEY_TGX101_AI_COMPOSE, v); }
-  public boolean tgx101AiSort () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_SORT, true); }
+  public boolean tgx101AiSort () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_SORT, false); }
   public void setTgx101AiSort (boolean v) { pmc.putBoolean(KEY_TGX101_AI_SORT, v); }
 
-  public boolean tgx101AiMissed () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_MISSED, true); }
+  public boolean tgx101AiMissed () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_MISSED, false); }
   public void setTgx101AiMissed (boolean v) { pmc.putBoolean(KEY_TGX101_AI_MISSED, v); }
 
   // TGx101 (user 2026-10-21, mockup «Кнопка-птица» №8 + «Веер» Б): the bird at the edge of the chat lists — on/off, its
@@ -4153,7 +4164,7 @@ public class Settings {
     // chosen in MagiX → Gestures, on with the bottom menu and off with the side menu (the swipe opens the side menu)
     // (user 2026-10-20 «свайп из списка в Хранилище нужно добавить», «вправо, меню — кнопкой ☰»): on by default with the
     // side menu too — the side menu then opens by its ☰ button
-    return pmc.getBoolean("tgx101_swipe_storage", true);
+    return pmc.getBoolean("tgx101_swipe_storage", false); // (user 2026-11-20): off on a new install
   }
 
   public void setTgx101SwipeToStorage (boolean v) {

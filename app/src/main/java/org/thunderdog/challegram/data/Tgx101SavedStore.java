@@ -329,12 +329,14 @@ public final class Tgx101SavedStore implements GlobalMessageListener {
   public long playerFolderId;
 
   public int sheetMode = SHEET_ALWAYS;
-  public int openMode = OPEN_HOME;
-  public boolean inboxTile = true;
+  // TGx101 (user 2026-11-20, the Storage's defaults for a new install): Saved Messages first, no «Inbox» tile, the
+  // buttons' names on; who has the app keeps what is saved (the loader below keeps the old defaults for missing keys)
+  public int openMode = OPEN_FEED;
+  public boolean inboxTile = false;
   public boolean showPinned = true;
   public boolean hashtagOwn = true;
   /** words on the selection panel's buttons (off: signs only) */
-  public boolean panelLabels = false; // (user 2026-10-17 «убери названия действий в меню снизу — только иконки»)
+  public boolean panelLabels = true; // (user 2026-10-17 icons only; 2026-11-20 — a new install has the names on)
   /** (user 2026-10-17 «свайп — на выбор, кому как удобно») the home screen's swipe «back»: either way, to the right, to the left */
   public static final int BACK_BOTH = 0, BACK_RIGHT = 1, BACK_LEFT = 2;
   public int backSwipe = BACK_LEFT; // (user 2026-10-17 «по умолчанию свайп налево»)
