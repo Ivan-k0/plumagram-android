@@ -2430,6 +2430,23 @@ public class Settings {
     }
     // TGx101 (user 2026-11-20 «функции ИИ — включай только Кратко и всё»): a new install has only «Short» of the AI on;
     // who had the app already keeps what they had (the old default was on)
+    // (user 2026-11-20, menus and navigation for a new install: the bottom menu's tabs — calls, settings, profile; the
+    // «Settings» hold — Saved Messages, night mode, «Газета», proxy; no glass). Who had the app keeps theirs
+    final String markerNav = "tgx101_defaults_2026_11_20_nav";
+    if (!pmc.getBoolean(markerNav, false)) {
+      if (freshInstall) {
+        pmc.putString("tgx101_bar_order_" + org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_CAPSULE, org.thunderdog.challegram.ui.Tgx101BarOrder.CAPSULE_NEW_INSTALL);
+        pmc.edit()
+          .putInt(KEY_TGX101_CAPSULE_MENU, 1 | 1 << 2 | 1 << 5 | 1 << 7)
+          .putBoolean("tgx101_capsule_menu_peek", true)
+          .putBoolean("tgx101_capsule_menu_gazeta", true)
+          .putBoolean("tgx101_capsule_menu_player", true)
+          .apply();
+      } else {
+        if (!pmc.contains("tgx101_solid_controls")) pmc.putBoolean("tgx101_solid_controls", false);
+      }
+      pmc.putBoolean(markerNav, true);
+    }
     // (user 2026-11-20, the chat list's defaults for a new install: pull down — stories, ads hidden, «Join» shown, Telegram
     // contacts in the phone book): who had the app keeps what they had
     final String markerChats = "tgx101_defaults_2026_11_20_chats";
@@ -4234,7 +4251,7 @@ public class Settings {
   /** TGx101 (4PDA 23.10 «можно ли отключать прозрачность — кнопка вниз, меню навигации»): the chat's round buttons
    *  (down, mentions, reactions) and the bottom menu drawn solid, without the see-through filling and the blur */
   public boolean tgx101SolidControls () {
-    return pmc.getBoolean("tgx101_solid_controls", false);
+    return pmc.getBoolean("tgx101_solid_controls", true); // a new install: no glass (user 2026-11-20)
   }
 
   public void setTgx101SolidControls (boolean v) {

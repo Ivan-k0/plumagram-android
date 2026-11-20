@@ -96,7 +96,10 @@ public final class Tgx101BarOrder {
     return result;
   }
   /** What a new install starts with (user 2026-11-04, screenshot 23:46) */
-  public static final String DRAWER_NEW_INSTALL = DRAWER_CALLS + "," + DRAWER_SETTINGS + "," + DRAWER_SAVED + "," + DRAWER_GAZETA + ",-" + DRAWER_STORY + ",-" + DRAWER_CONTACTS + ",-" + DRAWER_SAVED_BY_CHATS + ",-" + DRAWER_PROXY + ",-" + DRAWER_NIGHT + ",-" + DRAWER_PEEK;
+  // (user 2026-11-20): calls, settings, «Не подглядывай!», Saved Messages, «Газета»
+  public static final String DRAWER_NEW_INSTALL = DRAWER_CALLS + "," + DRAWER_SETTINGS + "," + DRAWER_PEEK + "," + DRAWER_SAVED + "," + DRAWER_GAZETA + ",-" + DRAWER_STORY + ",-" + DRAWER_CONTACTS + ",-" + DRAWER_SAVED_BY_CHATS + ",-" + DRAWER_PROXY;
+  /** The bottom menu's tabs on a new install (user 2026-11-20): calls, settings, profile */
+  public static final String CAPSULE_NEW_INSTALL = TAB_CALLS + "," + TAB_SETTINGS + "," + TAB_PROFILE + ",-" + TAB_CONTACTS + ",-" + TAB_GAZETA;
   // TGx101 (user 2026-10-12): the chat's ⋮ menu is editable too, with «Proxy» to add (off until switched on)
   public static final String CHAT_CALL = "call", CHAT_VIDEO_CALL = "videoCall", CHAT_SEARCH = "search", CHAT_DATE = "date",
     CHAT_SAVED_BY_CHATS = "savedByChats", CHAT_BACKGROUND = "background", CHAT_MUTE = "mute", CHAT_NOTIFICATIONS = "notifications",
@@ -121,7 +124,8 @@ public final class Tgx101BarOrder {
     {CUT, COPY, PASTE, SELECT_ALL, APPS},
     {SWIPE_PIN, SWIPE_TRANSLATE, SWIPE_SAVE, SWIPE_FORWARD, SWIPE_REPLY, SWIPE_COPY, SWIPE_EDIT, SWIPE_SELECT, SWIPE_DELETE,
       SWIPE_REACTION, SWIPE_DELETE_ALL, SWIPE_LINK, SWIPE_SAVE_FILE, SWIPE_REPORT},
-    {DRAWER_GAZETA, DRAWER_STORY, DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_NIGHT, DRAWER_PEEK, DRAWER_PLAYER, DRAWER_STORAGE},
+    // (user 2026-11-20 «ночной режим вообще убери из меню — в боковом уже есть кнопка ☀»): no «Night mode» row for anyone
+    {DRAWER_GAZETA, DRAWER_STORY, DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_PEEK, DRAWER_PLAYER, DRAWER_STORAGE},
     {CHAT_CALL, CHAT_VIDEO_CALL, CHAT_SEARCH, CHAT_DATE, CHAT_SAVED_BY_CHATS, CHAT_BACKGROUND, CHAT_MUTE, CHAT_NOTIFICATIONS, CHAT_MEDIA, CHAT_TRANSLATE,
       CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_OTHER, CHAT_PROXY, CHAT_LEAVE},
     {TAB_GAZETA, TAB_CONTACTS, TAB_CALLS, TAB_SETTINGS, TAB_PROFILE}
