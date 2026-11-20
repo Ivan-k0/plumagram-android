@@ -3310,8 +3310,10 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       sendView.setOnClickListener(v -> {
         long millis = calculateDate.getLongValue();
         if (tdlib.currentTimeMillis() < millis) {
-          callback.runWithLong(millis);
+          // TGx101 (user 2026-11-20 «как будто мигает экран на мгновение», recording): the message went first and the chat
+          // under the dim jumped while the sheet was still leaving — the dim went in one frame. The sheet leaves first
           popupLayout.hideWindow(true);
+          UI.post(() -> callback.runWithLong(millis), 280);
         }
       });
       listener.onCurrentIndexChanged(null, -1);
