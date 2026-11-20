@@ -10514,7 +10514,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
         UI.showToast(R.string.Tgx101ChatBackgroundNone, Toast.LENGTH_SHORT);
         return true;
       }
-      TdApi.BackgroundType type = wallpaper.getType();
+      TdApi.BackgroundType type = tgx101PlainColors(wallpaper.getType());
       if (wallpaper.isCustom() && wallpaper.tgx101CustomPath() != null) {
         tdlib.send(new TdApi.SetChatBackground(chatId, new TdApi.InputBackgroundLocal(new TdApi.InputFileLocal(wallpaper.tgx101CustomPath())), new TdApi.BackgroundTypeWallpaper(false, false), 0, onlyForSelf), tdlib.typedOkHandler());
       } else if (wallpaper.isFill()) {
@@ -10530,6 +10530,32 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       return true;
     });
+  }
+
+  /**
+   * TGx101 (user 2026-11-20 «не могу сменить фон, ошибка», journal: «#400 Invalid solid fill color value»): the app keeps
+   * colours with their opacity (0xFF……), the server takes the colour alone (24 bits) — a fill goes without it
+   */
+  private static @Nullable TdApi.BackgroundType tgx101PlainColors (@Nullable TdApi.BackgroundType type) {
+    if (type instanceof TdApi.BackgroundTypePattern) {
+      TdApi.BackgroundTypePattern p = (TdApi.BackgroundTypePattern) type;
+      TdApi.BackgroundType fill = tgx101PlainColors(new TdApi.BackgroundTypeFill(p.fill));
+      return new TdApi.BackgroundTypePattern(((TdApi.BackgroundTypeFill) fill).fill, p.intensity, p.isInverted, p.isMoving);
+    }
+    if (!(type instanceof TdApi.BackgroundTypeFill)) return type;
+    TdApi.BackgroundFill fill = ((TdApi.BackgroundTypeFill) type).fill;
+    TdApi.BackgroundFill plain = fill;
+    if (fill instanceof TdApi.BackgroundFillSolid) {
+      plain = new TdApi.BackgroundFillSolid(((TdApi.BackgroundFillSolid) fill).color & 0xFFFFFF);
+    } else if (fill instanceof TdApi.BackgroundFillGradient) {
+      TdApi.BackgroundFillGradient g = (TdApi.BackgroundFillGradient) fill;
+      plain = new TdApi.BackgroundFillGradient(g.topColor & 0xFFFFFF, g.bottomColor & 0xFFFFFF, g.rotationAngle);
+    } else if (fill instanceof TdApi.BackgroundFillFreeformGradient) {
+      int[] colors = ((TdApi.BackgroundFillFreeformGradient) fill).colors.clone();
+      for (int i = 0; i < colors.length; i++) colors[i] &= 0xFFFFFF;
+      plain = new TdApi.BackgroundFillFreeformGradient(colors);
+    }
+    return new TdApi.BackgroundTypeFill(plain);
   }
 
   // TGx101 (user 2026-10-06): «Save» on a photo / video / file that isn't downloaded yet — download, then save as usual
