@@ -496,9 +496,12 @@ public class WallpaperAdapter extends RecyclerView.Adapter<WallpaperAdapter.View
       return wallpaper;
     }
 
+    /** TGx101: a card of its own size (the chat theme sheet), not a square */
+    public boolean tgx101FreeSize;
+
     @Override
     protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
-      super.onMeasure(heightMeasureSpec, heightMeasureSpec);
+      super.onMeasure(tgx101FreeSize ? widthMeasureSpec : heightMeasureSpec, heightMeasureSpec);
       int width = getMeasuredWidth();
       int height = getMeasuredHeight();
       preview.setBounds(0, 0, width, height);
@@ -634,6 +637,7 @@ public class WallpaperAdapter extends RecyclerView.Adapter<WallpaperAdapter.View
         receiver.draw(c);
       }
 
+      if (tgx101FreeSize) return; // TGx101: the sheet draws its own ring
       float checkFactor = isSelected ? factor : 1f;
 
       int centerX = getMeasuredWidth() / 2;

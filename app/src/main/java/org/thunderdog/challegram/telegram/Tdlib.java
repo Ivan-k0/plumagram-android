@@ -9638,7 +9638,7 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     }
   }
 
-  private final Map<String, TdApi.EmojiChatTheme> emojiChatThemes = new HashMap<>();
+  private final Map<String, TdApi.EmojiChatTheme> emojiChatThemes = new java.util.LinkedHashMap<>(); // TGx101: in the server's order
 
   @TdlibThread
   private void updateChatThemes (TdApi.UpdateEmojiChatThemes update) {
@@ -9718,6 +9718,14 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   @TdlibThread
   private void updateGramRevenueStatus (TdApi.UpdateGramRevenueStatus update) {
     listeners.updateGramRevenueStatus(update);
+  }
+
+  /** TGx101: all the chat themes, in the server's order (the chat theme sheet) */
+  @AnyThread
+  public java.util.List<TdApi.EmojiChatTheme> tgx101EmojiChatThemes () {
+    synchronized (dataLock) {
+      return new java.util.ArrayList<>(emojiChatThemes.values());
+    }
   }
 
   @AnyThread

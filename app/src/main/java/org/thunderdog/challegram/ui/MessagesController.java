@@ -10534,54 +10534,36 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   // pinned messages
 
-  // TGx101: the chat's own wallpaper — the current app wallpaper set for this chat (for yourself or, with Premium, for both)
+  // TGx101 (user 2026-11-20 «выбор фона должен иметь выбор прямо из меню»): ⋮ → «Chat wallpaper» opens the theme sheet
+  private @Nullable Tgx101ChatThemeSheet tgx101ThemeSheet;
+
   private void tgx101ShowChatBackgroundOptions () {
-    final long chatId = getChatId();
-    TdApi.Chat c = tdlib.chat(chatId);
-    boolean hasOwn = c != null && c.background != null;
-    IntList ids = new IntList(4);
-    StringList strings = new StringList(4);
-    IntList icons = new IntList(4);
-    ids.append(R.id.btn_tgx101ChatBackgroundSelf);
-    strings.append(R.string.Tgx101ChatBackgroundSelf);
-    icons.append(R.drawable.baseline_palette_24);
-    if (tdlib.hasPremium()) {
-      ids.append(R.id.btn_tgx101ChatBackgroundBoth);
-      strings.append(R.string.Tgx101ChatBackgroundBoth);
-      icons.append(R.drawable.baseline_palette_24);
+    if (tgx101ThemeSheet != null) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("chat theme sheet: open");
+    tgx101ThemeSheet = Tgx101ChatThemeSheet.show(this, getChatId(), () -> tgx101ThemeSheet = null);
+  }
+
+  /** TGx101: a wallpaper from the list set for this one chat (for yourself or, with Premium, for both) */
+  void tgx101SetChatWallpaper (long chatId, TGBackground wallpaper, boolean onlyForSelf) {
+    if (wallpaper == null || wallpaper.isEmpty()) {
+      tdlib.send(new TdApi.DeleteChatBackground(chatId, false), tdlib.typedOkHandler());
+      return;
     }
-    if (hasOwn) {
-      ids.append(R.id.btn_tgx101ChatBackgroundReset);
-      strings.append(R.string.Tgx101ChatBackgroundReset);
-      icons.append(R.drawable.baseline_delete_24);
+    org.thunderdog.challegram.Tgx101Diag.mark("chat wallpaper: " + (wallpaper.isCustom() ? "custom" : wallpaper.isFill() ? "fill" : "remote") + (onlyForSelf ? "" : ", both"));
+    TdApi.BackgroundType type = tgx101PlainColors(wallpaper.getType());
+    if (wallpaper.isCustom() && wallpaper.tgx101CustomPath() != null) {
+      tdlib.send(new TdApi.SetChatBackground(chatId, new TdApi.InputBackgroundLocal(new TdApi.InputFileLocal(wallpaper.tgx101CustomPath())), new TdApi.BackgroundTypeWallpaper(false, false), 0, onlyForSelf), tdlib.typedOkHandler());
+    } else if (wallpaper.isFill()) {
+      tdlib.send(new TdApi.SetChatBackground(chatId, null, type, 0, onlyForSelf), tdlib.typedOkHandler());
+    } else {
+      tdlib.send(new TdApi.SearchBackground(wallpaper.getName()), (background, error) -> {
+        if (background == null) {
+          UI.showError(error);
+          return;
+        }
+        tdlib.send(new TdApi.SetChatBackground(chatId, new TdApi.InputBackgroundRemote(background.id), type != null ? type : background.type, 0, onlyForSelf), tdlib.typedOkHandler());
+      });
     }
-    showOptions(Lang.getString(R.string.Tgx101ChatBackgroundHint), ids.get(), strings.get(), null, icons.get(), (v, optionId) -> {
-      if (optionId == R.id.btn_tgx101ChatBackgroundReset) {
-        tdlib.send(new TdApi.DeleteChatBackground(chatId, false), tdlib.typedOkHandler());
-        return true;
-      }
-      boolean onlyForSelf = optionId != R.id.btn_tgx101ChatBackgroundBoth;
-      TGBackground wallpaper = tdlib.settings().getWallpaper(Theme.getWallpaperIdentifier());
-      if (wallpaper == null || wallpaper.isEmpty()) {
-        UI.showToast(R.string.Tgx101ChatBackgroundNone, Toast.LENGTH_SHORT);
-        return true;
-      }
-      TdApi.BackgroundType type = tgx101PlainColors(wallpaper.getType());
-      if (wallpaper.isCustom() && wallpaper.tgx101CustomPath() != null) {
-        tdlib.send(new TdApi.SetChatBackground(chatId, new TdApi.InputBackgroundLocal(new TdApi.InputFileLocal(wallpaper.tgx101CustomPath())), new TdApi.BackgroundTypeWallpaper(false, false), 0, onlyForSelf), tdlib.typedOkHandler());
-      } else if (wallpaper.isFill()) {
-        tdlib.send(new TdApi.SetChatBackground(chatId, null, type, 0, onlyForSelf), tdlib.typedOkHandler());
-      } else {
-        tdlib.send(new TdApi.SearchBackground(wallpaper.getName()), (background, error) -> {
-          if (background == null) {
-            UI.showError(error);
-            return;
-          }
-          tdlib.send(new TdApi.SetChatBackground(chatId, new TdApi.InputBackgroundRemote(background.id), type != null ? type : background.type, 0, onlyForSelf), tdlib.typedOkHandler());
-        });
-      }
-      return true;
-    });
   }
 
   /**
@@ -15274,13 +15256,24 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (chat != null && chat.id == chatId && wallpaperView != null) {
         wallpaperView.tgx101SetChatBackground(background); // TGx101
       }
+      if (tgx101ThemeSheet != null) tgx101ThemeSheet.onChatChanged();
+    });
+  }
+
+  @Override
+  public void onChatThemeChanged (long chatId, TdApi.ChatTheme theme) {
+    runOnUiThreadOptional(() -> {
+      if (chat != null && chat.id == chatId && wallpaperView != null) {
+        wallpaperView.tgx101SetChatTheme(theme); // TGx101: the chat theme's wallpaper, on sight
+      }
+      if (tgx101ThemeSheet != null) tgx101ThemeSheet.onChatChanged();
     });
   }
 
   public void subscribeToUpdates (long chatId) {
     tdlib.listeners().subscribeToChatUpdates(chatId, this);
     if (wallpaperView != null && chat != null && chat.id == chatId) {
-      wallpaperView.tgx101SetChatBackground(chat.background); // TGx101: the chat's own wallpaper
+      wallpaperView.tgx101SetChatLook(chat.background, chat.theme); // TGx101: the chat's own wallpaper or theme
     }
     tdlib.singleUnreadReactionsManager().subscribeToUnreadSingleReactionUpdates(chatId, this);
     if (chatId != getHeaderChatId()) {

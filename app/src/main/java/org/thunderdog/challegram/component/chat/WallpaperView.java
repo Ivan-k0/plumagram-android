@@ -141,6 +141,7 @@ public class WallpaperView extends View implements ThemeChangeListener, ChatStyl
   @Override
   public void onThemeChanged (ThemeDelegate oldTheme, ThemeDelegate newTheme) {
     int newUsageIdentifier = Theme.getWallpaperIdentifier(newTheme);
+    if (tgx101Reapply()) return; // TGx101: the chat's own look stays
     if (Theme.getWallpaperIdentifier(oldTheme) != newUsageIdentifier) {
       setWallpaper(tdlib.settings().getWallpaper(newUsageIdentifier), true);
     }
@@ -150,6 +151,7 @@ public class WallpaperView extends View implements ThemeChangeListener, ChatStyl
   public void onThemePropertyChanged (int themeId, @PropertyId int propertyId, float value, boolean isDefault) {
     switch (propertyId) {
       case PropertyId.WALLPAPER_USAGE_ID:
+        if (tgx101Reapply()) break; // TGx101
         setWallpaper(tdlib.settings().getWallpaper(Theme.getWallpaperIdentifier(themeId)), true);
         break;
     }
@@ -175,15 +177,55 @@ public class WallpaperView extends View implements ThemeChangeListener, ChatStyl
 
   private boolean tgx101ChatBackground;
 
+  private @androidx.annotation.Nullable TdApi.ChatBackground tgx101Background;
+  private @androidx.annotation.Nullable TdApi.ChatTheme tgx101Theme;
+
   public void tgx101SetChatBackground (@androidx.annotation.Nullable TdApi.ChatBackground background) {
+    tgx101SetChatLook(background, tgx101Theme);
+  }
+
+  public void tgx101SetChatTheme (@androidx.annotation.Nullable TdApi.ChatTheme theme) {
+    tgx101SetChatLook(tgx101Background, theme);
+  }
+
+  /** TGx101 (user 2026-11-20 «выбор фона прямо из меню»): the chat's own wallpaper wins, then the chat theme's one
+   *  (its light or dark variant, as the app is now), then the app's wallpaper */
+  public void tgx101SetChatLook (@androidx.annotation.Nullable TdApi.ChatBackground background, @androidx.annotation.Nullable TdApi.ChatTheme theme) {
+    tgx101Background = background;
+    tgx101Theme = theme;
     if (inSetupMode) return;
-    if (background != null && background.background != null) {
+    TdApi.Background own = background != null ? background.background : null;
+    if (own == null) {
+      TdApi.ThemeSettings settings = tgx101ThemeSettings(tdlib, theme, Theme.isDark());
+      own = settings != null ? settings.background : null;
+    }
+    if (own != null) {
       tgx101ChatBackground = true;
-      setWallpaper(new TGBackground(tdlib, background.background), true);
+      setWallpaper(new TGBackground(tdlib, own), true);
     } else if (tgx101ChatBackground) {
       tgx101ChatBackground = false;
       setWallpaper(tdlib.settings().getWallpaper(Theme.getWallpaperIdentifier()), true);
     }
+  }
+
+  public static @androidx.annotation.Nullable TdApi.ThemeSettings tgx101ThemeSettings (Tdlib tdlib, @androidx.annotation.Nullable TdApi.ChatTheme theme, boolean dark) {
+    if (theme instanceof TdApi.ChatThemeEmoji) {
+      TdApi.EmojiChatTheme t = tdlib.emojiChatTheme(((TdApi.ChatThemeEmoji) theme).name);
+      return t != null ? (dark ? t.darkSettings : t.lightSettings) : null;
+    }
+    if (theme instanceof TdApi.ChatThemeGift && ((TdApi.ChatThemeGift) theme).giftTheme != null) {
+      TdApi.GiftChatTheme t = ((TdApi.ChatThemeGift) theme).giftTheme;
+      return dark ? t.darkSettings : t.lightSettings;
+    }
+    return null;
+  }
+
+  /** the app went day / night: a theme's wallpaper follows it */
+  private boolean tgx101Reapply () {
+    if (!tgx101ChatBackground && tgx101Theme == null) return false;
+    boolean was = tgx101ChatBackground;
+    tgx101SetChatLook(tgx101Background, tgx101Theme);
+    return was || tgx101ChatBackground;
   }
 
   @Override
