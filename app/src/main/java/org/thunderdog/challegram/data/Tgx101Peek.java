@@ -67,8 +67,9 @@ public final class Tgx101Peek {
     on = pmc.getBoolean(KEY_ON, false);
     all = pmc.getBoolean(KEY_ALL, true);
     avatar = pmc.getInt(KEY_AVATAR, 60);
-    text = pmc.getInt(KEY_TEXT, 80);
-    title = pmc.getInt(KEY_TITLE, 0);
+    // (user 2026-11-20 «сила: аватарки 3, названия 4, сообщения 3»): 60 / 80 / 60 %
+    text = pmc.getInt(KEY_TEXT, 60);
+    title = pmc.getInt(KEY_TITLE, 80);
     style = pmc.getInt(KEY_STYLE, STYLE_BLUR);
     inside = pmc.getBoolean(KEY_INSIDE, true);
     long[] ids = pmc.getLongArray(KEY_CHATS);
