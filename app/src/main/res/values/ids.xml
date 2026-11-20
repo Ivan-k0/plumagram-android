@@ -1681,6 +1681,8 @@
   <item name="btn_tgx101AutoDelete1" type="id"/>
   <item name="btn_tgx101AutoDelete2" type="id"/>
   <item name="btn_tgx101AutoDelete3" type="id"/>
+  <item name="btn_tgx101AutoDelete4" type="id"/>
+  <item name="btn_tgx101AutoDeleteOwn" type="id"/>
   <item name="btn_tgx101FilterHideFully" type="id"/>
   <item name="btn_tgx101HideChannelReactions" type="id"/>
   <item name="btn_tgx101NextChannelSwipe" type="id"/>

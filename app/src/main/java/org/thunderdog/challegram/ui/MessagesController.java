@@ -5432,8 +5432,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void tgx101ShowAutoDelete () {
     if (chat == null) return;
-    if (!isSecretChat()) { // the Material 3 sheet (mockup «Окна выбора в Material 3», board 2)
-      tdlib.ui().showTTLPicker(context(), chat);
+    if (!isSecretChat()) {
+      tgx101ShowAutoDeleteList();
       return;
     }
     final long chatId = chat.id;
@@ -5453,6 +5453,58 @@ public class MessagesController extends ViewController<MessagesController.Argume
         }
       }
       return true;
+    });
+  }
+
+  // TGx101 (user 2026-11-20): off, a day, a week, a month, a year, one's own period (picked on a wheel, remembered; a hold
+  // picks it anew, «Hold to change» once)
+  private void tgx101ShowAutoDeleteList () {
+    final long chatId = chat.id;
+    final int current = tdlib.chatTTL(chatId);
+    final int[] values = {0, 86400, 604800, 2678400, 31536000};
+    final int[] optionIds = {R.id.btn_tgx101AutoDelete0, R.id.btn_tgx101AutoDelete1, R.id.btn_tgx101AutoDelete2, R.id.btn_tgx101AutoDelete3, R.id.btn_tgx101AutoDelete4, R.id.btn_tgx101AutoDeleteOwn};
+    final int own = Settings.instance().pmc().getInt("tgx101_autodelete_own", 0);
+    String[] titles = new String[optionIds.length];
+    int[] icons = new int[optionIds.length];
+    String[] names = {Lang.getString(R.string.Off), Lang.plural(R.string.xDays, 1), Lang.plural(R.string.xWeeks, 1), Lang.plural(R.string.xMonths, 1), Lang.plural(R.string.xYears, 1)};
+    for (int i = 0; i < values.length; i++) {
+      titles[i] = names[i] + (values[i] == current ? " ✓" : "");
+      icons[i] = i == 0 ? R.drawable.baseline_cancel_24 : R.drawable.baseline_auto_delete_24;
+    }
+    titles[5] = (own > 0 ? Lang.getString(R.string.Tgx101AutoDeleteOwn, Lang.getDuration(own)) : Lang.getString(R.string.Tgx101AutoDeleteOwnSet))
+      + (own > 0 && own == current ? " ✓" : "");
+    icons[5] = R.drawable.baseline_schedule_24;
+    if (own > 0 && !Settings.instance().pmc().getBoolean("tgx101_autodelete_own_hint", false)) {
+      Settings.instance().pmc().putBoolean("tgx101_autodelete_own_hint", true);
+      UI.showToast(R.string.Tgx101SendOwnTimeHint, Toast.LENGTH_LONG);
+    }
+    final RunnableData<Integer> pickOwn = seconds -> {
+      Settings.instance().pmc().putInt("tgx101_autodelete_own", seconds);
+      tdlib.setChatMessageAutoDeleteTime(chatId, seconds);
+    };
+    showOptions(Lang.getString(R.string.Tgx101ChatAutoDelete), optionIds, titles, null, icons, new org.thunderdog.challegram.util.OptionDelegate() {
+      @Override
+      public boolean onOptionItemPressed (View optionItemView, int id) {
+        if (id == R.id.btn_tgx101AutoDeleteOwn) {
+          if (own > 0) {
+            if (own != current) tdlib.setChatMessageAutoDeleteTime(chatId, own);
+          } else {
+            tdlib.ui().tgx101PickAutoDeletePeriod(context(), current, pickOwn);
+          }
+          return true;
+        }
+        for (int i = 0; i < values.length; i++) {
+          if (optionIds[i] == id && values[i] != current) tdlib.setChatMessageAutoDeleteTime(chatId, values[i]);
+        }
+        return true;
+      }
+
+      @Override
+      public boolean onOptionItemLongPressed (View optionItemView, int id) {
+        if (id != R.id.btn_tgx101AutoDeleteOwn) return false;
+        tdlib.ui().tgx101PickAutoDeletePeriod(context(), own > 0 ? own : current, pickOwn);
+        return true;
+      }
     });
   }
 

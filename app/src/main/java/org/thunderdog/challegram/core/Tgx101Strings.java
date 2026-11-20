@@ -1836,6 +1836,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SendOwnTime, "В своё время · %1$s");
     RU.put(R.string.Tgx101SendSetOwnTime, "Задать своё время");
     RU.put(R.string.Tgx101SendOwnTimeHint, "Зажмите, чтобы изменить");
+    RU.put(R.string.Tgx101AutoDeleteOwn, "Своё время · %1$s");
+    RU.put(R.string.Tgx101AutoDeleteOwnSet, "Своё время…");
+    RU.put(R.string.Tgx101AutoDeleteOwnTitle, "Удалять через");
     RU.put(R.string.SendAtCustomTime, "Выбрать время");
     RU.put(R.string.RemindAtCustomTime, "Выбрать время");
     RU.put(R.string.Tgx101GazetaKeepScreen, "Не гасить экран");

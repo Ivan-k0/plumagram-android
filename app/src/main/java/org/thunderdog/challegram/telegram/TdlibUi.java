@@ -993,6 +993,30 @@ public class TdlibUi extends Handler {
     }
   }
 
+  /**
+   * TGx101 (user 2026-11-20 «автоудаление — своё время, барабан запоминается»): one's own auto-delete period on a wheel —
+   * days, weeks, months, a year (what a chat can take)
+   */
+  public void tgx101PickAutoDeletePeriod (final Context context, int currentSeconds, final RunnableData<Integer> callback) {
+    final ArrayList<TTLOption> options = new ArrayList<>();
+    for (int d = 1; d <= 6; d++) options.add(new TTLOption(d * 86400, Lang.plural(R.string.xDays, d)));
+    for (int w = 1; w <= 3; w++) options.add(new TTLOption(w * 604800, Lang.plural(R.string.xWeeks, w)));
+    for (int m = 1; m <= 11; m++) options.add(new TTLOption(m * 2678400, Lang.plural(R.string.xMonths, m)));
+    options.add(new TTLOption(31536000, Lang.plural(R.string.xYears, 1)));
+    int found = 0;
+    for (int i = 0; i < options.size(); i++) if (options.get(i).ttlTime == currentSeconds) found = i;
+    final InfiniteRecyclerView<TTLOption> wheel = new InfiniteRecyclerView<>(context, true);
+    wheel.initWithItems(options, found);
+    final AlertDialog.Builder builder = new AlertDialog.Builder(context, Theme.dialogTheme());
+    builder.setTitle(Lang.getString(R.string.Tgx101AutoDeleteOwnTitle));
+    builder.setPositiveButton(Lang.getString(R.string.Done), (dialog, which) -> {
+      TTLOption option = wheel.getCurrentItem();
+      if (option != null) callback.runWithData(option.ttlTime);
+    });
+    builder.setView(wheel);
+    UI.getContext(context).showAlert(builder, null);
+  }
+
   public void showTTLPicker (final Context context, final TdApi.Chat chat) {
     int ttl = tdlib.chatTTL(chat.id);
     if (!ChatId.isSecret(chat.id)) {
