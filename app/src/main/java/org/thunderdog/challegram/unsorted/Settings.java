@@ -2429,6 +2429,16 @@ public class Settings {
     }
     // TGx101 (user 2026-11-20 «функции ИИ — включай только Кратко и всё»): a new install has only «Short» of the AI on;
     // who had the app already keeps what they had (the old default was on)
+    // (user 2026-11-20, the bird's defaults for a new install): who had the app keeps the old ones
+    final String markerBird = "tgx101_defaults_2026_11_20_bird";
+    if (!pmc.getBoolean(markerBird, false)) {
+      if (!freshInstall) {
+        if (!pmc.contains(KEY_TGX101_BIRD_IN_CHATS)) pmc.putBoolean(KEY_TGX101_BIRD_IN_CHATS, false);
+        if (!pmc.contains(KEY_TGX101_BIRD_RING)) pmc.putInt(KEY_TGX101_BIRD_RING, TGX101_BIRD_RING_OLD_INSTALL);
+        if (!pmc.contains(KEY_TGX101_BIRD_DOUBLE_TAP)) pmc.putInt(KEY_TGX101_BIRD_DOUBLE_TAP, 0);
+      }
+      pmc.putBoolean(markerBird, true);
+    }
     final String markerAi = "tgx101_defaults_2026_11_20";
     if (!pmc.getBoolean(markerAi, false)) {
       if (!freshInstall) {
@@ -4001,7 +4011,9 @@ public class Settings {
   public void setTgx101Bird (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD, v); }
   public int tgx101BirdRing () { return pmc.getInt(KEY_TGX101_BIRD_RING, TGX101_BIRD_RING_NEW_INSTALL); }
   // storage, calls, settings, player (user 2026-11-05: in place of the note), night, peek, «Газета» (the bits are Tgx101Bird.ACTION_*)
-  private static final int TGX101_BIRD_RING_NEW_INSTALL = 1 | 1 << 3 | 1 << 4 | 1 << 13 | 1 << 10 | 1 << 11 | 1 << 12;
+  private static final int TGX101_BIRD_RING_OLD_INSTALL = 1 | 1 << 3 | 1 << 4 | 1 << 13 | 1 << 10 | 1 << 11 | 1 << 12;
+  // (user 2026-11-20): proxy, accounts, calls, night / day, «Не подглядывай!», «Газета», player
+  private static final int TGX101_BIRD_RING_NEW_INSTALL = 1 << 1 | 1 << 2 | 1 << 3 | 1 << 10 | 1 << 11 | 1 << 12 | 1 << 13;
   public void setTgx101BirdRing (int mask) { pmc.putInt(KEY_TGX101_BIRD_RING, mask); }
   public int tgx101BirdPlace (boolean landscape) { return pmc.getInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, 6200); }
   public void setTgx101BirdPlace (boolean landscape, int value) { pmc.putInt(landscape ? KEY_TGX101_BIRD_PLACE_LAND : KEY_TGX101_BIRD_PLACE, value); }
@@ -4020,12 +4032,12 @@ public class Settings {
 
   // (user 2026-10-26) the bird over chats too; what two taps on it do (Tgx101Bird.DOUBLE_TAP_*)
   private static final String KEY_TGX101_BIRD_IN_CHATS = "tgx101_bird_in_chats", KEY_TGX101_BIRD_DOUBLE_TAP = "tgx101_bird_double_tap";
-  public boolean tgx101BirdInChats () { return pmc.getBoolean(KEY_TGX101_BIRD_IN_CHATS, false); }
+  public boolean tgx101BirdInChats () { return pmc.getBoolean(KEY_TGX101_BIRD_IN_CHATS, true); }
   public void setTgx101BirdInChats (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD_IN_CHATS, v); }
   private static final String KEY_TGX101_BIRD_IN_PLAYER = "tgx101_bird_in_player";
   public boolean tgx101BirdInPlayer () { return pmc.getBoolean(KEY_TGX101_BIRD_IN_PLAYER, false); }
   public void setTgx101BirdInPlayer (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD_IN_PLAYER, v); }
-  public int tgx101BirdDoubleTap () { return pmc.getInt(KEY_TGX101_BIRD_DOUBLE_TAP, 0); }
+  public int tgx101BirdDoubleTap () { return pmc.getInt(KEY_TGX101_BIRD_DOUBLE_TAP, 1) /* the last notification (user 2026-11-20) */; }
   public void setTgx101BirdDoubleTap (int v) { pmc.putInt(KEY_TGX101_BIRD_DOUBLE_TAP, v); }
   public boolean tgx101BirdMoveLearned () { return pmc.getBoolean(KEY_TGX101_BIRD_MOVED, false); }
   public void setTgx101BirdMoveLearned (boolean v) { pmc.putBoolean(KEY_TGX101_BIRD_MOVED, v); }
