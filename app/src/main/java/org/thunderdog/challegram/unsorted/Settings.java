@@ -2449,6 +2449,7 @@ public class Settings {
           .apply();
       } else {
         if (!pmc.contains("tgx101_solid_controls")) pmc.putBoolean("tgx101_solid_controls", false);
+        if (!pmc.contains(KEY_TGX101_FLOATING_INPUT)) pmc.putBoolean(KEY_TGX101_FLOATING_INPUT, false); // their field stays as it was
       }
       pmc.putBoolean(markerNav, true);
     }
@@ -3774,7 +3775,7 @@ public class Settings {
     // user 2026-10-23 «берём вариант Б — поле-вставка»: the docked field is back as a choice (it was locked to the capsule
     // since 2026-10-08); the capsule stays the default
     // new installs: the classic field (user 2026-10-23 22:21); who has the app keeps the capsule (tgx101PinOldDefaults)
-    return pmc.getBoolean(KEY_TGX101_FLOATING_INPUT, false);
+    return pmc.getBoolean(KEY_TGX101_FLOATING_INPUT, true); // a new install: floating again (user 2026-11-20)
   }
 
   public void setUseFloatingInput (boolean use) {
