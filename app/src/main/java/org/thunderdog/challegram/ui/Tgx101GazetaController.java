@@ -524,6 +524,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   @Override
   public void onFocus () {
     super.onFocus();
+    tgx101KeepScreen(Tgx101Gazeta.keepScreenOn()); // (user 2026-11-20 «не гасить экран»): while the feed is in front
     tgx101MatchStatusIcons();
     tgx101HiddenHeaderMarks = 0;
     setUnderHeader(true);
@@ -542,14 +543,27 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   @Override
   public void destroy () {
+    tgx101KeepScreen(false);
     Tgx101Gazeta.removeNewPostListener(newPosts);
     headerHide = 0;
     applyHeaderHide();
     super.destroy();
   }
 
+  private boolean tgx101KeptScreen;
+
+  private void tgx101KeepScreen (boolean keep) {
+    if (tgx101KeptScreen == keep) return;
+    tgx101KeptScreen = keep;
+    android.view.Window window = context().getWindow();
+    if (window == null) return;
+    if (keep) window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+    else window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+  }
+
   @Override
   public void onBlur () {
+    tgx101KeepScreen(false);
     if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) UI.setLightSystemBars(context().getWindow(), !Theme.isDark(), Theme.needLightStatusBar(), 0, false); // the theme's icons again
     setAutoScroll(false);
     // the header is the whole window's: it is back in place before another screen takes it

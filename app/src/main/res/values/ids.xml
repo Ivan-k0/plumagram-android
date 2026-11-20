@@ -1644,6 +1644,7 @@
   <item name="btn_tgx101PersonalChannel" type="id"/>
   <item name="btn_tgx101ProfileMusic" type="id"/>
   <item name="btn_tgx101TabLeft" type="id"/>
+  <item name="btn_tgx101GazetaKeepScreen" type="id"/>
   <item name="btn_tgx101TabRight" type="id"/>
   <item name="btn_tgx101ProfileMusicToggle" type="id"/>
   <item name="btn_tgx101PersonalChannelOpen" type="id"/>

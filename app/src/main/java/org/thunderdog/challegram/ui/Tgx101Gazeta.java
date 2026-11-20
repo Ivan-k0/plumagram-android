@@ -367,6 +367,15 @@ public final class Tgx101Gazeta {
     Settings.instance().pmc().putBoolean("tgx101_gazeta_bird", value);
   }
 
+  // TGx101 (user 2026-11-20 «в настройках газеты "не гасить экран": экран не тухнет, пока находишься в газете»)
+  public static boolean keepScreenOn () {
+    return Settings.instance().pmc().getBoolean("tgx101_gazeta_keep_screen", false);
+  }
+
+  public static void setKeepScreenOn (boolean value) {
+    Settings.instance().pmc().putBoolean("tgx101_gazeta_keep_screen", value);
+  }
+
   // the channels last found, per account: the side menu counts their unread posts without asking TDLib again
   private static final Map<Integer, long[]> cache = new HashMap<>();
 

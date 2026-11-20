@@ -96,6 +96,8 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
           view.getToggler().setRadioEnabled(Tgx101Gazeta.bird(), isUpdate);
         } else if (id == R.id.btn_tgx101GazetaArchive) {
           view.getToggler().setRadioEnabled(Tgx101Gazeta.withArchive(tdlib), isUpdate);
+        } else if (id == R.id.btn_tgx101GazetaKeepScreen) {
+          view.getToggler().setRadioEnabled(Tgx101Gazeta.keepScreenOn(), isUpdate);
         }
       }
     };
@@ -124,6 +126,8 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
       items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaBird, 0, R.string.Tgx101GazetaBird));
       items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
       items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaArchive, 0, R.string.Tgx101GazetaArchive));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101GazetaKeepScreen, 0, R.string.Tgx101GazetaKeepScreen));
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
       java.util.List<Tgx101Gazeta.Topic> topics = Tgx101Gazeta.topics(tdlib);
       if (!topics.isEmpty()) {
@@ -246,6 +250,8 @@ public class Tgx101GazetaSettingsController extends RecyclerViewController<Void>
       Tgx101Gazeta.setStars(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101GazetaComments) {
       Tgx101Gazeta.setComments(adapter.toggleView(v));
+    } else if (id == R.id.btn_tgx101GazetaKeepScreen) {
+      Tgx101Gazeta.setKeepScreenOn(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101GazetaBird) {
       Tgx101Gazeta.setBird(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101GazetaArchive) {
