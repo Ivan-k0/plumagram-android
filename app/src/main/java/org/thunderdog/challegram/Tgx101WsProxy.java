@@ -38,6 +38,151 @@ public final class Tgx101WsProxy {
 
   private Tgx101WsProxy () { }
 
+  // TGx101 (user 2026-11-22 «как знать, что он заблокирован»): what the last connections did, shown under the switch on
+  // the «Proxy» screen; a toast once per run when the web servers stop taking connections and they go direct instead
+
+  private static volatile long lastWsAt, lastWsFailAt, lastDirectAt, lastDirectFailAt;
+  private static volatile String lastFailure;
+  private static volatile int wsCount, directCount;
+  private static boolean warned;
+  private static @androidx.annotation.Nullable Runnable statusListener;
+
+  /** the «Proxy» screen listens while it is open */
+  public static void setStatusListener (@androidx.annotation.Nullable Runnable listener) {
+    statusListener = listener;
+  }
+
+  private static void statusChanged () {
+    org.thunderdog.challegram.tool.UI.post(() -> {
+      Runnable listener = statusListener;
+      if (listener != null) listener.run();
+    });
+  }
+
+  /** one line for the «Proxy» screen, null when the switch is off */
+  public static @androidx.annotation.Nullable String statusText () {
+    if (!isRunning()) return null;
+    if (lastWsAt == 0 && lastWsFailAt == 0 && lastDirectAt == 0 && lastDirectFailAt == 0) {
+      return org.thunderdog.challegram.core.Lang.getString(R.string.Tgx101WsStatusWaiting);
+    }
+    if (lastWsAt >= lastWsFailAt) {
+      return org.thunderdog.challegram.core.Lang.getString(R.string.Tgx101WsStatusOk, wsCount, frontSource());
+    }
+    String reason = lastFailure != null ? lastFailure : "?";
+    if (lastDirectAt >= lastDirectFailAt && lastDirectAt != 0) {
+      return org.thunderdog.challegram.core.Lang.getString(R.string.Tgx101WsStatusDirect, reason);
+    }
+    return org.thunderdog.challegram.core.Lang.getString(R.string.Tgx101WsStatusFailed, reason);
+  }
+
+  private static void noteWs (boolean ok, @androidx.annotation.Nullable String failure) {
+    if (ok) {
+      lastWsAt = System.currentTimeMillis();
+      wsCount++;
+    } else {
+      lastWsFailAt = System.currentTimeMillis();
+      lastFailure = failure;
+    }
+    statusChanged();
+  }
+
+  private static void noteDirect (boolean ok) {
+    if (ok) {
+      lastDirectAt = System.currentTimeMillis();
+      directCount++;
+    } else {
+      lastDirectFailAt = System.currentTimeMillis();
+    }
+    statusChanged();
+    if (!warned && lastWsFailAt > lastWsAt) {
+      warned = true;
+      org.thunderdog.challegram.tool.UI.showToast(ok ? R.string.Tgx101WsWarnDirect : R.string.Tgx101WsWarnFailed, android.widget.Toast.LENGTH_LONG);
+    }
+  }
+
+  // TGx101 (user 2026-11-22 «адреса с нашего GitHub»): the web front's address per data center comes from a small file in
+  // our repository, read once a day; the built-in one stays when the file can't be read. A changed address then reaches
+  // everyone without a new version
+
+  private static final String FRONT_URL = "https://raw.githubusercontent.com/Ivan-k0/plumagram-android/tgx101/config/ws-proxy.json";
+  private static final String KEY_FRONT = "tgx101_ws_front", KEY_FRONT_AT = "tgx101_ws_front_at";
+  private static final long FRONT_EVERY = 24L * 60 * 60 * 1000;
+  private static final java.util.Map<Integer, byte[]> BUILT_IN_FRONT = new java.util.HashMap<>();
+  static {
+    byte[] ip = {(byte) 149, (byte) 154, (byte) 167, (byte) 220};
+    BUILT_IN_FRONT.put(2, ip);
+    BUILT_IN_FRONT.put(4, ip);
+  }
+  private static volatile java.util.Map<Integer, byte[]> front = BUILT_IN_FRONT;
+  private static volatile boolean frontFromGitHub;
+
+  private static String frontSource () {
+    return org.thunderdog.challegram.core.Lang.getString(frontFromGitHub ? R.string.Tgx101WsFrontGitHub : R.string.Tgx101WsFrontBuiltIn);
+  }
+
+  /** {"v":1,"front":{"2":"149.154.167.220","4":"149.154.167.220"}} — data centers the front serves and its address */
+  private static @androidx.annotation.Nullable java.util.Map<Integer, byte[]> parseFront (@androidx.annotation.Nullable String json) {
+    if (json == null) return null;
+    try {
+      org.json.JSONObject root = new org.json.JSONObject(json);
+      org.json.JSONObject map = root.getJSONObject("front");
+      java.util.Map<Integer, byte[]> result = new java.util.HashMap<>();
+      java.util.Iterator<String> keys = map.keys();
+      while (keys.hasNext()) {
+        String key = keys.next();
+        int dc = Integer.parseInt(key);
+        String[] parts = map.getString(key).split("\\.");
+        if (dc < 1 || dc > 5 || parts.length != 4) return null;
+        byte[] ip = new byte[4];
+        for (int i = 0; i < 4; i++) {
+          int b = Integer.parseInt(parts[i]);
+          if (b < 0 || b > 255) return null;
+          ip[i] = (byte) b;
+        }
+        result.put(dc, ip);
+      }
+      return result;
+    } catch (Throwable t) {
+      return null;
+    }
+  }
+
+  private static void loadFront () {
+    me.vkryl.leveldb.LevelDB pmc = org.thunderdog.challegram.unsorted.Settings.instance().pmc();
+    java.util.Map<Integer, byte[]> stored = parseFront(pmc.getString(KEY_FRONT, null));
+    if (stored != null) {
+      front = stored;
+      frontFromGitHub = true;
+    }
+    if (System.currentTimeMillis() - pmc.getLong(KEY_FRONT_AT, 0) < FRONT_EVERY) return;
+    client.newCall(new Request.Builder().url(FRONT_URL).build()).enqueue(new okhttp3.Callback() {
+      @Override
+      public void onFailure (okhttp3.Call call, IOException e) {
+        Tgx101Diag.mark("ws proxy: address list not read: " + e);
+      }
+
+      @Override
+      public void onResponse (okhttp3.Call call, Response response) {
+        try (Response r = response) {
+          String body = r.isSuccessful() && r.body() != null ? r.body().string() : null;
+          java.util.Map<Integer, byte[]> fresh = parseFront(body);
+          if (fresh == null) {
+            Tgx101Diag.mark("ws proxy: address list not read: HTTP " + r.code());
+            return;
+          }
+          pmc.putString(KEY_FRONT, body);
+          pmc.putLong(KEY_FRONT_AT, System.currentTimeMillis());
+          front = fresh;
+          frontFromGitHub = true;
+          Tgx101Diag.mark("ws proxy: address list from GitHub, DCs " + fresh.keySet());
+          statusChanged();
+        } catch (Throwable t) {
+          Tgx101Diag.mark("ws proxy: address list not read: " + t);
+        }
+      }
+    });
+  }
+
   /** OkHttp needs Android 5+: on Android 4 it throws in its static init (BlackBerry Z30, 0.1.514, 2026-10-07) */
   public static boolean isSupported () {
     return android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP;
@@ -97,6 +242,12 @@ public final class Tgx101WsProxy {
         .dns(WEB_DNS)
         .build();
     }
+    lastWsAt = lastWsFailAt = lastDirectAt = lastDirectFailAt = 0;
+    wsCount = directCount = 0;
+    lastFailure = null;
+    warned = false;
+    loadFront();
+    statusChanged();
     final ServerSocket s = server;
     final ExecutorService p = pool;
     p.execute(() -> {
@@ -131,6 +282,7 @@ public final class Tgx101WsProxy {
     server = null;
     if (pool != null) pool.shutdownNow();
     pool = null;
+    statusChanged();
   }
 
   private static final int MAX_CONNECTIONS = 32;
@@ -211,8 +363,10 @@ public final class Tgx101WsProxy {
    *  lookup comes after it */
   private static final okhttp3.Dns WEB_DNS = hostname -> {
     java.util.List<InetAddress> result = new java.util.ArrayList<>();
-    if (hostname.endsWith(".web.telegram.org") && (hostname.startsWith("kws2") || hostname.startsWith("kws4"))) { // the front serves DC 2 and 4 only
-      result.add(InetAddress.getByAddress(hostname, new byte[] {(byte) 149, (byte) 154, (byte) 167, (byte) 220}));
+    if (hostname.endsWith(".web.telegram.org") && hostname.startsWith("kws") && hostname.length() > 3) {
+      int dc = Character.digit(hostname.charAt(3), 10);
+      byte[] ip = front.get(dc); // the front serves only the data centers it is listed for (DC 2 and 4 now)
+      if (ip != null) result.add(InetAddress.getByAddress(hostname, ip));
     }
     try {
       for (InetAddress address : okhttp3.Dns.SYSTEM.lookup(hostname)) {
@@ -281,6 +435,7 @@ public final class Tgx101WsProxy {
           lock.notifyAll();
         }
         Tgx101Diag.mark("ws proxy: " + url + (wasOpen ? " broke: " : " didn't open: ") + (response != null ? "HTTP " + response.code() + " " : "") + t);
+        if (!wasOpen) noteWs(false, response != null ? "HTTP " + response.code() : t.getClass().getSimpleName());
         if (wasOpen) closeQuietly(socket);
       }
     });
@@ -295,9 +450,11 @@ public final class Tgx101WsProxy {
       }
       if (!open[0]) {
         ws.cancel();
+        if (!failed[0]) noteWs(false, "timeout");
         return null;
       }
     }
+    noteWs(true, null);
     return new WebSocketLink(ws, url);
   }
 
@@ -347,6 +504,7 @@ public final class Tgx101WsProxy {
       InputStream remoteIn = remote.getInputStream();
       remoteOut.write(init);
       remoteOut.flush();
+      noteDirect(true);
       ExecutorService p = pool;
       if (p == null) throw new IOException("stopped");
       p.execute(() -> {
@@ -369,6 +527,7 @@ public final class Tgx101WsProxy {
       }
     } catch (Throwable t) {
       Tgx101Diag.mark("ws proxy: DC" + dc + " direct failed: " + t);
+      noteDirect(false);
     }
     closeQuietly(remote);
     closeQuietly(socket);

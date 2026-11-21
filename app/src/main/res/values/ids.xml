@@ -766,6 +766,7 @@
   <item type="id" name="share_bottom" />
   <item type="id" name="share_comment_stub" />
   <item type="id" name="btn_open" />
+  <item type="id" name="btn_tgx101WsProxyStatus" />
   <item type="id" name="btn_tgx101LinkAlways" />
   <item type="id" name="btn_openChat" />
   <item type="id" name="btn_forwardLast15" />

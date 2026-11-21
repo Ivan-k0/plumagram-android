@@ -905,6 +905,14 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101HideBlocked, "Скрывать сообщения заблокированных");
     RU.put(R.string.Tgx101WsProxy, "Подключение через WebSocket (как веб-Telegram)");
     RU.put(R.string.Tgx101WsProxyHint, "Трафик Telegram идёт так же, как у веб-версии. Может помочь там, где Telegram замедляют. Включает прокси «WebSocket (веб-Telegram)» в списке ниже.");
+    RU.put(R.string.Tgx101WsStatusWaiting, "Сейчас: ждёт первого подключения");
+    RU.put(R.string.Tgx101WsStatusOk, "Сейчас: работает через веб-серверы Telegram · подключений: %1$d · адреса: %2$s");
+    RU.put(R.string.Tgx101WsStatusDirect, "Сейчас: веб-серверы не отвечают (%1$s), идёт напрямую");
+    RU.put(R.string.Tgx101WsStatusFailed, "Сейчас: не подключается (%1$s)");
+    RU.put(R.string.Tgx101WsFrontGitHub, "с GitHub");
+    RU.put(R.string.Tgx101WsFrontBuiltIn, "встроенные");
+    RU.put(R.string.Tgx101WsWarnDirect, "WebSocket: веб-серверы Telegram не отвечают, подключаюсь напрямую");
+    RU.put(R.string.Tgx101WsWarnFailed, "WebSocket: веб-серверы Telegram не отвечают");
     RU.put(R.string.Tgx101WsProxyOn, "Подключение через WebSocket включено");
     RU.put(R.string.Tgx101WsProxyName, "WebSocket (веб-Telegram)");
     RU.put(R.string.Tgx101MenuHidesKeyboard, "Закрывать клавиатуру, если меню сообщения не помещается");

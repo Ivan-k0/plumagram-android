@@ -486,7 +486,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
       items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
       items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101WsProxy, 0, R.string.Tgx101WsProxy));
       items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
-      items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101WsProxyHint));
+      items.add(new ListItem(ListItem.TYPE_DESCRIPTION, R.id.btn_tgx101WsProxyStatus, 0, R.string.Tgx101WsProxyHint));
     }
 
     hasProxyAutoSwitchSettings = !proxies.isEmpty();
@@ -511,6 +511,16 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     }
 
     adapter = new SettingsAdapter(this) {
+      @Override
+      protected void modifyDescription (ListItem item, android.widget.TextView textView) {
+        super.modifyDescription(item, textView);
+        if (item.getId() == R.id.btn_tgx101WsProxyStatus) {
+          // TGx101 (user 2026-11-22 «как знать, что он заблокирован»): what the WebSocket connection does now
+          String status = org.thunderdog.challegram.Tgx101WsProxy.statusText();
+          textView.setText(status == null ? Lang.getString(R.string.Tgx101WsProxyHint) : Lang.getString(R.string.Tgx101WsProxyHint) + "\n\n" + status);
+        }
+      }
+
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         final int itemId = item.getId();
@@ -546,6 +556,9 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
     adapter.setOnLongClickListener(this);
     adapter.setItems(items, false);
     recyclerView.setAdapter(adapter);
+    org.thunderdog.challegram.Tgx101WsProxy.setStatusListener(() -> {
+      if (!isDestroyed()) adapter.updateItemById(R.id.btn_tgx101WsProxyStatus);
+    });
 
     touchHelper = RemoveHelper.attach(recyclerView, new RemoveHelper.ExtendedCallback() {
       @Override
@@ -640,6 +653,7 @@ public class SettingsProxyController extends RecyclerViewController<Void> implem
   @Override
   public void destroy () {
     super.destroy();
+    org.thunderdog.challegram.Tgx101WsProxy.setStatusListener(null);
     Settings.instance().removeProxyListener(this);
     tdlib.listeners().unsubscribeFromConnectivityUpdates(this);
     tdlib.context().global().removeProxyListener(this);

@@ -6621,6 +6621,14 @@
   <string name="Tgx101HideBlocked">Hide messages from blocked users</string>
   <string name="Tgx101WsProxy">Connect through WebSocket (like Telegram Web)</string>
   <string name="Tgx101WsProxyHint">Telegram traffic goes the way the web version connects. Can help where Telegram is slowed down. Adds the «WebSocket» proxy and turns it on.</string>
+  <string name="Tgx101WsStatusWaiting">Status: waiting for the first connection</string>
+  <string name="Tgx101WsStatusOk">Status: working through Telegram\'s web servers · %1$d connections · addresses: %2$s</string>
+  <string name="Tgx101WsStatusDirect">Status: the web servers don\'t answer (%1$s) — going direct</string>
+  <string name="Tgx101WsStatusFailed">Status: can\'t connect (%1$s)</string>
+  <string name="Tgx101WsFrontGitHub">from GitHub</string>
+  <string name="Tgx101WsFrontBuiltIn">built-in</string>
+  <string name="Tgx101WsWarnDirect">WebSocket: Telegram\'s web servers don\'t answer, connecting directly</string>
+  <string name="Tgx101WsWarnFailed">WebSocket: Telegram\'s web servers don\'t answer</string>
   <string name="Tgx101WsProxyOn">WebSocket connection is on</string>
   <string name="Tgx101WsProxyName">WebSocket (Telegram Web)</string>
   <string name="Tgx101MenuHidesKeyboard">Close the keyboard when the message menu does not fit</string>
