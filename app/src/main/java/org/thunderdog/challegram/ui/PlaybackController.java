@@ -1276,6 +1276,14 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
     handle[0] = Tgx101Sheet.show(this, null, body -> {
       body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101Wave)));
+      // (user 2026-11-14, «почему этот трек»)
+      final String why = currentItem != null ? org.thunderdog.challegram.player.Tgx101Wave.why(tdlib, currentItem.getMessage()) : null;
+      if (why != null) {
+        android.widget.TextView whyView = Tgx101SavedHomeController.text(context, 14f, Theme.textAccentColor(), false);
+        whyView.setText(Lang.getString(R.string.Tgx101WhyThis, why));
+        whyView.setPadding(Screen.dp(20f), 0, Screen.dp(20f), Screen.dp(8f));
+        body.addView(whyView);
+      }
       final TdApi.Message left = org.thunderdog.challegram.player.Tgx101Wave.resumable(tdlib);
       if (left != null && left.content instanceof TdApi.MessageAudio) {
         String leftTitle = TD.getTitle(((TdApi.MessageAudio) left.content).audio);
@@ -1305,7 +1313,16 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         handle[0].dismiss();
         tgx101ShowHidden();
       }));
+      // (user 2026-11-22 «"Мой вкус" — в окне "Поток"», not in ⋮ — the ⋮ order of 2026-11-20 stays)
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_stars_24, 0, Lang.getString(R.string.Tgx101Taste), null, false, v -> {
+        handle[0].dismiss();
+        UI.post(() -> Tgx101TasteSheet.show(this, this::tgx101ShowHidden), 200);
+      }));
       final org.thunderdog.challegram.unsorted.Settings settings = org.thunderdog.challegram.unsorted.Settings.instance();
+      tgx101FillWaveKnobs(body, () -> {
+        handle[0].dismiss();
+        tgx101ShowWaveSheet();
+      });
       final boolean on = settings.tgx101WaveHints();
       body.addView(Tgx101Sheet.row(context, R.drawable.baseline_search_24, 0, Lang.getString(on ? R.string.Tgx101WaveHintsOff : R.string.Tgx101WaveHintsOn), null, on, v -> {
         settings.setTgx101WaveHints(!on);
@@ -1317,6 +1334,53 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       warning.setPadding(Screen.dp(20f), Screen.dp(2f), Screen.dp(20f), Screen.dp(6f));
       body.addView(warning);
     });
+  }
+
+  /** (user 2026-11-14, «настроить поток»): known ↔ new, and the mood when the AI is on; the next tracks follow at once, «start anew» — all */
+  private void tgx101FillWaveKnobs (android.widget.LinearLayout body, Runnable refresh) {
+    final org.thunderdog.challegram.unsorted.Settings settings = org.thunderdog.challegram.unsorted.Settings.instance();
+    body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101WaveMix)));
+    final int mix = settings.tgx101WaveMix();
+    final int[] mixes = {org.thunderdog.challegram.unsorted.Settings.TGX101_WAVE_MIX_KNOWN, org.thunderdog.challegram.unsorted.Settings.TGX101_WAVE_MIX_DEFAULT, org.thunderdog.challegram.unsorted.Settings.TGX101_WAVE_MIX_NEW};
+    final int[] mixNames = {R.string.Tgx101WaveMixKnown, R.string.Tgx101WaveMixDefault, R.string.Tgx101WaveMixNew};
+    for (int i = 0; i < mixes.length; i++) {
+      final int value = mixes[i];
+      body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(mixNames[i]), null, mix == value, v -> {
+        settings.setTgx101WaveMix(value);
+        refresh.run();
+      }));
+    }
+    body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101WaveMood)));
+    if (!org.thunderdog.challegram.player.Tgx101MusicAi.isOn()) {
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_stars_24, 0, Lang.getString(R.string.Tgx101WaveMoodNeedsAi), null, false, v -> {
+        refresh.run(); // closes this one
+        UI.post(() -> Tgx101TasteSheet.show(this, this::tgx101ShowHidden), 200);
+      }));
+      return;
+    }
+    final String mood = settings.tgx101WaveMood();
+    body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101WaveMoodAny), null, mood.isEmpty(), v -> {
+      settings.setTgx101WaveMood(null);
+      refresh.run();
+    }));
+    for (final String m : org.thunderdog.challegram.player.Tgx101MusicAi.MOODS) {
+      body.addView(Tgx101Sheet.row(context, 0, 0, org.thunderdog.challegram.player.Tgx101MusicAi.moodLabel(m), null, m.equals(mood), v -> {
+        settings.setTgx101WaveMood(m);
+        refresh.run();
+      }));
+    }
+    final boolean own = !mood.isEmpty() && !org.thunderdog.challegram.player.Tgx101MusicAi.isMood(mood);
+    body.addView(Tgx101Sheet.row(context, R.drawable.baseline_edit_24, 0, own ? mood : Lang.getString(R.string.Tgx101WaveMoodOwn), null, own, v -> {
+      refresh.run(); // closes this one
+      UI.post(() -> Tgx101SavedActions.askName(this, Lang.getString(R.string.Tgx101WaveMoodOwn), own ? mood : "", written -> {
+        settings.setTgx101WaveMood(written.trim());
+        tgx101ShowWaveSheet();
+      }), 200);
+    }));
+    android.widget.TextView note = Tgx101SavedHomeController.text(context, 13f, Theme.textDecentColor(), false);
+    note.setText(Lang.getString(R.string.Tgx101WaveMoodHint));
+    note.setPadding(Screen.dp(20f), Screen.dp(2f), Screen.dp(20f), Screen.dp(6f));
+    body.addView(note);
   }
 
   private void tgx101StartWave () {
@@ -1332,6 +1396,13 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     final TdApi.File file = currentItem.getTrackFile();
     Tgx101Sheet.show(this, null, body -> {
       body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101PlayerInfo)));
+      final String why = currentItem != null ? org.thunderdog.challegram.player.Tgx101Wave.why(tdlib, currentItem.getMessage()) : null;
+      if (why != null) {
+        android.widget.TextView whyView = Tgx101SavedHomeController.text(context, 14f, Theme.textAccentColor(), false);
+        whyView.setText(Lang.getString(R.string.Tgx101WhyThis, why));
+        whyView.setPadding(Screen.dp(20f), 0, Screen.dp(20f), Screen.dp(8f));
+        body.addView(whyView);
+      }
       if (audio != null && !StringUtils.isEmpty(audio.fileName)) {
         body.addView(Tgx101Sheet.row(context, 0, 0, audio.fileName, null, false, null));
       }
@@ -3713,7 +3784,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     } else if (id == R.id.btn_tgx101Playlists) {
       Tgx101Playlists.show(this);
     } else if (id == R.id.btn_tgx101HiddenMusic) {
-      tgx101ShowHidden();
+      Tgx101TasteSheet.show(this, this::tgx101ShowHidden);
     } else if (id == R.id.btn_tgx101Wave) {
       tgx101ShowWaveSheet();
     } else if (id == R.id.btn_tgx101QueueSearch) {

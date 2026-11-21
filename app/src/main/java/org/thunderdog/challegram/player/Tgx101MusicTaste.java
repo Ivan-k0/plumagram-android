@@ -73,6 +73,11 @@ public final class Tgx101MusicTaste {
   private final Map<String, String> hiddenArtists = new LinkedHashMap<>(); // lower case → as it's written
   private final Map<String, Integer> artists = new LinkedHashMap<>();
   private final Map<String, Long> played = new LinkedHashMap<>(); // the track → when
+  // (user 2026-11-14, «Мой вкус»): what the screen of the taste shows — how the artists are written, when ♥ was pressed, how many
+  // tracks were listened to and skipped
+  private final Map<String, String> artistNames = new LinkedHashMap<>(); // lower case → as it's written
+  private final Map<String, Long> likedAt = new LinkedHashMap<>(); // the track → when ♥
+  private int listens, skips;
 
   private Tgx101MusicTaste (Tdlib tdlib) {
     this.tdlib = tdlib;
@@ -123,6 +128,7 @@ public final class Tgx101MusicTaste {
       if (copies.length == 0) return; // still being sent
       synchronized (this) {
         liked.remove(key);
+        likedAt.remove(key);
       }
       addToArtist(message, -3);
       save();
@@ -250,6 +256,9 @@ public final class Tgx101MusicTaste {
     synchronized (this) {
       liked.put(key, idsOf(copies));
       trim(liked);
+      likedAt.remove(key);
+      likedAt.put(key, System.currentTimeMillis());
+      trim(likedAt);
     }
     addToArtist(message, 3);
     save();
@@ -344,10 +353,16 @@ public final class Tgx101MusicTaste {
       }
     }
     if (durationMs > 0 && positionMs >= durationMs * 8 / 10) {
+      synchronized (this) {
+        listens++;
+      }
       addToArtist(message, 1);
       save();
     } else if (leftForAnother && positionMs < SKIP_BEFORE_MS) {
-      addToArtist(message, -1);
+      synchronized (this) {
+        skips++;
+      }
+      if (Settings.instance().tgx101MusicSkips()) addToArtist(message, -1); // «Мой вкус» may say skips don't count
       save();
     } else if (positionMs >= 1000L) {
       save();
@@ -368,6 +383,8 @@ public final class Tgx101MusicTaste {
       Integer score = artists.remove(key);
       artists.put(key, Math.max(-ARTIST_LIMIT, Math.min(ARTIST_LIMIT, (score != null ? score : 0) + change)));
       trim(artists);
+      artistNames.put(key, artist);
+      if (artistNames.size() > MAX_ENTRIES) artistNames.keySet().retainAll(artists.keySet());
     }
   }
 
@@ -387,6 +404,70 @@ public final class Tgx101MusicTaste {
       if (!hiddenArtists.containsKey(entry.getKey())) result.add(entry.getKey());
     }
     return result;
+  }
+
+  /** The worst first: the artists mostly skipped, up to this many */
+  public synchronized List<String> skippedArtists (int limit) {
+    List<Map.Entry<String, Integer>> entries = new ArrayList<>(artists.entrySet());
+    java.util.Collections.sort(entries, (a, b) -> Integer.compare(a.getValue(), b.getValue()));
+    List<String> result = new ArrayList<>();
+    for (Map.Entry<String, Integer> entry : entries) {
+      if (entry.getValue() >= -1 || result.size() >= limit) break;
+      if (!hiddenArtists.containsKey(entry.getKey())) result.add(entry.getKey());
+    }
+    return result;
+  }
+
+  /** As it's written in the tracks, for the lower case key {@link #favoriteArtists} gives */
+  public synchronized String artistName (String key) {
+    String name = artistNames.get(key);
+    return name != null ? name : key;
+  }
+
+  public synchronized int listenCount () {
+    return listens;
+  }
+
+  public synchronized int skipCount () {
+    return skips;
+  }
+
+  public synchronized int likeCount () {
+    return liked.size();
+  }
+
+  /** The copies in the Storage of what has ♥, the latest first: [ids…], with when ♥ was pressed (0: before it was noted) */
+  public synchronized List<long[]> likedCopies () {
+    List<long[]> list = new ArrayList<>();
+    for (Map.Entry<String, long[]> entry : liked.entrySet()) {
+      if (entry.getValue().length == 0) continue;
+      Long at = likedAt.get(entry.getKey());
+      long[] item = new long[entry.getValue().length + 1];
+      item[0] = at != null ? at : 0;
+      System.arraycopy(entry.getValue(), 0, item, 1, entry.getValue().length);
+      list.add(0, item);
+    }
+    return list;
+  }
+
+  /** When it was played last, 0: not on this phone */
+  public synchronized long lastPlayed (@Nullable TdApi.Message message) {
+    Long at = played.get(keyOf(message));
+    return at != null ? at : 0;
+  }
+
+  /** (user 2026-11-14 «Забыть всё и начать заново»): the scores, what was played, what is hidden; ♥ and its copies in the Storage stay */
+  public void forgetAll () {
+    synchronized (this) {
+      artists.clear();
+      artistNames.clear();
+      played.clear();
+      disliked.clear();
+      hiddenArtists.clear();
+      listens = skips = 0;
+    }
+    save();
+    notifyChanged();
   }
 
   // Storage
@@ -423,6 +504,16 @@ public final class Tgx101MusicTaste {
           artists.put(key, artistsJson.getInt(key));
         }
       }
+      readStrings(o.optJSONObject("names"), artistNames);
+      JSONObject likedAtJson = o.optJSONObject("likedAt");
+      if (likedAtJson != null) {
+        for (Iterator<String> it = likedAtJson.keys(); it.hasNext(); ) {
+          String key = it.next();
+          likedAt.put(key, likedAtJson.getLong(key));
+        }
+      }
+      listens = o.optInt("listens", 0);
+      skips = o.optInt("skips", 0);
       JSONObject playedJson = o.optJSONObject("played");
       if (playedJson != null) {
         for (Iterator<String> it = playedJson.keys(); it.hasNext(); ) {
@@ -458,6 +549,10 @@ public final class Tgx101MusicTaste {
         o.put("hidden", new JSONObject(hiddenArtists));
         o.put("artists", new JSONObject(artists));
         o.put("played", new JSONObject(played));
+        o.put("names", new JSONObject(artistNames));
+        o.put("likedAt", new JSONObject(likedAt));
+        o.put("listens", listens);
+        o.put("skips", skips);
         encoded = o.toString();
       } catch (Throwable t) {
         return;

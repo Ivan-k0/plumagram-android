@@ -47,8 +47,8 @@ public class Tgx101AiSettingsController extends RecyclerViewController<Void> imp
   public static String value () {
     Settings s = Settings.instance();
     if (!s.tgx101Ai()) return Lang.getString(R.string.Tgx101AiOff);
-    int on = (s.tgx101AiCompose() ? 1 : 0) + (s.tgx101AiSummary() ? 1 : 0) + (s.tgx101AiMissed() ? 1 : 0) + (s.tgx101AiSort() ? 1 : 0);
-    return Lang.getString(R.string.Tgx101AiOnCount, on + " / 4");
+    int on = (s.tgx101AiCompose() ? 1 : 0) + (s.tgx101AiSummary() ? 1 : 0) + (s.tgx101AiMissed() ? 1 : 0) + (s.tgx101AiSort() ? 1 : 0) + (s.tgx101MusicAi() ? 1 : 0);
+    return Lang.getString(R.string.Tgx101AiOnCount, on + " / 5");
   }
 
   @Override
@@ -74,6 +74,8 @@ public class Tgx101AiSettingsController extends RecyclerViewController<Void> imp
           view.getToggler().setRadioEnabled(s.tgx101AiMissed(), isUpdate);
         } else if (id == R.id.btn_tgx101AiSort) {
           view.getToggler().setRadioEnabled(s.tgx101AiSort(), isUpdate);
+        } else if (id == R.id.btn_tgx101AiMusic) {
+          view.getToggler().setRadioEnabled(s.tgx101MusicAi(), isUpdate);
         }
         view.setEnabledAnimated(s.tgx101Ai(), isUpdate);
       }
@@ -92,6 +94,8 @@ public class Tgx101AiSettingsController extends RecyclerViewController<Void> imp
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiMissed, 0, R.string.Tgx101AiMissedSetting));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiSort, 0, R.string.Tgx101AiSortSetting));
+    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiMusic, 0, R.string.Tgx101TasteAi));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     // TGx101 (user 2026-11-13): the person's own AI for when Telegram's says no (no Premium)
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
@@ -122,6 +126,7 @@ public class Tgx101AiSettingsController extends RecyclerViewController<Void> imp
       adapter.updateValuedSettingById(R.id.btn_tgx101AiSummary);
       adapter.updateValuedSettingById(R.id.btn_tgx101AiMissed);
       adapter.updateValuedSettingById(R.id.btn_tgx101AiSort);
+      adapter.updateValuedSettingById(R.id.btn_tgx101AiMusic);
     } else if (!s.tgx101Ai()) {
       return;
     } else if (id == R.id.btn_tgx101AiCompose) {
@@ -132,6 +137,8 @@ public class Tgx101AiSettingsController extends RecyclerViewController<Void> imp
       s.setTgx101AiMissed(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101AiSort) {
       s.setTgx101AiSort(adapter.toggleView(v));
+    } else if (id == R.id.btn_tgx101AiMusic) {
+      s.setTgx101MusicAi(adapter.toggleView(v));
     }
   }
 }

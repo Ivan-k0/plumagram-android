@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import me.vkryl.core.lambda.RunnableBool;
+import me.vkryl.core.lambda.RunnableData;
 import tgx.td.Td;
 
 /**
@@ -121,8 +122,11 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
   private final List<String> queries = new ArrayList<>();
   private final Map<String, String> offsets = new HashMap<>();
   private final Set<String> offered = new HashSet<>();
+  // (user 2026-11-14, «почему этот трек»): what search found each track, and which searches came from the hints
+  private final Map<String, String> foundBy = new HashMap<>();
+  private final Set<String> hintQueries = new HashSet<>();
   private int nextQuery;
-  private boolean isLoading, isStopped;
+  private boolean isLoading, isStopped, isPicking;
   private TdApi.Message lastTrack;
 
   private Tgx101Wave (Tdlib tdlib, @Nullable String seedArtist) {
@@ -155,13 +159,18 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
     queries.add(""); // music of all the chats: what is new to the account
     Collections.shuffle(hints);
     for (String hint : hints) {
-      if (!taste.isArtistHidden(hint) && !queries.contains(hint)) queries.add(hint);
+      if (!taste.isArtistHidden(hint) && !queries.contains(hint)) {
+        queries.add(hint);
+        hintQueries.add(hint);
+      }
     }
-    load(Math.min(queries.size(), FIRST_SEARCHES), found -> {
-      if (found.size() < MIN_TO_START) {
+    load(Math.min(queries.size(), FIRST_SEARCHES), all -> {
+      if (all.size() < MIN_TO_START) {
         after.runWithBool(false);
         return;
       }
+      withMood(all, true, found -> {
+      if (isStopped) return;
       session = this;
       List<TdApi.Message> mixed = mix(found);
       queue = new ArrayList<>(mixed); // (user 2026-11-05 «продолжение потока не работает»): the player's list wasn't this one yet when it was asked
@@ -179,7 +188,64 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
         }
       });
       after.runWithBool(true);
+      });
     });
+  }
+
+  /**
+   * (user 2026-11-14, «настроить поток»): only what fits the mood chosen in the flow's sheet, when the AI is on. Too little of it at
+   * the start, or the AI failing, gives all that was found — the flow never stops for it
+   */
+  private void withMood (List<TdApi.Message> found, boolean isStart, RunnableData<List<TdApi.Message>> after) {
+    final String mood = org.thunderdog.challegram.unsorted.Settings.instance().tgx101WaveMood();
+    if (mood.isEmpty() || !Tgx101MusicAi.isOn()) {
+      after.runWithData(found);
+      return;
+    }
+    if (isStart) UI.showToast(org.thunderdog.challegram.R.string.Tgx101WaveMoodPicking, android.widget.Toast.LENGTH_SHORT);
+    List<TdApi.Message> shuffled = new ArrayList<>(found);
+    Collections.shuffle(shuffled);
+    Tgx101MusicAi.withMood(tdlib, shuffled, mood, fit -> {
+      if (fit == null || fit.size() < (isStart ? MIN_TO_START : 1)) {
+        org.thunderdog.challegram.Tgx101Diag.mark("flow: mood «" + mood + "» — " + (fit == null ? "the AI failed" : fit.size() + " fit") + ", all " + found.size() + " go");
+        if (isStart) UI.showToast(fit == null ? org.thunderdog.challegram.R.string.Tgx101WaveMoodFailed : org.thunderdog.challegram.R.string.Tgx101WaveMoodFew, android.widget.Toast.LENGTH_SHORT);
+        after.runWithData(found);
+      } else {
+        org.thunderdog.challegram.Tgx101Diag.mark("flow: mood «" + mood + "» — " + fit.size() + " of " + found.size());
+        after.runWithData(fit);
+      }
+    });
+  }
+
+  /** Why the flow offers this track, in a few words; null — it isn't the flow's */
+  public static @Nullable String why (Tdlib tdlib, @Nullable TdApi.Message track) {
+    Tgx101Wave wave = session != null && session.tdlib == tdlib ? session : (suspended != null && suspended.tdlib == tdlib ? suspended : null);
+    if (wave == null || track == null || !wave.isOurs(track)) return null;
+    return wave.reasonFor(track);
+  }
+
+  private String reasonFor (TdApi.Message track) {
+    String artist = Tgx101MusicTaste.artistOf(track);
+    String query = foundBy.get(Tgx101MusicTaste.keyOf(track));
+    String reason;
+    if (taste.isLiked(track)) {
+      reason = org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101WhyLiked);
+    } else if (artist != null && taste.artistScore(artist) > 0) {
+      reason = org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101WhyKnown, artist);
+    } else if (query != null && hintQueries.contains(query)) {
+      reason = org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101WhyHint);
+    } else if (query != null && !query.isEmpty()) {
+      reason = org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101WhyNear, taste.artistName(query));
+    } else {
+      String chat = track.chatId != 0 ? tdlib.chatTitle(track.chatId) : null;
+      reason = chat != null && !chat.isEmpty() ? org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101WhyNew, chat)
+        : org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101WhyNewAny);
+    }
+    String mood = Tgx101MusicAi.moodOf(tdlib, track), style = Tgx101MusicAi.styleOf(tdlib, track);
+    StringBuilder b = new StringBuilder(reason);
+    if (style != null) b.append(" · ").append(style);
+    if (mood != null) b.append(" · ").append(Tgx101MusicAi.moodLabel(mood).toLowerCase());
+    return b.toString();
   }
 
   private void stop (boolean keep) {
@@ -222,8 +288,12 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
       }
     }
     int at = mixed.size();
+    // (user 2026-11-14, «знакомое ↔ новое»): two known for one new, one for two (as it always was), one for four
+    final int share = org.thunderdog.challegram.unsorted.Settings.instance().tgx101WaveMix();
     while (!known.isEmpty() || !fresh.isEmpty()) {
-      boolean takeKnown = !known.isEmpty() && (fresh.isEmpty() || at % 3 == 2);
+      boolean slot = share == org.thunderdog.challegram.unsorted.Settings.TGX101_WAVE_MIX_KNOWN ? at % 3 != 2 :
+        share == org.thunderdog.challegram.unsorted.Settings.TGX101_WAVE_MIX_NEW ? at % 5 == 4 : at % 3 == 2;
+      boolean takeKnown = !known.isEmpty() && (fresh.isEmpty() || slot);
       mixed.add((takeKnown ? known : fresh).remove(0));
       at++;
     }
@@ -257,7 +327,10 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
         if (result != null) {
           offsets.put(query, result.nextOffset != null ? result.nextOffset : "");
           for (TdApi.Message message : result.messages) {
-            if (accepts(message)) found.add(message);
+            if (accepts(message)) {
+              found.add(message);
+              foundBy.put(Tgx101MusicTaste.keyOf(message), query);
+            }
           }
         } else {
           offsets.put(query, "");
@@ -302,7 +375,7 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
   }
 
   private void refillIfNeeded () {
-    if (isLoading) return;
+    if (isLoading || isPicking) return;
     TGPlayerController player = TdlibManager.instance().player();
     List<TdApi.Message> list = player.getTrackList();
     TdApi.Message current = player.getCurrentTrack();
@@ -312,10 +385,13 @@ public final class Tgx101Wave implements TGPlayerController.TrackChangeListener 
       if (TGPlayerController.compareTracks(list.get(i), current)) at = i;
     }
     if (at == -1 || list.size() - at - 1 >= REFILL_BELOW) return;
-    load(Math.min(3, queries.size()), found -> {
+    isPicking = true;
+    load(Math.min(3, queries.size()), all -> withMood(all, false, found -> {
+      isPicking = false;
+      if (isStopped) return;
       TGPlayerController p = TdlibManager.instance().player();
       for (TdApi.Message track : mix(found)) p.addToPlayList(track);
       rememberQueue();
-    });
+    }));
   }
 }

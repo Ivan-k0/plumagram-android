@@ -4013,6 +4013,14 @@ public class Settings {
   private static final String KEY_TGX101_AI_AUTO_TAGS = "tgx101_ai_auto_tags";
   public boolean tgx101AiAutoTags () { return tgx101Ai() && pmc.getBoolean(KEY_TGX101_AI_AUTO_TAGS, false); }
   public void setTgx101AiAutoTags (boolean v) { pmc.putBoolean(KEY_TGX101_AI_AUTO_TAGS, v); }
+
+  /** TGx101 (user 2026-11-14, Storage variant Б): a new record goes to a folder by itself — the phone's rules, then the AI when it's on */
+  public boolean tgx101StorageAutoFolders () { return pmc.getBoolean("tgx101_storage_auto_folders", false); }
+  public void setTgx101StorageAutoFolders (boolean v) { pmc.putBoolean("tgx101_storage_auto_folders", v); }
+
+  /** {@link org.thunderdog.challegram.data.Tgx101AutoFile}: what went to a folder by itself, for «Вернуть» */
+  public String tgx101StorageAutoLog (int accountId) { return pmc.getString("tgx101_storage_auto_log_" + accountId, ""); }
+  public void setTgx101StorageAutoLog (int accountId, String value) { pmc.putString("tgx101_storage_auto_log_" + accountId, value); }
   public String tgx101AiSortHint (int accountId) { return pmc.getString("tgx101_ai_sort_hint_" + accountId, ""); }
   public void setTgx101AiSortHint (int accountId, String v) { pmc.putString("tgx101_ai_sort_hint_" + accountId, v); }
   public String tgx101AiSortRejected (int accountId) { return pmc.getString("tgx101_ai_sort_rejected_" + accountId, ""); }
@@ -4727,6 +4735,57 @@ public class Settings {
 
   public void setTgx101MusicTaste (int accountId, String value) {
     pmc.putString("tgx101_music_taste_" + accountId, value);
+  }
+
+  /** TGx101 music (user 2026-11-14, «Мой вкус»): a track left in its first 20 seconds counts against its artist */
+  public boolean tgx101MusicSkips () {
+    return pmc.getBoolean("tgx101_music_skips", true);
+  }
+
+  public void setTgx101MusicSkips (boolean value) {
+    pmc.putBoolean("tgx101_music_skips", value);
+  }
+
+  /** TGx101 music: the AI tells the mood of the tracks, why one is offered, builds playlists by a request. Off: every batch is a request */
+  public boolean tgx101MusicAi () {
+    return pmc.getBoolean("tgx101_music_ai", false);
+  }
+
+  public void setTgx101MusicAi (boolean value) {
+    pmc.putBoolean("tgx101_music_ai", value);
+  }
+
+  public static final int TGX101_WAVE_MIX_KNOWN = 0, TGX101_WAVE_MIX_DEFAULT = 1, TGX101_WAVE_MIX_NEW = 2;
+
+  /** TGx101 flow: how much of it is by the artists the account likes */
+  public int tgx101WaveMix () {
+    return pmc.getInt("tgx101_wave_mix", TGX101_WAVE_MIX_DEFAULT);
+  }
+
+  public void setTgx101WaveMix (int value) {
+    pmc.putInt("tgx101_wave_mix", value);
+  }
+
+  /** TGx101 flow: one of the moods of {@link org.thunderdog.challegram.player.Tgx101MusicAi}, or what the person wrote; "" — any */
+  public String tgx101WaveMood () {
+    return pmc.getString("tgx101_wave_mood", "");
+  }
+
+  public void setTgx101WaveMood (@androidx.annotation.Nullable String value) {
+    if (value == null || value.isEmpty()) {
+      pmc.remove("tgx101_wave_mood");
+    } else {
+      pmc.putString("tgx101_wave_mood", value);
+    }
+  }
+
+  /** TGx101 music: what the AI said of the tracks, {@link org.thunderdog.challegram.player.Tgx101MusicAi} */
+  public @androidx.annotation.Nullable String tgx101MusicAiCache (int accountId) {
+    return pmc.getString("tgx101_music_ai_cache_" + accountId, null);
+  }
+
+  public void setTgx101MusicAiCache (int accountId, String value) {
+    pmc.putString("tgx101_music_ai_cache_" + accountId, value);
   }
 
   /** TGx101 music player: the last music, for the bird's «Player» when nothing plays */
