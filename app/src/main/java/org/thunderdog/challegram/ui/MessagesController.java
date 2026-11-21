@@ -3653,6 +3653,29 @@ public class MessagesController extends ViewController<MessagesController.Argume
   private @Nullable String previewSearchQuery;
   private TdApi.MessageSender previewSearchSender;
   private TdApi.SearchMessagesFilter previewSearchFilter;
+
+  /** TGx101: the list of a chat's pinned messages (a chat shown through the «pinned» filter) */
+  public boolean tgx101IsPinnedList () {
+    return previewSearchFilter != null && Td.isPinnedFilter(previewSearchFilter);
+  }
+
+  /**
+   * TGx101 (user 2026-11-21 «в списке закреплённых, когда есть цитата, нажимаешь на неё — должен открываться чат с этой
+   * цитатой»): the quoted message isn't in the pinned list — back to the chat under it, the quote shown there; a chat
+   * opened from elsewhere opens at it
+   */
+  public void tgx101OpenFromPinnedList (MessageId target) {
+    ViewController<?> under = previousStackItem();
+    if (under instanceof MessagesController && ((MessagesController) under).getChatId() == target.getChatId() && !((MessagesController) under).tgx101IsPinnedList()) {
+      final MessagesController chatUnder = (MessagesController) under;
+      navigateBack();
+      UI.post(() -> {
+        if (!chatUnder.isDestroyed()) chatUnder.highlightMessage(target);
+      }, 320);
+      return;
+    }
+    tdlib.ui().openMessage(this, target.getChatId(), target, null);
+  }
   private ThreadInfo messageThread;
   private TdApi.MessageTopic messageTopicId;
   private boolean areScheduled;

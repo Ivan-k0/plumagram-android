@@ -3399,6 +3399,11 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
                 }
               } else if (isScheduled()) {
                 tdlib.ui().openMessage(controller(), replyToMessage.chatId, new MessageId(replyToMessage), openParameters());
+              } else if (controller() instanceof org.thunderdog.challegram.ui.MessagesController && ((org.thunderdog.challegram.ui.MessagesController) controller()).tgx101IsPinnedList()) {
+                org.thunderdog.challegram.component.chat.MessagesManager.tgx101AllowFlashOnce(replyToMessage.messageId);
+                org.thunderdog.challegram.component.chat.MessagesManager.tgx101SetQuoteJump(replyToMessage.messageId,
+                  !Td.isEmpty(replyToMessage.quote) ? replyToMessage.quote.text.text : null, !Td.isEmpty(replyToMessage.quote) ? replyToMessage.quote.position : -1);
+                ((org.thunderdog.challegram.ui.MessagesController) controller()).tgx101OpenFromPinnedList(new MessageId(replyToMessage));
               } else {
                 org.thunderdog.challegram.component.chat.MessagesManager.tgx101AllowFlashOnce(replyToMessage.messageId); // TGx101: the only flash + wave
                 // a reply to a quote highlights only the quoted words (user 2026-10-08 19:56, like the official app)
