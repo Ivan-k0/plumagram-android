@@ -784,7 +784,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
       }
     };
 
-    backgroundView.animate().alpha(0f).setDuration(MenuMoreWrap.REVEAL_DURATION).start();
+    backgroundView.animate().alpha(0f).setDuration(MenuMoreWrap.REVEAL_DURATION).setInterpolator(TGX101_OUT_CURVE).start();
 
     Animator menuAnimator = null;
 
@@ -902,7 +902,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
         case ANIMATION_TYPE_MORE_SCALE:
         case ANIMATION_TYPE_MORE_REVEAL: {
           // the dim starts at alpha 0 and only sheets' animation ever raised it: a ⋮ menu had none at all
-          backgroundView.animate().alpha(1f).setDuration(MenuMoreWrap.REVEAL_DURATION).start();
+          backgroundView.animate().alpha(1f).setDuration(MenuMoreWrap.REVEAL_DURATION).setInterpolator(TGX101_IN_CURVE).start();
           Animator.AnimatorListener listener = new AnimatorListenerAdapter() {
             @Override
             public void onAnimationEnd (Animator animation) {
@@ -1040,6 +1040,12 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     }
   }
 
+  // TGx101 (user 2026-11-21 «во всех всплывающих меню затемнение должно быть таким же плавным, как и появление»): the
+  // windows and their dim came in on a sharp decelerate — most of it in the first 50 ms, a flash — and went on an
+  // accelerate that kept the screen dark and dropped it at the end in a frame. One soft curve each way for all of them
+  public static final android.view.animation.Interpolator TGX101_IN_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.2f, 0f, 0f, 1f);
+  public static final android.view.animation.Interpolator TGX101_OUT_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.4f, 0f, .2f, 1f);
+
   private static final int REVEAL_ANIMATOR = 0;
   private FactorAnimator animator;
 
@@ -1052,9 +1058,8 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     if (animationType == ANIMATION_TYPE_SIMPLE) {
       boolean in = toFactor > factor;
       // exactly the official app's BottomSheet: in — 400 ms «ease out quint», out — 180 ms «ease out»
-      animator.setInterpolator(in ? androidx.core.view.animation.PathInterpolatorCompat.create(.23f, 1f, .32f, 1f)
-        : androidx.core.view.animation.PathInterpolatorCompat.create(0f, 0f, .58f, 1f));
-      animator.setDuration(in ? 400l : 180l);
+      animator.setInterpolator(in ? androidx.core.view.animation.PathInterpolatorCompat.create(.23f, 1f, .32f, 1f) : TGX101_OUT_CURVE);
+      animator.setDuration(in ? 400l : 220l);
     }
     if (toFactor == 1f && needRevealStartDelay) {
       animator.setStartDelay(MenuMoreWrap.REVEAL_DURATION);

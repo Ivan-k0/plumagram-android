@@ -257,12 +257,12 @@ public final class Tgx101CompactMenu {
 
       @Override
       public void launchShowAnimation (PopupLayout p) {
-        run(1f, 220, new android.view.animation.DecelerateInterpolator(2.2f), p::onCustomShowComplete);
+        run(1f, 240, org.thunderdog.challegram.widget.PopupLayout.TGX101_IN_CURVE, p::onCustomShowComplete);
       }
 
       @Override
       public boolean launchHideAnimation (PopupLayout p, me.vkryl.android.animator.FactorAnimator originalAnimator) {
-        run(0f, 150, new android.view.animation.AccelerateInterpolator(1.5f), p::onCustomHideAnimationComplete);
+        run(0f, 200, org.thunderdog.challegram.widget.PopupLayout.TGX101_OUT_CURVE, p::onCustomHideAnimationComplete);
         return true;
       }
     });
