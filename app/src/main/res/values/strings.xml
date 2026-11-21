@@ -7640,7 +7640,7 @@
   <string name="Tgx101TorchOff">Turn the flashlight off</string>
   <string name="Tgx101TorchBusy">The phone won\'t lend the flashlight while the front camera films — switch to the back one</string>
   <string name="Tgx101SnoozeLike">Reaction, as the double tap</string>
-  <string name="Tgx101SnoozeLikeButton">❤</string>
+  <string name="Tgx101SnoozeLikeButton">Like</string>
   <string name="Tgx101SnoozeHeart">❤️</string>
   <string name="Tgx101SnoozeLiked">%1$s — reaction set</string>
   <string name="Tgx101Ai">AI assistant</string>
