@@ -2420,6 +2420,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private View tgx101CenterPlay;
+  private boolean tgx101CenterRevealed;
   private float tgx101CenterLoggedHeader = -1f;
 
   // (user's video 2026-11-09 00:05): opening a video showed ▶ for ~90 ms before the player said «playing» and it turned ⏸
@@ -2440,8 +2441,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     // fades with the header while the viewer opens / closes or is dragged away — it was left floating in the middle
     // after a close (user 2026-11-01 «фантомная кнопка плей при сворачивании»)
     float alpha = video ? MathUtils.clamp(headerVisible.getFloatValue() * (1f - pipFactor) * tgx101HeaderRevealAlpha * tgx101HeaderDragAlpha) * (inCaption ? 0f : 1f) : 0f;
-    boolean shown = alpha > 0f;
     float hv = headerVisible.getFloatValue();
+    // TGx101 (user 2026-11-21, as the reference: «при первом открытии видео кнопки плэй быть не должно»): a video opens and
+    // plays with no ▶ in the middle — the first tap hides the caption and the bar, the next one brings them back with the
+    // button. A paused or finished video shows it as before
+    if (item != tgx101SeenItem) tgx101CenterRevealed = false;
+    if (hv == 0f) tgx101CenterRevealed = true;
+    if (!tgx101CenterRevealed && tgx101ShowsPause()) alpha = 0f;
+    boolean shown = alpha > 0f;
     if ((hv == 1f || hv == 0f) && hv != tgx101CenterLoggedHeader) {
       tgx101CenterLoggedHeader = hv;
       org.thunderdog.challegram.Tgx101Diag.mark("player: centre button check — header " + hv + ", mode " + mode + ", item " + (item == null ? "none" : (item.isVideo() ? "video" : "not video") + (item.isGifType() ? " gif" : "")) + ", slider " + (videoSliderView != null) + ", locked " + tgx101Locked() + ", pip " + pipFactor + ", caption " + inCaption + " → alpha " + alpha);
