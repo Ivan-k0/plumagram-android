@@ -4682,6 +4682,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       mediaView.tgx101ApplyAmbient();
       tgx101RefreshSettings();
     });
+    if (ambient != Settings.AMBIENT_OFF) {
+      tgx101SettingsRow(rows, R.drawable.baseline_screen_rotation_24, Lang.getString(R.string.Tgx101PlayerAmbientPortrait), null, settings.tgx101PlayerAmbientPortrait() ? 1 : 0, () -> {
+        settings.setTgx101PlayerAmbientPortrait(!settings.tgx101PlayerAmbientPortrait());
+        org.thunderdog.challegram.Tgx101Diag.mark("player settings: around the video when upright " + settings.tgx101PlayerAmbientPortrait());
+        mediaView.tgx101ApplyAmbient();
+        tgx101RefreshSettings();
+      });
+    }
     tgx101SettingsRow(rows, R.drawable.baseline_repeat_24, Lang.getString(R.string.Tgx101PlayerLoop), null, settings.tgx101PlayerLoop() ? 1 : 0, () -> {
       settings.setTgx101PlayerLoop(!settings.tgx101PlayerLoop());
       org.thunderdog.challegram.Tgx101Diag.mark("player settings: repeat " + settings.tgx101PlayerLoop());

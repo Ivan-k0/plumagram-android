@@ -1847,6 +1847,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AutoDeleteOwnSet, "Своё время…");
     RU.put(R.string.Tgx101AutoDeleteOwnTitle, "Удалять через");
     RU.put(R.string.Tgx101SearchMembers, "Поиск участников");
+    RU.put(R.string.Tgx101PlayerAmbientPortrait, "По бокам в вертикальном режиме");
     RU.put(R.string.SendAtCustomTime, "Выбрать время");
     RU.put(R.string.RemindAtCustomTime, "Выбрать время");
     RU.put(R.string.Tgx101GazetaKeepScreen, "Не гасить экран");

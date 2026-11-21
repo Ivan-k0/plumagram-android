@@ -559,7 +559,9 @@ public class MediaCellView extends ViewGroup implements
     private static final long TGX101_GLOW_EVERY = 1500, TGX101_GLOW_FLOW = 1000, TGX101_GLOW_FADE = 350;
 
     private boolean tgx101MirrorWanted () {
-      return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerMirror() && media != null && (media.isVideo() || media.isGif())
+      org.thunderdog.challegram.unsorted.Settings st = org.thunderdog.challegram.unsorted.Settings.instance();
+      boolean portrait = getResources().getConfiguration().orientation != android.content.res.Configuration.ORIENTATION_LANDSCAPE;
+      return st.tgx101PlayerMirror() && (!portrait || st.tgx101PlayerAmbientPortrait()) && media != null && (media.isVideo() || media.isGif())
         && hideStaticView && videoReady && revealFactor >= 1f && !disappearing && factor == 0f && !tgx101Closing && !isZoomed() && !forceTouchMode;
     }
 

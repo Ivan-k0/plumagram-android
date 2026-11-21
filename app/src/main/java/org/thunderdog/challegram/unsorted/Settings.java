@@ -4914,6 +4914,15 @@ public class Settings {
     return tgx101PlayerAmbient() != AMBIENT_OFF;
   }
 
+  /** TGx101 (user 2026-11-21 «размытие по бокам нужно дать возможность отключать в вертикальном режиме») */
+  public boolean tgx101PlayerAmbientPortrait () {
+    return pmc.getBoolean("tgx101_player_ambient_portrait", true);
+  }
+
+  public void setTgx101PlayerAmbientPortrait (boolean on) {
+    pmc.putBoolean("tgx101_player_ambient_portrait", on);
+  }
+
   /** TGx101 (user 2026-10-26 12:52 «сбрасывать скорость видео по умолчанию»): off — every viewer opens at 1× */
   public boolean tgx101PlayerKeepSpeed () {
     return pmc.getBoolean(KEY_TGX101_PLAYER_KEEP_SPEED, true);
