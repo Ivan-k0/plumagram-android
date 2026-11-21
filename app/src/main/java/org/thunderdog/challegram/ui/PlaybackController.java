@@ -809,9 +809,11 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     return 160f;
   }
 
+  // (user 2026-11-21 recording «сворачивание работает неверно — палец опустил, а обложка всё равно возвращается»): pulled a
+  // third of the way and let go slowly, the player sprang back up — 40 % was needed. A fifth closes it now
   @Override
   public float tgx101PopupDropFactor () {
-    return .4f;
+    return .22f; // pulled down less than this share of the screen, it goes back up; more — it closes
   }
 
   private void tgx101ReturnToCover () {

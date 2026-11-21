@@ -687,11 +687,12 @@ public class TdlibNotificationStyle implements TdlibNotificationStyleDelegate, F
         if (unmuteAction != null)
           builder.addInvisibleAction(unmuteAction);
       }
-      if (replyAction != null)
-        builder.addAction(replyAction);
-      // TGx101 (user 2026-10-06): «Quiet» before «Mark as read»
+      // TGx101 (user 2026-10-06): «Quiet» before «Mark as read»; (2026-11-21 «тихо и лайк сместить влево, поменять местами
+      // с "ответить"»): «Quiet» / «❤» first, then «Reply»
       if (tgx101SnoozeAction != null)
         builder.addAction(tgx101SnoozeAction);
+      if (replyAction != null)
+        builder.addAction(replyAction);
       if (readAction != null)
         builder.addAction(readAction);
     }
