@@ -93,7 +93,8 @@ public final class Tgx101WsProxy {
       client = new OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS)
         // no WebSocket pings: kwsN closed the connection right after the first one (EOF at 25 s); TDLib keeps it alive itself
-        .connectTimeout(15, TimeUnit.SECONDS)
+        .connectTimeout(8, TimeUnit.SECONDS)
+        .dns(WEB_DNS)
         .build();
     }
     final ServerSocket s = server;
@@ -163,7 +164,7 @@ public final class Tgx101WsProxy {
         return;
       }
       in.readFully(address);
-      in.readUnsignedShort(); // port
+      int port = in.readUnsignedShort();
       if (cmd != 1) {
         out.write(new byte[] {5, 7, 0, 1, 0, 0, 0, 0, 0, 0});
         socket.close();
@@ -180,9 +181,24 @@ public final class Tgx101WsProxy {
       if (dc == 0) dc = dcByAddress(atyp, address);
       boolean media = dc < 0;
       dc = Math.abs(dc);
+      if (dc == 203) dc = 2; // as tg-ws-proxy: the CDN-like DC 203 is served by kws2
       if (dc < 1 || dc > 5) dc = 2;
-      String url = "wss://kws" + dc + (media ? "-1" : "") + ".web.telegram.org/apiws";
-      bridge(socket, in, out, init, url);
+      // TGx101 (user 2026-11-21 «github.com/Flowseal/tg-ws-proxy — внедрить»): as tg-ws-proxy does — a media
+      // connection tries kwsN-1 first, then kwsN; when no WebSocket opens (a refusal or a redirect), the connection goes
+      // straight to the data center TDLib asked for, so a DC the web servers don't take still works
+      String[] urls = media
+        ? new String[] {"wss://kws" + dc + "-1.web.telegram.org/apiws", "wss://kws" + dc + ".web.telegram.org/apiws"}
+        : new String[] {"wss://kws" + dc + ".web.telegram.org/apiws"};
+      WebSocketLink link = null;
+      for (String url : urls) {
+        link = openWs(url, socket, out);
+        if (link != null) break;
+      }
+      if (link != null) {
+        bridge(socket, in, link, init);
+      } else {
+        direct(socket, in, out, init, atyp, address, port, dc, media);
+      }
     } catch (Throwable t) {
       try {
         socket.close();
@@ -190,8 +206,36 @@ public final class Tgx101WsProxy {
     }
   }
 
-  private static void bridge (Socket socket, InputStream in, OutputStream out, byte[] init, String url) {
-    Tgx101Diag.mark("ws proxy: → " + url);
+  /** Telegram's web front: the web servers answer at this address for kwsN.web.telegram.org — asked first, so a
+   *  blocked or spoofed name lookup doesn't stop the connection (tg-ws-proxy's «2/4 → 149.154.167.220»); the system
+   *  lookup comes after it */
+  private static final okhttp3.Dns WEB_DNS = hostname -> {
+    java.util.List<InetAddress> result = new java.util.ArrayList<>();
+    if (hostname.endsWith(".web.telegram.org") && (hostname.startsWith("kws2") || hostname.startsWith("kws4"))) { // the front serves DC 2 and 4 only
+      result.add(InetAddress.getByAddress(hostname, new byte[] {(byte) 149, (byte) 154, (byte) 167, (byte) 220}));
+    }
+    try {
+      for (InetAddress address : okhttp3.Dns.SYSTEM.lookup(hostname)) {
+        if (!result.contains(address)) result.add(address);
+      }
+    } catch (java.net.UnknownHostException e) {
+      if (result.isEmpty()) throw e;
+    }
+    return result;
+  };
+
+  private static final class WebSocketLink {
+    final WebSocket ws;
+    final String url;
+
+    WebSocketLink (WebSocket ws, String url) {
+      this.ws = ws;
+      this.url = url;
+    }
+  }
+
+  /** Opens the WebSocket, its incoming frames written to TDLib; null when it doesn't open in 8 s */
+  private static WebSocketLink openWs (String url, Socket socket, OutputStream out) {
     Request request = new Request.Builder().url(url).header("Sec-WebSocket-Protocol", "binary").build();
     final Object lock = new Object();
     final boolean[] open = {false};
@@ -208,8 +252,10 @@ public final class Tgx101WsProxy {
       @Override
       public void onMessage (WebSocket webSocket, ByteString bytes) {
         try {
-          out.write(bytes.toByteArray());
-          out.flush();
+          synchronized (out) {
+            out.write(bytes.toByteArray());
+            out.flush();
+          }
         } catch (IOException e) {
           webSocket.cancel();
         }
@@ -228,39 +274,199 @@ public final class Tgx101WsProxy {
 
       @Override
       public void onFailure (WebSocket webSocket, Throwable t, Response response) {
+        boolean wasOpen;
         synchronized (lock) {
+          wasOpen = open[0];
           failed[0] = true;
           lock.notifyAll();
         }
-        Tgx101Diag.mark("ws proxy: " + url + " failed: " + t);
-        closeQuietly(socket);
+        Tgx101Diag.mark("ws proxy: " + url + (wasOpen ? " broke: " : " didn't open: ") + (response != null ? "HTTP " + response.code() + " " : "") + t);
+        if (wasOpen) closeQuietly(socket);
       }
     });
     synchronized (lock) {
-      long until = System.currentTimeMillis() + 15000;
+      long until = System.currentTimeMillis() + 8000;
       while (!open[0] && !failed[0] && System.currentTimeMillis() < until) {
         try {
-          lock.wait(500);
+          lock.wait(250);
         } catch (InterruptedException e) {
           break;
         }
       }
+      if (!open[0]) {
+        ws.cancel();
+        return null;
+      }
     }
-    if (!open[0]) {
-      ws.cancel();
-      closeQuietly(socket);
-      return;
-    }
+    return new WebSocketLink(ws, url);
+  }
+
+  private static void bridge (Socket socket, InputStream in, WebSocketLink link, byte[] init) {
+    Tgx101Diag.mark("ws proxy: → " + link.url);
+    WebSocket ws = link.ws;
     ws.send(ByteString.of(init));
+    // one MTProto packet per frame, as the web version sends them (tg-ws-proxy's MsgSplitter): TDLib's stream is read
+    // with its own obfuscation key from the first 64 bytes, only to find where each packet ends
+    Splitter splitter = Splitter.of(init);
     byte[] buffer = new byte[64 * 1024];
     try {
       int read;
       while ((read = in.read(buffer)) != -1) {
-        if (read > 0 && !ws.send(ByteString.of(buffer, 0, read))) break;
+        if (read <= 0) continue;
+        if (splitter != null) {
+          boolean ok = true;
+          for (byte[] part : splitter.split(buffer, read)) {
+            if (!ws.send(ByteString.of(part))) {
+              ok = false;
+              break;
+            }
+          }
+          if (!ok) break;
+        } else if (!ws.send(ByteString.of(buffer, 0, read))) {
+          break;
+        }
+      }
+      if (splitter != null) {
+        byte[] tail = splitter.flush();
+        if (tail != null) ws.send(ByteString.of(tail));
       }
     } catch (IOException ignored) { }
     ws.close(1000, null);
     closeQuietly(socket);
+  }
+
+  /** No WebSocket: straight to the address TDLib asked for, the bytes unchanged */
+  private static void direct (Socket socket, InputStream in, OutputStream out, byte[] init, int atyp, byte[] address, int port, int dc, boolean media) {
+    Socket remote = new Socket();
+    try {
+      InetAddress target = atyp == 3 ? InetAddress.getByName(new String(address, "US-ASCII")) : InetAddress.getByAddress(address);
+      Tgx101Diag.mark("ws proxy: DC" + dc + (media ? " media" : "") + " → direct " + target.getHostAddress() + ":" + port);
+      remote.setTcpNoDelay(true);
+      remote.connect(new java.net.InetSocketAddress(target, port), 10000);
+      OutputStream remoteOut = remote.getOutputStream();
+      InputStream remoteIn = remote.getInputStream();
+      remoteOut.write(init);
+      remoteOut.flush();
+      ExecutorService p = pool;
+      if (p == null) throw new IOException("stopped");
+      p.execute(() -> {
+        byte[] b = new byte[64 * 1024];
+        try {
+          int r;
+          while ((r = remoteIn.read(b)) != -1) {
+            out.write(b, 0, r);
+            out.flush();
+          }
+        } catch (IOException ignored) { }
+        closeQuietly(socket);
+        closeQuietly(remote);
+      });
+      byte[] b = new byte[64 * 1024];
+      int r;
+      while ((r = in.read(b)) != -1) {
+        remoteOut.write(b, 0, r);
+        remoteOut.flush();
+      }
+    } catch (Throwable t) {
+      Tgx101Diag.mark("ws proxy: DC" + dc + " direct failed: " + t);
+    }
+    closeQuietly(remote);
+    closeQuietly(socket);
+  }
+
+  /** Finds MTProto transport packets in TDLib's obfuscated stream (abridged / intermediate / padded intermediate) */
+  private static final class Splitter {
+    private final Cipher cipher;
+    private final boolean abridged;
+    private byte[] cipherBuf = new byte[0], plainBuf = new byte[0];
+    private boolean disabled;
+
+    private Splitter (Cipher cipher, boolean abridged) {
+      this.cipher = cipher;
+      this.abridged = abridged;
+    }
+
+    static Splitter of (byte[] init) {
+      try {
+        byte[] key = new byte[32], iv = new byte[16];
+        System.arraycopy(init, 8, key, 0, 32);
+        System.arraycopy(init, 40, iv, 0, 16);
+        Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding");
+        cipher.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(key, "AES"), new IvParameterSpec(iv));
+        byte[] plain = cipher.update(init); // the stream goes on from byte 64
+        int tag = (plain[56] & 0xff) | (plain[57] & 0xff) << 8 | (plain[58] & 0xff) << 16 | (plain[59] & 0xff) << 24;
+        if (tag == 0xefefefef) return new Splitter(cipher, true);
+        if (tag == 0xeeeeeeee || tag == 0xdddddddd) return new Splitter(cipher, false);
+      } catch (Throwable ignored) { }
+      return null;
+    }
+
+    java.util.List<byte[]> split (byte[] data, int length) {
+      java.util.List<byte[]> parts = new java.util.ArrayList<>();
+      byte[] chunk = java.util.Arrays.copyOf(data, length);
+      if (disabled) {
+        parts.add(chunk);
+        return parts;
+      }
+      byte[] plain = cipher.update(chunk);
+      if (plain == null) plain = new byte[0];
+      cipherBuf = concat(cipherBuf, chunk);
+      plainBuf = concat(plainBuf, plain);
+      int offset = 0;
+      while (offset < cipherBuf.length) {
+        int len = nextLength(offset, cipherBuf.length - offset);
+        if (len < 0) break; // not all of it yet
+        if (len == 0) { // can't read the length: everything as it is from now on
+          parts.add(java.util.Arrays.copyOfRange(cipherBuf, offset, cipherBuf.length));
+          offset = cipherBuf.length;
+          disabled = true;
+          break;
+        }
+        parts.add(java.util.Arrays.copyOfRange(cipherBuf, offset, offset + len));
+        offset += len;
+      }
+      if (offset > 0) {
+        cipherBuf = java.util.Arrays.copyOfRange(cipherBuf, offset, cipherBuf.length);
+        plainBuf = java.util.Arrays.copyOfRange(plainBuf, offset, plainBuf.length);
+      }
+      return parts;
+    }
+
+    byte[] flush () {
+      if (cipherBuf.length == 0) return null;
+      byte[] tail = cipherBuf;
+      cipherBuf = plainBuf = new byte[0];
+      return tail;
+    }
+
+    /** the packet's whole length; -1 when more bytes are needed; 0 when it can't be read */
+    private int nextLength (int offset, int available) {
+      if (abridged) {
+        int first = plainBuf[offset] & 0xff;
+        int payload, header;
+        if (first == 0x7f || first == 0xff) {
+          if (available < 4) return -1;
+          payload = ((plainBuf[offset + 1] & 0xff) | (plainBuf[offset + 2] & 0xff) << 8 | (plainBuf[offset + 3] & 0xff) << 16) * 4;
+          header = 4;
+        } else {
+          payload = (first & 0x7f) * 4;
+          header = 1;
+        }
+        if (payload <= 0) return 0;
+        return available < header + payload ? -1 : header + payload;
+      }
+      if (available < 4) return -1;
+      int payload = ((plainBuf[offset] & 0xff) | (plainBuf[offset + 1] & 0xff) << 8 | (plainBuf[offset + 2] & 0xff) << 16 | (plainBuf[offset + 3] & 0x7f) << 24);
+      if (payload <= 0 || payload > 16 * 1024 * 1024) return 0;
+      return available < 4 + payload ? -1 : 4 + payload;
+    }
+
+    private static byte[] concat (byte[] a, byte[] b) {
+      if (a.length == 0) return b;
+      byte[] r = java.util.Arrays.copyOf(a, a.length + b.length);
+      System.arraycopy(b, 0, r, a.length, b.length);
+      return r;
+    }
   }
 
   /** dc id from TDLib's obfuscated header (AES-256-CTR, key = bytes 8–39, iv = 40–55); negative = media; 0 = unknown */
