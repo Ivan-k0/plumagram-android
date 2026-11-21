@@ -710,6 +710,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       return null;
     }
     // TGx101 (user 2026-10-25 «дату, время не ставь»): «16 окт.», not «16 окт. в 16:44»
+    if (useBubbles()) {
+      // user 2026-11-21 «Дату сократи до цифр. 30.06.26»
+      return new java.text.SimpleDateFormat("dd.MM.yy", java.util.Locale.ROOT).format(new java.util.Date(msg.forwardInfo.date * 1000L));
+    }
     return Lang.dateFullShort(msg.forwardInfo.date, TimeUnit.SECONDS);
   }
 
@@ -942,9 +946,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           + (getViewCountMode() == VIEW_COUNT_FORWARD ? viewCounter.getScaledWidth(Screen.dp(COUNTER_ICON_MARGIN + COUNTER_ADD_MARGIN)) + shareCounter.getScaledWidth(Screen.dp(COUNTER_ICON_MARGIN + COUNTER_ADD_MARGIN)) : 0),
           isPsa && fPsaTextT != null && fAuthorNameT != null ? fAuthorNameT.getWidth() : 0)
           + (replyData != null ? xTextPadding : 0);
-        width = Math.max(width, Math.max(contentWidth + Screen.dp(11f), (int) (forwardWidth + Screen.dp(11f))));
+        if (tgx101FwdCard()) {
+          forwardWidth = Math.max(tgx101FwdLabelWidth() + fTimeWidth + Screen.dp(12f), Screen.dp(TGX101_FWD_AVATAR + 6f) + (fAuthorNameT != null ? fAuthorNameT.getWidth() : 0));
+        }
+        width = Math.max(width, Math.max(contentWidth + tgx101FwdIndent(), (int) (forwardWidth + tgx101FwdIndent())));
       } else {
-        width = Math.max(width, contentWidth + Screen.dp(11f));
+        width = Math.max(width, contentWidth + tgx101FwdIndent());
       }
     }
 
@@ -1246,8 +1253,48 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return height;
   }
 
-  private static int getBubbleForwardOffset () {
-    return getBubbleNameHeight();
+  private int getBubbleForwardOffset () {
+    return getBubbleNameHeight() + (tgx101FwdCard() ? Screen.dp(TGX101_FWD_LINE + TGX101_FWD_GAP) : 0);
+  }
+
+  // TGx101 (user 2026-11-21, the reference «вернуть "переслано от" вверху имени. И имя нужно двойное. Дату сократи до
+  // цифр»): in bubbles a forward is «Переслано от» + the date on the first line, a small photo and the full name on
+  // the second, the content right under them at the bubble's edge — no bar on the left and no indent for it
+  // GAP (user 2026-11-21 «верхнее прямо впритык к имени»): the room between the name and the file or photo under it
+  private static final float TGX101_FWD_LINE = 20f, TGX101_FWD_AVATAR = 20f, TGX101_FWD_GAP = 6f;
+  private String tgx101FwdLabel;
+  private float tgx101FwdLabelW;
+
+  private boolean tgx101FwdCard () {
+    return useBubbles() && !(isPsa() && !forceForwardOrImportInfo());
+  }
+
+  private int tgx101FwdIndent () {
+    return tgx101FwdCard() ? 0 : Screen.dp(11f);
+  }
+
+  private static TextPaint tgx101FwdLabelPaint () {
+    return Paints.getRegularTextPaint(15f);
+  }
+
+  private float tgx101FwdLabelWidth () {
+    String label = Lang.getString(R.string.Tgx101ForwardedFrom);
+    if (!label.equals(tgx101FwdLabel)) {
+      tgx101FwdLabel = label;
+      tgx101FwdLabelW = U.measureText(label, tgx101FwdLabelPaint());
+    }
+    return tgx101FwdLabelW;
+  }
+
+  private AvatarReceiver tgx101FwdAvatarReceiver;
+
+  public final void tgx101RequestForwardAvatar (AvatarReceiver receiver) {
+    tgx101FwdAvatarReceiver = receiver;
+    if (useForward() && forwardInfo != null && tgx101FwdCard()) {
+      forwardInfo.requestAvatar(receiver);
+    } else {
+      receiver.clear();
+    }
   }
 
   private int getBubbleReplyOffset () {
@@ -1308,8 +1355,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       }
 
       if (useForward()) {
-        pRealContentX += Screen.dp(11f);
-        pRealContentMaxWidth -= Screen.dp(11f);
+        pRealContentX += tgx101FwdIndent();
+        pRealContentMaxWidth -= tgx101FwdIndent();
       }
 
       int bubblePaddingLeft = getBubblePaddingLeft();
@@ -2658,7 +2705,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     }
 
     // forward
-    if (useForward()) {
+    if (useForward() && tgx101FwdCard()) {
+      tgx101DrawForwardCard(view, c);
+    } else if (useForward()) {
       int forwardY = getForwardTop();
       int forwardTextTop = useBubbles ? pContentY - getBubbleForwardOffset() + Screen.dp(15f) : forwardY + Screen.dp(16f);
 
@@ -3836,6 +3885,14 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         // TGx101 (user 2026-10-25 «переслано убери, от оставь — от и имя»): «от Сергей» + the date — a bare name over the
         // quote read as a second author line, «Forwarded from» left no room for the name
         String fromName = forwardInfo instanceof TGSourceUser ? ((TGSourceUser) forwardInfo).tgx101FromName() : authorName;
+        if (tgx101FwdCard()) {
+          // the full name, «Наталья страховка», the label above says «from»
+          SpannableStringBuilder b = new SpannableStringBuilder(authorName);
+          b.setSpan(new TextEntityCustom(controller(), tdlib, authorName, 0, authorName.length(), TextEntityCustom.FLAG_CLICKABLE | (available ? TextEntityCustom.FLAG_BOLD : 0), openParameters()), 0, b.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+          text = b;
+          allBold = available; // user 2026-11-21: as heavy as the reference's name
+        } else
+
         text = Lang.getString(R.string.Tgx101ForwardFrom, (target, argStart, argEnd, argIndex, needFakeBold) -> new TextEntityCustom(controller(), tdlib, target.toString(), argStart, argEnd, TextEntityCustom.FLAG_CLICKABLE | (available ? TextEntityCustom.FLAG_BOLD : 0), openParameters()), fromName);
         allActive = true;
       } else {
@@ -4111,7 +4168,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       totalMax = this.width - xfContentLeft - xPaddingRight;
     }
 
-    float max = totalMax - fTimeWidth - xTimePadding;
+    float max = tgx101FwdCard() ? totalMax - Screen.dp(TGX101_FWD_AVATAR + 6f) : totalMax - fTimeWidth - xTimePadding;
     if (getViewCountMode() == VIEW_COUNT_FORWARD) {
       max -= viewCounter.getScaledWidth(Screen.dp(COUNTER_ICON_MARGIN + COUNTER_ADD_MARGIN)) +
         shareCounter.getScaledWidth(Screen.dp(COUNTER_ICON_MARGIN + COUNTER_ADD_MARGIN));
@@ -4137,7 +4194,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   public int getForwardAuthorNameLeft () {
-    return useBubbles() ? getInternalBubbleStartX() + Screen.dp(11f) : xfContentLeft;
+    return useBubbles() ? getInternalBubbleStartX() + tgx101FwdIndent() : xfContentLeft;
   }
 
   private void loadReply () {
@@ -4266,6 +4323,37 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     throw new RuntimeException();
   }
 
+  private void tgx101DrawForwardCard (MessageView view, Canvas c) {
+    int top = pContentY - getBubbleForwardOffset();
+    int left = getForwardAuthorNameLeft();
+    int labelBaseline = top + Screen.dp(15f);
+    // the label in the name's own colour (user 2026-11-21: one colour for both lines, as in the reference)
+    int nameColor = fAuthorNameT != null ? fAuthorNameT.getTextColor() : getChatAuthorColor();
+    String label = tgx101FwdLabel != null ? tgx101FwdLabel : Lang.getString(R.string.Tgx101ForwardedFrom);
+    tgx101FwdLabelWidth();
+    c.drawText(label, left, labelBaseline, Paints.colorPaint(tgx101FwdLabelPaint(), nameColor));
+    float right = left + tgx101FwdLabelW;
+    if (fTime != null) {
+      float timeX = Math.max(left + tgx101FwdLabelW + Screen.dp(12f), getInternalBubbleEndX() - fTimeWidth);
+      c.drawText(fTime, timeX, labelBaseline, Paints.colorPaint(mTimeBubble(), getDecentColor()));
+    }
+    int nameTop = labelBaseline + Screen.dp(TGX101_FWD_LINE) - Screen.dp(13f);
+    int avatarSize = Screen.dp(TGX101_FWD_AVATAR);
+    int avatarCenterY = nameTop + (fAuthorNameT != null ? fAuthorNameT.getHeight() / 2 : Screen.dp(10f)); // «фото как будто выше названия»
+    AvatarReceiver receiver = view.tgx101ForwardAvatarReceiver();
+    if (receiver != null) {
+      receiver.setBounds(left, avatarCenterY - avatarSize / 2, left + avatarSize, avatarCenterY + avatarSize / 2);
+      if (receiver.needPlaceholder()) receiver.drawPlaceholder(c);
+      receiver.draw(c);
+    }
+    int nameLeft = left + avatarSize + Screen.dp(6f);
+    if (fAuthorNameT != null) {
+      fAuthorNameT.draw(c, nameLeft, nameLeft + fAuthorNameT.getWidth(), 0, nameTop);
+      right = Math.max(right, nameLeft + fAuthorNameT.getWidth());
+    }
+    tgx101ForwardZone.set(left - Screen.dp(8f), top, right + Screen.dp(12f), nameTop + Screen.dp(22f));
+  }
+
   /**
    * TGx101 (user 2026-10-16, the official app's screenshot «чтобы снизу не было много места лишнего»): a forwarded text
    * keeps the time on its last line when it fits there, as in Telegram — it always went to a line of its own. The forward
@@ -4274,7 +4362,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private int tgx101ForwardBottomLineWidth () {
     if (!(this instanceof TGMessageText) || hasFooter()) return BOTTOM_LINE_EXPAND_HEIGHT;
     int width = getBottomLineContentWidth();
-    return width >= 0 ? width + Screen.dp(11f) : width;
+    return width >= 0 ? width + tgx101FwdIndent() : width;
   }
 
   protected final void buildBubble (boolean force) {

@@ -104,6 +104,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
   private int flags;
 
   private final AvatarReceiver avatarReceiver;
+  private final AvatarReceiver tgx101FwdAvatar; // the small photo by a forward's name
   private final GifReceiver gifReceiver;
   private final ComplexReceiver avatarsReceiver;
   private final ComplexReceiver giveawayAvatarsReceiver;
@@ -131,6 +132,8 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       .setUpdateListener(refreshRateLimiter.passThroughUpdateListener());
     avatarsReceiver = new ComplexReceiver(this)
       .setUpdateListener(refreshRateLimiter.passThroughComplexUpdateListener());
+    tgx101FwdAvatar = new AvatarReceiver(this)
+      .setUpdateListener(refreshRateLimiter.passThroughUpdateListener());
     giveawayAvatarsReceiver = new ComplexReceiver(this)
       .setUpdateListener(refreshRateLimiter.passThroughComplexUpdateListener());
     reactionAvatarsReceiver = new ComplexReceiver(this)
@@ -178,6 +181,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
   @Override
   public void performDestroy () {
     avatarReceiver.destroy();
+    tgx101FwdAvatar.destroy();
     avatarsReceiver.performDestroy();
     giveawayAvatarsReceiver.performDestroy();
     reactionAvatarsReceiver.performDestroy();
@@ -311,6 +315,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
 
     message.resetTransformState();
     message.requestAvatar(avatarReceiver);
+    message.tgx101RequestForwardAvatar(tgx101FwdAvatar);
     message.requestReactions(reactionsComplexReceiver);
     message.requestCommentsResources(avatarsReceiver, false);
     message.requestGiveawayAvatars(giveawayAvatarsReceiver, false);
@@ -449,6 +454,10 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     return avatarReceiver;
   }
 
+  public AvatarReceiver tgx101ForwardAvatarReceiver () {
+    return tgx101FwdAvatar;
+  }
+
   public ComplexReceiver getAvatarsReceiver () {
     return avatarsReceiver;
   }
@@ -505,6 +514,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     if (!isAttached) {
       isAttached = true;
       avatarReceiver.attach();
+      tgx101FwdAvatar.attach();
       avatarsReceiver.attach();
       giveawayAvatarsReceiver.attach();
       reactionAvatarsReceiver.attach();
@@ -528,6 +538,7 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
     if (isAttached) {
       isAttached = false;
       avatarReceiver.detach();
+      tgx101FwdAvatar.detach();
       avatarsReceiver.detach();
       giveawayAvatarsReceiver.detach();
       reactionAvatarsReceiver.detach();

@@ -887,8 +887,11 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   // private static final boolean USE_ROUND_SMOOTHING = false;
 
+  /** TGx101 (user 2026-11-21, the reference «Файлы тоже такого же плана. Квадратные»): a file's picture is a rounded square */
+  private static final float TGX101_PREVIEW_RADIUS = 8f;
+
   public int getContentRadius (int defaultValue) {
-    return hasPreview ? getPreviewSize() / 2 : defaultValue;
+    return hasPreview ? Screen.dp(TGX101_PREVIEW_RADIUS) : defaultValue;
   }
 
   public void requestPreview (DoubleImageReceiver receiver) {
@@ -913,7 +916,7 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
       thumbLocation.set(lastStartX, lastStartY + top, lastStartX + previewSize, lastStartY + previewSize + top);
       thumbLocation.setClip(0, actualTop < 0 ? -actualTop : 0, 0, actualBottom < 0 ? -actualBottom : 0);
-      thumbLocation.setRoundings(previewSize / 2);
+      thumbLocation.setRoundings(Screen.dp(TGX101_PREVIEW_RADIUS));
 
       return thumbLocation;
     }
@@ -941,7 +944,9 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
       preview.setPaintAlpha(alpha * preview.getAlpha());
       receiver.setPaintAlpha(alpha * receiver.getAlpha());
       if (mayBeTransparent) {
-        c.drawCircle(startX + previewSize / 2f, startY + previewSize / 2f, previewSize / 2f, Paints.fillingPaint(ColorUtils.alphaColor(alpha, Color.WHITE)));
+        android.graphics.RectF r = Paints.getRectF();
+        r.set(startX, startY, startX + previewSize, startY + previewSize);
+        c.drawRoundRect(r, Screen.dp(TGX101_PREVIEW_RADIUS), Screen.dp(TGX101_PREVIEW_RADIUS), Paints.fillingPaint(ColorUtils.alphaColor(alpha, Color.WHITE)));
       }
       DrawAlgorithms.drawReceiver(c, preview, receiver, true, true, startX, startY, startX + previewSize, startY + previewSize);
       receiver.restorePaintAlpha();

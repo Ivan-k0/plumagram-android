@@ -744,6 +744,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ResetSelectionHint, "Закрыть меню вложений?");
     RU.put(R.string.Tgx101ResetSelectionDo, "Сбросить");
     RU.put(R.string.Tgx101ForwardFrom, "от %1$s");
+    RU.put(R.string.Tgx101ForwardedFrom, "Переслано от");
     RU.put(R.string.Tgx101PlayerKeepSpeed, "Запоминать скорость");
     RU.put(R.string.Tgx101SearchSettings, "Поиск по настройкам");
     RU.put(R.string.Tgx101CreateShortcut, "Создать ярлык");

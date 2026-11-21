@@ -6417,6 +6417,7 @@
   <string name="Tgx101ResetSelectionHint">Close the attachment menu?</string>
   <string name="Tgx101ResetSelectionDo">Reset</string>
   <string name="Tgx101ForwardFrom">from %1$s</string>
+  <string name="Tgx101ForwardedFrom">Forwarded from</string>
   <string name="Tgx101PlayerKeepSpeed">Remember speed</string>
   <string name="Tgx101SearchSettings">Search settings</string>
   <string name="Tgx101CreateShortcut">Create shortcut</string>
