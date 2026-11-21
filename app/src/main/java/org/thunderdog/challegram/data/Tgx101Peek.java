@@ -259,7 +259,7 @@ public final class Tgx101Peek {
     }
 
     public void release () {
-      if (gpu != null) {
+      if (gpu != null && android.os.Build.VERSION.SDK_INT >= 31) { // gpu exists only there; lint (Android 4) asks for the check
         gpu.release();
         gpu = null;
       }
