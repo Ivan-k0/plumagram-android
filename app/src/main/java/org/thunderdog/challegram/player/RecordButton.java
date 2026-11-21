@@ -182,19 +182,30 @@ public class RecordButton extends View implements FactorAnimator.Target, ClickHe
   // TGx101 (user 2026-11-16, mockups «вокруг кнопки записи», after Telegram for Mac): «если линия активна — просто кнопка
   // и линия; если не активна — капля в два слоя; для всех полей ввода». With the field's live line on, the button only
   // breathes a little with the voice and the line carries the wave; otherwise a two-layer drop round the button — the
-  // near layer quick, the far one slow and paler — its edge swaying with the voice. Since 2026-11-20 a soft glow instead
+  // near layer quick, the far one slow and paler — its edge swaying with the voice
   public static final int TGX101_HALO_DROP = 0, TGX101_HALO_NONE = 1;
   private int tgx101Halo = TGX101_HALO_DROP;
-  private float tgx101Slow;
+  private float tgx101Slow, tgx101Near;
   private long tgx101LastFrame;
-  private android.graphics.Paint tgx101Glow;
-  private int tgx101GlowColor, tgx101GlowBase;
+  private final android.graphics.Path tgx101Path = new android.graphics.Path();
 
   public void tgx101SetHalo (int halo) {
     if (tgx101Halo != halo) {
       tgx101Halo = halo;
       invalidate();
     }
+  }
+
+  private void tgx101Drop (Canvas c, float r, float amp, float phase, float speed, long now, int color) {
+    tgx101Path.rewind();
+    for (int i = 0; i <= 48; i++) {
+      double a = i / 48.0 * Math.PI * 2;
+      float rr = r + amp * (float) (Math.sin(a * 3 + now / (260.0 * speed) + phase) * .6 + Math.sin(a * 5 - now / (190.0 * speed) + phase * 2) * .4);
+      float x = center + (float) Math.cos(a) * rr, y = center + (float) Math.sin(a) * rr;
+      if (i == 0) tgx101Path.moveTo(x, y); else tgx101Path.lineTo(x, y);
+    }
+    tgx101Path.close();
+    c.drawPath(tgx101Path, Paints.fillingPaint(color));
   }
 
   @Override
@@ -209,33 +220,20 @@ public class RecordButton extends View implements FactorAnimator.Target, ClickHe
     float dt = tgx101LastFrame == 0 ? 16f : Math.min(64f, now - tgx101LastFrame);
     tgx101LastFrame = now;
     tgx101Slow += (loud - tgx101Slow) * (1f - (float) Math.exp(-dt / 260f));
+    // (user 2026-11-16 22:11 «первая волна слишком резкая, а вторая норм»): the near layer jumped with each burst of the
+    // voice — it follows it in ~0.1 s now, sways less and is a little paler
+    tgx101Near += (loud - tgx101Near) * (1f - (float) Math.exp(-dt / 110f));
     if (expand > 0f) {
       float r = radius * expand;
-      // (user 2026-11-20, mockups «Анимация записи голосового» → «Частицы»): the two-layer drop gave way to a soft glow
-      // that breathes with the voice; the dots flying out of the button are Tgx101RecordParticles. The glow is one cached
-      // gradient scaled to size — nothing is made while drawing
-      int glowBase = Screen.dp(100f);
-      if (tgx101Glow == null || tgx101GlowColor != color || tgx101GlowBase != glowBase) {
-        tgx101GlowColor = color;
-        tgx101GlowBase = glowBase;
-        tgx101Glow = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-        tgx101Glow.setShader(new android.graphics.RadialGradient(0, 0, glowBase,
-          new int[] {ColorUtils.alphaColor(.25f, color), ColorUtils.alphaColor(.25f, color), ColorUtils.alphaColor(0f, color)},
-          new float[] {0f, .6f, 1f}, android.graphics.Shader.TileMode.CLAMP));
-      }
-      float glow = r + (Screen.dp(18f) + Screen.dp(22f) * tgx101Slow) * expand; // solid to about the edge, then fading out
-      float k = glow / glowBase;
-      c.save();
-      c.translate(center, center);
-      c.scale(k, k);
-      c.drawCircle(0, 0, glowBase, tgx101Glow);
-      c.restore();
-      // the glow follows the voice 30 times a second, as the line's wave (user 2026-11-16
+      tgx101Drop(c, r + (Screen.dp(10f) + Screen.dp(16f) * tgx101Slow) * expand, (Screen.dp(3f) + Screen.dp(6f) * tgx101Slow) * expand, 2f, 1.8f, now, ColorUtils.alphaColor(.16f, color));
+      tgx101Drop(c, r + (Screen.dp(5f) + Screen.dp(9f) * tgx101Near) * expand, (Screen.dp(1.5f) + Screen.dp(3f) * tgx101Near) * expand, 0f, 1.3f, now, ColorUtils.alphaColor(.22f, color));
+      // the edge sways on its own, between the voice's steps — 30 times a second, as the line's wave (user 2026-11-16
       // «не будет грузить процессор больше, чем было?»): every frame of a 120 Hz screen for the whole recording was too much
       postInvalidateDelayed(33);
     } else {
       tgx101LastFrame = 0;
       tgx101Slow = 0f;
+      tgx101Near = 0f;
     }
     c.drawCircle(center, center, radius * expand, Paints.fillingPaint(color));
   }
