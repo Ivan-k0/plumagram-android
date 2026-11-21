@@ -104,6 +104,10 @@ public class RecordAudioVideoController implements
   private RecordBackgroundView videoBackgroundView;
   private ShadowView videoTopShadowView, videoBottomShadowView;
   private RecordButton recordBackground;
+  // TGx101 (user 2026-11-21, mockups «Анимация записи голосового» → «Волна и стая»): water in the bar, birds round the button
+  private final Tgx101RecordWave tgx101Wave = new Tgx101RecordWave();
+  private Tgx101RecordBirds tgx101Birds;
+  private float tgx101CloseFactor;
   private boolean tgx101WaveOverPanel;
   private VoiceVideoButtonView voiceVideoButtonView;
   private RecordLockView lockView;
@@ -266,6 +270,7 @@ public class RecordAudioVideoController implements
         // TGx101: with no room under the field's line the voice's wave is drawn here, over the panel's bottom edge
         @Override
         protected void dispatchDraw (android.graphics.Canvas c) {
+          tgx101Wave.draw(c, this, getWidth(), getHeight()); // behind the timer's hint and «Cancel»
           super.dispatchDraw(c);
           if (tgx101WaveOverPanel && !tgx101OverlayFloating && !recordingVideo && !org.thunderdog.challegram.ui.Tgx101TypingLine.Sound.keyboardUp(this)) {
             org.thunderdog.challegram.ui.Tgx101TypingLine.Sound.drawOverPanel(c, this, getHeight(), getWidth());
@@ -343,6 +348,10 @@ public class RecordAudioVideoController implements
         }
       });
       this.durationView.setLayoutParams(Views.newLayoutParams(durationView, Gravity.LEFT | Gravity.BOTTOM));
+      // over the chat and the bar, under the timer, the lock and the round button (raised)
+      this.tgx101Birds = new Tgx101RecordBirds(context);
+      this.tgx101Birds.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+      this.rootLayout.addView(tgx101Birds);
       this.rootLayout.addView(durationView);
 
       this.recordBackground = new RecordButton(context);
@@ -630,7 +639,8 @@ public class RecordAudioVideoController implements
 
   // private int[] inputPos = new int[2];
 
-  private static final float SLIDE_DISTANCE = 50f;
+  // TGx101 (user 2026-11-20 «область свайпа при удалении нужно продлить»): the finger goes 110 dp left to cancel, was 50
+  private static final float SLIDE_DISTANCE = 110f;
 
   private void updateMiddle () {
     float actualX = Math.max(-Screen.dp(SLIDE_DISTANCE), getActualTranslateX());
@@ -685,7 +695,7 @@ public class RecordAudioVideoController implements
       slideHintView.getLocationOnScreen(hint);
       recordBackground.getLocationOnScreen(btn);
       float hintRight = hint[0] - slideHintView.getTranslationX() + slideHintView.getMeasuredWidth();
-      float btnLeft = btn[0] + recordBackground.getMeasuredWidth() * .5f - Screen.dp(40f);
+      float btnLeft = btn[0] - tgx101AppliedShift + recordBackground.getMeasuredWidth() * .5f - Screen.dp(40f); // where the button stands at rest
       hintShift = Math.min(0f, btnLeft - Screen.dp(16f) - hintRight /* 16:06 «слова со стрелкой слегка вправо» */);
       hintShift = Math.max(hintShift, -slideHintView.getLeft() + Screen.dp(96f) - (slideHintView.getMeasuredWidth() / 2f));
     }
@@ -695,7 +705,9 @@ public class RecordAudioVideoController implements
     updateMiddle();
     cornerX += cornerView.getLeft();
 
-    durationView.setTranslationX(Math.min(0, cornerX - durationView.getMeasuredWidth() - Screen.dp(8f))); // TGx101: air between the red dot and «‹»
+    // TGx101: air between the red dot and «‹». The finger's way left doesn't push the timer (2026-11-21: the way is 110 dp
+    // now — the timer stays put)
+    durationView.setTranslationX(Math.min(0, cornerX - actualX - durationView.getMeasuredWidth() - Screen.dp(8f)));
 
     updateVideoY();
     updateDuration();
@@ -706,6 +718,12 @@ public class RecordAudioVideoController implements
 
     float y = overallTranslation + actualY;
     voiceVideoButtonView.setTranslationY(y);
+
+    // TGx101 (user 2026-11-20 «кнопка должна двигаться вместе с пальцем при свайпе, а не стоять на месте»; 2026-11-21 «кнопка
+    // статична… пусть едет»): the button stands still otherwise, but goes left with the finger (up it already went); a big
+    // jump — the finger let go, the recording reset — is eased back over 220 ms. The lock and the camera keep their column
+    tgx101FollowFinger(actualX);
+    voiceVideoButtonView.setTranslationX(tgx101ButtonShift);
 
     // Relative to voiceVideoButtonView
 
@@ -718,15 +736,61 @@ public class RecordAudioVideoController implements
 
     recordBackground.setTranslationX(cx - recordBackground.getMeasuredWidth() / 2);
     recordBackground.setTranslationY(cy - recordBackground.getMeasuredHeight() / 2);
+    tgx101AppliedShift = tgx101ButtonShift; // what the button's place on screen holds now
 
-    lockView.setTranslationX(cx - lockView.getMeasuredWidth() / 2);
-    switchCameraButtonWrap.setTranslationX(cx - switchCameraButtonWrap.getMeasuredWidth() / 2f);
-    disposableSwitchButton.setTranslationX(cx - disposableSwitchButton.getMeasuredWidth() / 2f);
+    // TGx101 «Волна и стая»: the birds circle by the button; sliding left reddens them and drains the bar's water
+    tgx101CloseFactor = recordingVideo ? 0f : closeFactor;
+    tgx101Birds.setActive(!recordingVideo);
+    tgx101Birds.setCircle(cx, cy, Screen.dp(41f) * MathUtils.clamp(recordFactor));
+    tgx101Birds.setCancel(tgx101CloseFactor);
+    tgx101UpdateWave();
+
+    float columnX = cx - tgx101ButtonShift;
+    lockView.setTranslationX(columnX - lockView.getMeasuredWidth() / 2);
+    switchCameraButtonWrap.setTranslationX(columnX - switchCameraButtonWrap.getMeasuredWidth() / 2f);
+    disposableSwitchButton.setTranslationX(columnX - disposableSwitchButton.getMeasuredWidth() / 2f);
     updateLockY();
 
     if (closeFactor * recordFactor == 1f) {
       stopRecording(CLOSE_MODE_CANCEL, false);
     }
+  }
+
+  private float tgx101ButtonShift, tgx101ShiftTarget, tgx101AppliedShift;
+  private android.animation.ValueAnimator tgx101ShiftAnimator;
+
+  private void tgx101FollowFinger (float target) {
+    if (tgx101ShiftTarget == target) return;
+    tgx101ShiftTarget = target;
+    if (tgx101ShiftAnimator != null) tgx101ShiftAnimator.cancel();
+    if (Math.abs(target - tgx101ButtonShift) > Screen.dp(24f) && rootLayout != null && rootLayout.getParent() != null) {
+      tgx101ShiftAnimator = android.animation.ValueAnimator.ofFloat(tgx101ButtonShift, target);
+      tgx101ShiftAnimator.setDuration(220L);
+      tgx101ShiftAnimator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+      tgx101ShiftAnimator.addUpdateListener(a -> {
+        tgx101ButtonShift = (float) a.getAnimatedValue();
+        updateTranslations();
+      });
+      tgx101ShiftAnimator.start();
+    } else {
+      tgx101ShiftAnimator = null;
+      tgx101ButtonShift = target;
+    }
+  }
+
+  private void tgx101ResetShift () {
+    if (tgx101ShiftAnimator != null) {
+      tgx101ShiftAnimator.cancel();
+      tgx101ShiftAnimator = null;
+    }
+    tgx101ButtonShift = tgx101ShiftTarget = tgx101AppliedShift = 0f;
+    if (voiceVideoButtonView != null) voiceVideoButtonView.setTranslationX(0f);
+  }
+
+  /** the bar's water shows while a voice note is being recorded, not a round video, not the preview */
+  private void tgx101UpdateWave () {
+    if (inputOverlayView == null) return;
+    tgx101Wave.setState(inputOverlayView, recordingVideo ? 0f : MathUtils.clamp(recordFactor), tgx101CloseFactor);
   }
 
   private void updateButtons () {
@@ -742,6 +806,7 @@ public class RecordAudioVideoController implements
     disposableSwitchButton.setScaleY(scale);
 
     recordBackground.setExpand(recordFactor);
+    tgx101UpdateWave();
   }
 
   private void updateVideoY () {
@@ -872,6 +937,9 @@ public class RecordAudioVideoController implements
 
   private void resetViews () {
     lastDuration = 0;
+    tgx101ResetShift();
+    tgx101Birds.reset();
+    tgx101Wave.reset();
     setTranslations(0f, 0f);
     switchCameraButton.setCameraIconRes(Settings.instance().tgx101RoundStartsFront());
     progressView.reset();
@@ -1706,6 +1774,9 @@ public class RecordAudioVideoController implements
       org.thunderdog.challegram.Tgx101FrameTrace.start(context, "voice-release");
     }
     final boolean needResult = closeMode != CLOSE_MODE_CANCEL && hasValidOutputTarget();
+    if (currentRecording == RECORD_MODE_AUDIO) {
+      tgx101Birds.release(!needResult); // TGx101 «Волна и стая»: sent — away up; cancelled — down, red
+    }
     switch (currentRecording) {
       case RECORD_MODE_AUDIO:
         voiceCloseMode = closeMode;
@@ -1741,6 +1812,11 @@ public class RecordAudioVideoController implements
         // the two-layer drop always, whether the field line's wave is on or not
         recordBackground.tgx101SetHalo(RecordButton.TGX101_HALO_DROP);
         recordBackground.setVolume(amplitude, true);
+        if (!recordingVideo) {
+          tgx101Wave.setLevel(amplitude / 150f);
+          tgx101Birds.setLevel(amplitude / 150f);
+          tgx101Birds.setElapsed(totalDuration());
+        }
       } else {
         startTimers(SystemClock.uptimeMillis());
       }
