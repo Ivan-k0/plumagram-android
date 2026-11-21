@@ -4819,6 +4819,22 @@ public class Settings {
     pmc.putInt(KEY_TGX101_PLAYER_SEEK_STEP, seconds);
   }
 
+  /**
+   * TGx101 (user 2026-11-21 «давай может на выбор голосовое сделаем. волну и стандарт (как в оригинальном tgx)»): how a
+   * voice note looks while it is recorded — {@link #TGX101_VOICE_ANIM_WAVE} water in the bar and birds by the button,
+   * the button following the finger; {@link #TGX101_VOICE_ANIM_STANDARD} the plain round button with its pale circle
+   * growing with the voice, standing still
+   */
+  public static final int TGX101_VOICE_ANIM_WAVE = 0, TGX101_VOICE_ANIM_STANDARD = 1;
+
+  public int tgx101VoiceAnim () {
+    return pmc.getInt("tgx101_voice_anim", TGX101_VOICE_ANIM_WAVE);
+  }
+
+  public void setTgx101VoiceAnim (int anim) {
+    pmc.putInt("tgx101_voice_anim", anim);
+  }
+
   /** TGx101 (user 2026-11-14): PLUMA FREEDOM in Morse on the field's line — its own switch, off by default */
   public boolean tgx101MorseLine () {
     return pmc.getBoolean("tgx101_morse_line", false);

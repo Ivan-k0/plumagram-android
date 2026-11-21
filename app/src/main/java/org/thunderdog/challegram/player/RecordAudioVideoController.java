@@ -639,12 +639,17 @@ public class RecordAudioVideoController implements
 
   // private int[] inputPos = new int[2];
 
-  // TGx101 (user 2026-11-20 «область свайпа при удалении нужно продлить»): the finger goes 110 dp left to cancel, was 50
-  private static final float SLIDE_DISTANCE = 110f;
+  // TGx101 (user 2026-11-20 «область свайпа при удалении нужно продлить»): with «Wave and flock» the finger goes 110 dp
+  // left to cancel; the standard look keeps Telegram X's 50 (user 2026-11-21 «на выбор… волну и стандарт»)
+  private boolean tgx101WaveLook = true;
+
+  private int tgx101SlidePx () {
+    return Screen.dp(tgx101WaveLook ? 110f : 50f);
+  }
 
   private void updateMiddle () {
-    float actualX = Math.max(-Screen.dp(SLIDE_DISTANCE), getActualTranslateX());
-    float closeFactor = MathUtils.clamp(-actualX / (float) Screen.dp(SLIDE_DISTANCE));
+    float actualX = Math.max(-tgx101SlidePx(), getActualTranslateX());
+    float closeFactor = MathUtils.clamp(-actualX / (float) tgx101SlidePx());
 
     // TGx101 (user's screenshot 2026-10-05): a call stopped the recording into the preview without «release» —
     // «Slide left to cancel» stayed on top of the waveform; it goes with the preview too
@@ -683,8 +688,8 @@ public class RecordAudioVideoController implements
         setReleased(true, true);
       }
     }
-    float actualX = Math.max(-Screen.dp(SLIDE_DISTANCE), getActualTranslateX());
-    float closeFactor = MathUtils.clamp(-actualX / (float) Screen.dp(SLIDE_DISTANCE));
+    float actualX = Math.max(-tgx101SlidePx(), getActualTranslateX());
+    float closeFactor = MathUtils.clamp(-actualX / (float) tgx101SlidePx());
 
     // TGx101 (user 2026-10-08 12:42 «красная кнопка слишком близко к стрелке — подвинь „← Отмена“ ближе к центру»): in test
     // builds the hint with its arrow stands 36 dp further left
@@ -707,7 +712,7 @@ public class RecordAudioVideoController implements
 
     // TGx101: air between the red dot and «‹». The finger's way left doesn't push the timer (2026-11-21: the way is 110 dp
     // now — the timer stays put)
-    durationView.setTranslationX(Math.min(0, cornerX - actualX - durationView.getMeasuredWidth() - Screen.dp(8f)));
+    durationView.setTranslationX(Math.min(0, cornerX - (tgx101WaveLook ? actualX : 0f) - durationView.getMeasuredWidth() - Screen.dp(8f)));
 
     updateVideoY();
     updateDuration();
@@ -722,7 +727,7 @@ public class RecordAudioVideoController implements
     // TGx101 (user 2026-11-20 «кнопка должна двигаться вместе с пальцем при свайпе, а не стоять на месте»; 2026-11-21 «кнопка
     // статична… пусть едет»): the button stands still otherwise, but goes left with the finger (up it already went); a big
     // jump — the finger let go, the recording reset — is eased back over 220 ms. The lock and the camera keep their column
-    tgx101FollowFinger(actualX);
+    tgx101FollowFinger(tgx101WaveLook ? actualX : 0f);
     voiceVideoButtonView.setTranslationX(tgx101ButtonShift);
 
     // Relative to voiceVideoButtonView
@@ -740,7 +745,7 @@ public class RecordAudioVideoController implements
 
     // TGx101 «Волна и стая»: the birds circle by the button; sliding left reddens them and drains the bar's water
     tgx101CloseFactor = recordingVideo ? 0f : closeFactor;
-    tgx101Birds.setActive(!recordingVideo);
+    tgx101Birds.setActive(!recordingVideo && tgx101WaveLook);
     tgx101Birds.setCircle(cx, cy, Screen.dp(41f) * MathUtils.clamp(recordFactor));
     tgx101Birds.setCancel(tgx101CloseFactor);
     tgx101UpdateWave();
@@ -790,7 +795,7 @@ public class RecordAudioVideoController implements
   /** the bar's water shows while a voice note is being recorded, not a round video, not the preview */
   private void tgx101UpdateWave () {
     if (inputOverlayView == null) return;
-    tgx101Wave.setState(inputOverlayView, recordingVideo ? 0f : MathUtils.clamp(recordFactor), tgx101CloseFactor);
+    tgx101Wave.setState(inputOverlayView, recordingVideo || !tgx101WaveLook ? 0f : MathUtils.clamp(recordFactor), tgx101CloseFactor);
   }
 
   private void updateButtons () {
@@ -937,6 +942,7 @@ public class RecordAudioVideoController implements
 
   private void resetViews () {
     lastDuration = 0;
+    tgx101WaveLook = Settings.instance().tgx101VoiceAnim() != Settings.TGX101_VOICE_ANIM_STANDARD; // MagiX → «Voice recording animation»
     tgx101ResetShift();
     tgx101Birds.reset();
     tgx101Wave.reset();
@@ -1810,9 +1816,10 @@ public class RecordAudioVideoController implements
         }
         // (user 2026-11-17 «анимацию кнопки во время записи — одинаковой везде, с волной «морзе» и без; за стандарт — без»):
         // the two-layer drop always, whether the field line's wave is on or not
-        recordBackground.tgx101SetHalo(RecordButton.TGX101_HALO_DROP);
+        // 2026-11-21: the haze with «Wave and flock», Telegram X's pale circle with the standard look
+        recordBackground.tgx101SetHalo(tgx101WaveLook ? RecordButton.TGX101_HALO_DROP : RecordButton.TGX101_HALO_STANDARD);
         recordBackground.setVolume(amplitude, true);
-        if (!recordingVideo) {
+        if (!recordingVideo && tgx101WaveLook) {
           tgx101Wave.setLevel(amplitude / 150f);
           tgx101Birds.setLevel(amplitude / 150f);
           tgx101Birds.setElapsed(totalDuration());

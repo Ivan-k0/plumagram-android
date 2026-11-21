@@ -7898,6 +7898,9 @@
   <string name="Tgx101OwnAiModelCurrent">chosen</string>
   <string name="Tgx101TypingLine">Line and pulse while typing</string>
   <string name="Tgx101MorseLine">Interactive input line</string>
+  <string name="Tgx101VoiceAnim">Voice recording animation</string>
+  <string name="Tgx101VoiceAnimWave">Wave and flock</string>
+  <string name="Tgx101VoiceAnimStandard">Standard</string>
   <string name="Tgx101TypingLineDemo">On my way, see you in ten minutes!</string>
   <string name="Tgx101InPlayerSave">Save to Saved Messages</string>
   <string name="Tgx101InPlayerUnsave">Take out of Saved Messages</string>

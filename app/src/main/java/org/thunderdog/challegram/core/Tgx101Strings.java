@@ -1346,6 +1346,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101OwnAiModelCurrent, "выбрана");
     RU.put(R.string.Tgx101TypingLine, "Полоска и пульс при наборе");
     RU.put(R.string.Tgx101MorseLine, "Интерактивная полоса ввода");
+    RU.put(R.string.Tgx101VoiceAnim, "Анимация записи голосового");
+    RU.put(R.string.Tgx101VoiceAnimWave, "Волна и стая");
+    RU.put(R.string.Tgx101VoiceAnimStandard, "Стандартная");
     RU.put(R.string.Tgx101TypingLineDemo, "Уже еду, буду минут через десять!");
     RU.put(R.string.Tgx101InPlayerSave, "В Избранное");
     RU.put(R.string.Tgx101InPlayerUnsave, "Убрать из Избранного");

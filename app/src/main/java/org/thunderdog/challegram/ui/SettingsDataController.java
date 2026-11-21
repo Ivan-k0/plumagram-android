@@ -453,6 +453,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         } else if (itemId == R.id.btn_tgx101Snooze) {
           int minutes = Settings.instance().tgx101SnoozeMinutes();
           view.setData(tgx101SnoozeName(minutes));
+        } else if (itemId == R.id.btn_tgx101VoiceAnim) {
+          view.setData(Settings.instance().tgx101VoiceAnim() == Settings.TGX101_VOICE_ANIM_STANDARD ? R.string.Tgx101VoiceAnimStandard : R.string.Tgx101VoiceAnimWave);
         } else if (itemId == R.id.btn_tgx101VoiceQueue) {
           view.setData(Settings.instance().skipOwnVoiceInQueue() ? R.string.Tgx101VoiceQueueSkipOwn : R.string.Tgx101VoiceQueueAll);
         } else if (itemId == R.id.btn_tgx101Gestures) {
@@ -705,6 +707,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HideInputEmoji, 0, R.string.Tgx101HideInputEmoji),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MorseLine, 0, R.string.Tgx101MorseLine),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101VoiceAnim, 0, R.string.Tgx101VoiceAnim),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101RearRounds, 0, R.string.Tgx101RearRounds),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1235,7 +1239,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_tgx101DrawerOrder || id == R.id.btn_tgx101HidePhone || id == R.id.btn_tgx101CapsuleScrollHide
       || id == R.id.btn_tgx101Bird || id == R.id.btn_tgx101BirdRing || id == R.id.btn_tgx101SwipeToStorage || id == R.id.btn_tgx101SolidControls) return TGX101_SECTION_NAV;
     if (id == R.id.btn_tgx101FloatingInput || id == R.id.btn_tgx101BottomGap || id == R.id.btn_tgx101SwipeKeyboard || id == R.id.btn_tgx101HideInputCamera || id == R.id.btn_tgx101HideInputCommands
-      || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101TypingLine || id == R.id.btn_tgx101MorseLine || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
+      || id == R.id.btn_tgx101HideInputEmoji || id == R.id.btn_tgx101TypingLine || id == R.id.btn_tgx101MorseLine || id == R.id.btn_tgx101VoiceAnim || id == R.id.btn_tgx101FormatMenu || id == R.id.btn_tgx101TextEditor) return TGX101_SECTION_INPUT;
     if (id == R.id.btn_tgx101QuickCalls) return 7;
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_tgx101CompactBubbles || id == R.id.btn_tgx101RememberChatPlace) return 2;
     if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101AiCompose || id == R.id.btn_tgx101AiSummary || id == R.id.btn_tgx101AiMissed || id == R.id.btn_tgx101AiSort || id == R.id.btn_tgx101Peek
@@ -1355,7 +1359,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       gone.add(R.id.btn_tgx101ZoomPullClose);
     }
     int[] bottomMenu = {R.id.btn_tgx101CapsuleMenu, R.id.btn_tgx101ContactsMenu, R.id.btn_tgx101QuickCalls, R.id.btn_tgx101BottomGap, R.id.btn_tgx101HideCompose};
-    int[] inputButtons = {R.id.btn_tgx101HideInputCamera, R.id.btn_tgx101HideInputCommands, R.id.btn_tgx101HideInputEmoji, R.id.btn_tgx101MorseLine}; // «Line and pulse while typing» gone (user 2026-11-18 «функция не нужна»)
+    int[] inputButtons = {R.id.btn_tgx101HideInputCamera, R.id.btn_tgx101HideInputCommands, R.id.btn_tgx101HideInputEmoji, R.id.btn_tgx101MorseLine, R.id.btn_tgx101VoiceAnim}; // «Line and pulse while typing» gone (user 2026-11-18 «функция не нужна»)
     // TGx101 (user 2026-10-12 14:52 «не видно где выключатель рекламы»): channel switches get their own section
     int[] channels = {R.id.btn_tgx101HideSponsored, R.id.btn_tgx101HideJoin};
     int[] other = {R.id.btn_tgx101RearRounds, R.id.btn_tgx101RoundRememberCamera, R.id.btn_tgx101RoundAskCamera, R.id.btn_tgx101HidePhone, R.id.btn_tgx101NotificationPlane, R.id.btn_tgx101ForegroundNotif};
@@ -1655,6 +1659,17 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101ZoomPullClose(toggleResult); // the view was already toggled above
     } else if (id == R.id.btn_tgx101CameraInAttach) {
       Settings.instance().setCameraInAttach(toggleResult); // the view was already toggled above; applies to chats opened afterwards
+    } else if (id == R.id.btn_tgx101VoiceAnim) {
+      boolean standard = Settings.instance().tgx101VoiceAnim() == Settings.TGX101_VOICE_ANIM_STANDARD;
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101VoiceAnim)
+        .setRawItems(new ListItem[] {
+          new ListItem(ListItem.TYPE_RADIO_OPTION, 1, 0, R.string.Tgx101VoiceAnimWave, R.id.btn_tgx101VoiceAnim, !standard),
+          new ListItem(ListItem.TYPE_RADIO_OPTION, 2, 0, R.string.Tgx101VoiceAnimStandard, R.id.btn_tgx101VoiceAnim, standard)
+        })
+        .setIntDelegate((resultId, result) -> {
+          Settings.instance().setTgx101VoiceAnim(result.get(R.id.btn_tgx101VoiceAnim) == 2 ? Settings.TGX101_VOICE_ANIM_STANDARD : Settings.TGX101_VOICE_ANIM_WAVE);
+          adapter.updateValuedSettingById(R.id.btn_tgx101VoiceAnim);
+        }));
     } else if (id == R.id.btn_tgx101VoiceQueue) {
       boolean skip = Settings.instance().skipOwnVoiceInQueue();
       showSettings(new SettingsWrapBuilder(R.id.btn_tgx101VoiceQueue)

@@ -104,7 +104,7 @@ final class Tgx101RecordWave {
       paint.setColor(ColorUtils.alphaColor(alpha, color));
       c.drawPath(path, paint);
     }
-    host.postInvalidateDelayed(FRAME_MS);
+    host.postInvalidateDelayed(16); // 60 frames a second (user 2026-11-21 «очень дёрганно»: 30 were not enough)
   }
 
   private static float smooth (float a, float b, float t) {
