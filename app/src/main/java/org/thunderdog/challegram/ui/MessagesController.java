@@ -8754,6 +8754,18 @@ public class MessagesController extends ViewController<MessagesController.Argume
               if (top < limit) {
                 messagesView.scrollBy(0, top - limit); // before this frame is drawn: no visible jump
                 if (logged[0]++ == 0) org.thunderdog.challegram.Tgx101Diag.mark("reply: kept the message in view (" + top + "), frame by frame");
+              } else {
+                // TGx101 (user 2026-11-21 15:00 «при ответе сообщение ушло за клавиатуру и выровнялось», journal: a message
+                // higher up the chat, the field rode up with the keyboard over it, the chat put it back half a second later):
+                // it rides up with the field too — its bottom stays above the field, its top never above the screen
+                int visibleBottom = messagesView.getHeight() - messagesView.getPaddingBottom() - Screen.dp(8f);
+                int under = child.getBottom() - visibleBottom;
+                int room = top - limit;
+                int by = Math.min(under, room);
+                if (by > 0) {
+                  messagesView.scrollBy(0, by);
+                  if (logged[0]++ == 0) org.thunderdog.challegram.Tgx101Diag.mark("reply: the message rides up over the keyboard (" + under + " px under the field), frame by frame");
+                }
               }
               return true;
             }
