@@ -924,6 +924,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   }
 
   public <T extends View & DrawableProvider> void draw (T view, Canvas c, int startX, int startY, Receiver preview, Receiver receiver, @ColorInt int backgroundColor, int contentReplaceColor, float alpha, float checkFactor) {
+    // TGx101 (user 2026-11-21 «превью файла и названия не оцентрованы, фото выше — название ниже»): with a name on two
+    // lines the picture stands in the middle of the name and size, not at their top
+    final int textStartY = startY;
+    startY += tgx101TitleExtraHeight() / 2;
     this.lastStartX = startX;
     this.lastStartY = startY;
 
@@ -976,10 +980,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
     if (waveform == null) {
       int textLeft = startX + previewSize + getPreviewOffset();
       if (trimmedTitle != null) {
-        trimmedTitle.draw(c, textLeft, textLeft + trimmedTitle.getWidth(), 0, startY + Screen.dp(6f), null, alpha);
+        trimmedTitle.draw(c, textLeft, textLeft + trimmedTitle.getWidth(), 0, textStartY + Screen.dp(6f), null, alpha);
       }
       if (trimmedSubtitle != null) {
-        trimmedSubtitle.draw(c, textLeft, textLeft + trimmedSubtitle.getWidth(), 0, startY + Screen.dp(27f) + tgx101TitleExtraHeight(), null, alpha);
+        trimmedSubtitle.draw(c, textLeft, textLeft + trimmedSubtitle.getWidth(), 0, textStartY + Screen.dp(27f) + tgx101TitleExtraHeight(), null, alpha);
       }
     } else {
       // TODO alpha parameter support for voice messages

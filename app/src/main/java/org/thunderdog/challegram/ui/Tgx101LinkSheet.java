@@ -69,72 +69,71 @@ public final class Tgx101LinkSheet {
   }
 
   public static void show (ViewController<?> c, String url, @Nullable String displayUrl, Runnable open, @Nullable Runnable cancelled) {
+    // TGx101 (user 2026-11-21, mockup «Окно "Перейти по ссылке?"», variant В «меню у ссылки»): a small menu at the
+    // finger instead of the big sheet — the site in bold and the path under it, «Open» first, no dimmed «Cancel»: a tap
+    // beside the menu closes it
     final boolean[] answered = {false};
-    final Tgx101Sheet.Handle[] handle = new Tgx101Sheet.Handle[1];
     final String site = StringUtils.isEmpty(displayUrl) ? siteOf(url) : null;
-    final Runnable openNow = () -> {
-      answered[0] = true;
-      handle[0].dismiss();
-      open.run();
-    };
     Tgx101Diag.mark("link prompt: shown, can remember the site " + (site != null));
-    handle[0] = Tgx101Sheet.show(c, () -> {
-      if (!answered[0]) {
-        Tgx101Diag.mark("link prompt: closed without opening");
-        if (cancelled != null) cancelled.run();
-      }
-    }, body -> {
-      Context context = c.context();
-      body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101LinkOpenTitle)));
 
-      TextView address = new TextView(context);
-      address.setText(StringUtils.isEmpty(displayUrl) ? url : displayUrl);
-      address.setTextColor(Theme.textDecentColor());
-      address.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
-      address.setLineSpacing(Screen.dp(2f), 1f);
-      address.setMaxLines(5);
-      address.setEllipsize(TextUtils.TruncateAt.END);
-      address.setPadding(Screen.dp(20f), 0, Screen.dp(20f), Screen.dp(16f));
-      body.addView(address, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    String shown = StringUtils.isEmpty(displayUrl) ? url : displayUrl;
+    android.text.SpannableStringBuilder head = new android.text.SpannableStringBuilder();
+    Uri uri = Strings.wrapHttps(shown);
+    String host = uri != null ? uri.getHost() : null;
+    if (!StringUtils.isEmpty(host)) {
+      head.append(host);
+      head.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), 0, head.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      head.setSpan(new android.text.style.ForegroundColorSpan(Theme.textAccentColor()), 0, head.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+      int at = shown.indexOf(host);
+      String rest = at >= 0 ? shown.substring(at + host.length()) : "";
+      if (rest.length() > 1) head.append('\n').append(rest.length() > 90 ? rest.substring(0, 89) + "…" : rest);
+    } else {
+      head.append(shown.length() > 120 ? shown.substring(0, 119) + "…" : shown);
+    }
 
-      TextView button = new TextView(context);
-      button.setText(Lang.getString(R.string.Open));
-      button.setTextColor(Theme.getColor(ColorId.fillingPositiveContent));
-      button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
-      button.setTypeface(Fonts.getRobotoMedium());
-      button.setGravity(Gravity.CENTER);
-      GradientDrawable buttonBg = new GradientDrawable();
-      buttonBg.setColor(Theme.getColor(ColorId.fillingPositive));
-      buttonBg.setCornerRadius(Screen.dp(14f));
-      button.setBackground(buttonBg);
-      Views.setClickable(button);
-      button.setOnClickListener(v -> openNow.run());
-      LinearLayout.LayoutParams buttonParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(50f));
-      buttonParams.setMargins(Screen.dp(20f), 0, Screen.dp(20f), Screen.dp(8f));
-      body.addView(button, buttonParams);
+    java.util.List<Integer> ids = new java.util.ArrayList<>();
+    java.util.List<String> titles = new java.util.ArrayList<>();
+    java.util.List<Integer> colors = new java.util.ArrayList<>();
+    java.util.List<Integer> icons = new java.util.ArrayList<>();
+    ids.add(R.id.btn_open); titles.add(Lang.getString(R.string.Open)); colors.add(ViewController.OptionColor.BLUE); icons.add(R.drawable.baseline_open_in_browser_24);
+    if (site != null) {
+      ids.add(R.id.btn_tgx101LinkAlways); titles.add(Lang.getString(R.string.Tgx101LinkOpenAlways)); colors.add(ViewController.OptionColor.NORMAL); icons.add(R.drawable.baseline_public_24);
+    }
+    ids.add(R.id.btn_copyLink); titles.add(Lang.getString(R.string.CopyLink)); colors.add(ViewController.OptionColor.NORMAL); icons.add(R.drawable.baseline_content_copy_24);
+    ids.add(R.id.btn_share); titles.add(Lang.getString(R.string.Share)); colors.add(ViewController.OptionColor.NORMAL); icons.add(R.drawable.baseline_share_24);
 
-      if (site != null) {
-        body.addView(Tgx101Sheet.row(context, R.drawable.baseline_public_24, 0, Lang.getString(R.string.Tgx101LinkOpenAlways), null, false, v -> {
-          Settings.instance().addTgx101SiteWithoutPrompt(site);
-          Tgx101Diag.mark("link prompt: site remembered");
-          openNow.run();
-        }));
-      }
-      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_content_copy_24, 0, Lang.getString(R.string.CopyLink), null, false, v -> {
+    org.thunderdog.challegram.widget.PopupLayout popup = c.showOptions(head, toArray(ids), titles.toArray(new String[0]), toArray(colors), toArray(icons), (itemView, id) -> {
+      if (id == R.id.btn_open) {
+        answered[0] = true;
+        open.run();
+      } else if (id == R.id.btn_tgx101LinkAlways) {
+        answered[0] = true;
+        Settings.instance().addTgx101SiteWithoutPrompt(site);
+        Tgx101Diag.mark("link prompt: site remembered");
+        open.run();
+      } else if (id == R.id.btn_copyLink) {
         UI.copyText(url, R.string.CopiedLink);
-        handle[0].dismiss();
-      }));
-
-      TextView quiet = new TextView(context);
-      quiet.setText(Lang.getString(R.string.Cancel));
-      quiet.setTextColor(Theme.textDecentColor());
-      quiet.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
-      quiet.setGravity(Gravity.CENTER);
-      Views.setClickable(quiet);
-      RippleSupport.setTransparentSelector(quiet);
-      quiet.setOnClickListener(v -> handle[0].dismiss());
-      body.addView(quiet, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(46f)));
+      } else if (id == R.id.btn_share) {
+        org.thunderdog.challegram.tool.Intents.shareText(url);
+      }
+      return true;
     });
+    if (popup != null) {
+      popup.setDismissListener(p -> {
+        if (!answered[0]) {
+          Tgx101Diag.mark("link prompt: closed without opening");
+          if (cancelled != null) cancelled.run();
+        }
+      });
+    } else if (cancelled != null) {
+      cancelled.run();
+    }
+  }
+
+  private static int[] toArray (java.util.List<Integer> list) {
+    int[] array = new int[list.size()];
+    for (int i = 0; i < array.length; i++) array[i] = list.get(i);
+    return array;
   }
 
   /** Settings → Privacy: the sites answered once and for all, and forgetting them */
