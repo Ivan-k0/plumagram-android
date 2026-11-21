@@ -63,6 +63,7 @@ public final class Tgx101DeleteEffect extends View {
     boolean right; // the bubble stands at the right: it shrinks towards its right edge
     int tone; // the picture's average colour, lit up — the glowing line and dot of the «television»
     @Nullable Bitmap soft; // a tiny copy drawn large — the blur it melts into (cheap, every Android)
+    boolean sink; // tall (a photo, a video, a long post): it sinks away into the screen instead of the «television»
   }
 
   private final ArrayList<Burst> bursts = new ArrayList<>();
@@ -176,6 +177,19 @@ public final class Tgx101DeleteEffect extends View {
   static final int WAVE_STEPS = 8;
   private long lastWave;
 
+  static final float TGX101_SINK_FROM_DP = 140f;
+  private boolean lastSink;
+
+  /** When the chat may start closing in after the last batch set off: at once for what sinks, the «television» half run in */
+  public long tgx101GapDelay () {
+    return lastSink ? 30 : 140;
+  }
+
+  /** The last batch sank (tall) — its gap closes over a longer, softer glide */
+  public boolean tgx101LastSank () {
+    return lastSink;
+  }
+
   /** How long the wave of the last batch runs before its top message starts going (0 for one message) */
   public long lastWave () {
     return lastWave;
@@ -244,6 +258,12 @@ public final class Tgx101DeleteEffect extends View {
         }
         if (leaving.size() > 1) for (Burst b : leaving) b.group = group;
         for (Burst b : leaving) b.tone = averageTone(b);
+        // (user 2026-11-21 «удаление медиа топорно — подумай как»: a photo flattened to a line left a tall empty hole,
+        // then the chat fell into it): what is tall sinks away — smaller towards its middle and fading, while the chat
+        // closes in at once
+        boolean tall = group != null && group.height() > Screen.dp(TGX101_SINK_FROM_DP);
+        for (Burst b : leaving) b.sink = tall;
+        lastSink = tall;
         lastWave = 0;
       } else {
         java.util.Collections.sort(leaving, (x, y) -> Float.compare(y.bounds.bottom, x.bounds.bottom));
@@ -397,7 +417,8 @@ public final class Tgx101DeleteEffect extends View {
   // an even run in to the middle, a short small dot; the chat closes in as the line is nearly gone
   // (second check: the row below came down while the line was still full width — the line and the dot were drawn over its
   // text): quicker, and the chat closes in only once the line is a dot (TGX101_GAP_CLOSE_DELAY = TV_FLAT + TV_IN)
-  private static final float TV_FLAT = .10f, TV_IN = .14f, TV_DOT = .05f, TV_END = TV_FLAT + TV_IN + TV_DOT;
+  // (2026-11-21 «телевизор доработай, чтобы выглядело естественней»): a little quicker, the chat closes in from halfway
+  private static final float TV_FLAT = .09f, TV_IN = .12f, TV_DOT = .05f, TV_END = TV_FLAT + TV_IN + TV_DOT;
   private static final android.view.animation.Interpolator TV_FLAT_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.5f, 0f, .2f, 1f);
   private static final android.view.animation.Interpolator TV_IN_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.4f, 0f, .6f, 1f);
   private final Paint tvPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -465,6 +486,26 @@ public final class Tgx101DeleteEffect extends View {
     tvPaint.setShader(null);
   }
 
+  private static final float SINK_END = .30f;
+  private static final android.view.animation.Interpolator SINK_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.4f, 0f, .2f, 1f);
+
+  /** smaller towards the middle (to 60 %), softly blurring and fading out */
+  private void drawSink (Canvas c, Burst b, float t) {
+    if (t < 0f) t = 0f;
+    float f = SINK_CURVE.getInterpolation(Math.min(1f, t / SINK_END));
+    RectF r = b.group != null ? b.group : b.bounds;
+    float cx = r.centerX(), cy = r.centerY(), scale = 1f - .4f * f;
+    dst.set(cx + (b.bounds.left - cx) * scale, cy + (b.bounds.top - cy) * scale, cx + (b.bounds.right - cx) * scale, cy + (b.bounds.bottom - cy) * scale);
+    float alpha = (float) Math.pow(1f - f, 1.4);
+    bitmapPaint.setAlpha((int) (255 * alpha * (1f - .5f * f)));
+    c.drawBitmap(b.snapshot, null, dst, bitmapPaint);
+    if (b.soft != null) { // it goes out of focus as it leaves
+      bitmapPaint.setAlpha((int) (255 * alpha * .5f * f));
+      c.drawBitmap(b.soft, null, dst, bitmapPaint);
+    }
+    bitmapPaint.setAlpha(255);
+  }
+
   private static final float SHRINK_END = .2f;
   private static final android.view.animation.Interpolator SHRINK_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.3f, 0f, .8f, .15f);
 
@@ -520,7 +561,7 @@ public final class Tgx101DeleteEffect extends View {
     for (int k = bursts.size() - 1; k >= 0; k--) {
       Burst b = bursts.get(k);
       float t = (now - b.start) / 1000f;
-      if (t >= (b.fade ? FADE_END : TV ? TV_END : SHRINK_END)) {
+      if (t >= (b.fade ? FADE_END : b.sink ? SINK_END : TV ? TV_END : SHRINK_END)) {
         b.snapshot.recycle();
         if (b.soft != null && b.soft != b.snapshot) b.soft.recycle();
         bursts.remove(k);
@@ -532,6 +573,8 @@ public final class Tgx101DeleteEffect extends View {
         bitmapPaint.setAlpha((int) (255 * Math.max(0f, 1f - t / FADE_END)));
         c.drawBitmap(b.snapshot, null, b.bounds, bitmapPaint);
         bitmapPaint.setAlpha(255);
+      } else if (b.sink) {
+        drawSink(c, b, t);
       } else if (TV) {
         drawTv(c, b, t);
       } else {

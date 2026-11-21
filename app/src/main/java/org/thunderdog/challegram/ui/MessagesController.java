@@ -786,10 +786,18 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // with a wave it waits for the wave's last message to start going
   // «television» (2026-11-18): the chat closes in once the picture is a thin line running in (А+В was 80 ms)
   private static final long TGX101_GAP_CLOSE_DURATION = 260, TGX101_GAP_CLOSE_DELAY = 240; // the TV line is a dot by then
-  private static final android.view.animation.Interpolator TGX101_GAP_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.2f, .8f, .2f, 1f);
+  // (user 2026-11-21 «удаление топорно»: the rows fell into the gap in 3–4 frames — the curve started at full speed): a
+  // soft start and end, and as long as the gap is tall — 220 ms for a line of text, up to 380 ms for a big photo
+  private static final android.view.animation.Interpolator TGX101_GAP_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.4f, 0f, .2f, 1f);
 
   private long tgx101GapDelay () {
-    return TGX101_GAP_CLOSE_DELAY + (tgx101DeleteEffect != null ? tgx101DeleteEffect.lastWave() : 0);
+    long base = tgx101DeleteEffect != null ? tgx101DeleteEffect.tgx101GapDelay() : TGX101_GAP_CLOSE_DELAY;
+    return base + (tgx101DeleteEffect != null ? tgx101DeleteEffect.lastWave() : 0);
+  }
+
+  private static long tgx101GapDuration (float distancePx) {
+    float dp = Math.abs(distancePx) / Math.max(1f, Screen.density());
+    return Math.max(220L, Math.min(380L, Math.round(200 + dp * .5f)));
   }
 
   private void tgx101CaptureGapClose () {
@@ -853,6 +861,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (Float.isNaN(first)) return;
     for (int i = 0; i < n && !known[i]; i++) deltas[i] = first;
     int moved = 0;
+    float farthest = 0f;
+    for (int i = 0; i < n; i++) farthest = Math.max(farthest, Math.abs(deltas[i]));
+    final long gapDuration = tgx101GapDuration(farthest);
     for (int i = 0; i < n; i++) {
       if (deltas[i] == 0f) continue;
       View child = messagesView.getChildAt(i);
@@ -863,12 +874,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       // (an ObjectAnimator: a start delay set on the view's own animate() would stay for every later animation of the row)
       android.animation.ObjectAnimator glide = android.animation.ObjectAnimator.ofFloat(child, View.TRANSLATION_Y, deltas[i], 0f);
       glide.setStartDelay(tgx101GapDelay());
-      glide.setDuration(TGX101_GAP_CLOSE_DURATION);
+      glide.setDuration(gapDuration);
       glide.setInterpolator(TGX101_GAP_CURVE);
       glide.start();
       moved++;
     }
-    org.thunderdog.challegram.Tgx101Diag.mark("delete effect: gap closes after " + tgx101GapDelay() + " ms, " + moved + " rows glide");
+    org.thunderdog.challegram.Tgx101Diag.mark("delete effect: gap closes after " + tgx101GapDelay() + " ms over " + gapDuration + " ms, " + moved + " rows glide " + Math.round(farthest) + " px");
   }
 
   private void tgx101UpdateKeyboardFiller () {
