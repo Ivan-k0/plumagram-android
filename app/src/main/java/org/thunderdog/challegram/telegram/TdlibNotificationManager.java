@@ -2451,8 +2451,31 @@ public class TdlibNotificationManager implements UI.StateListener, Passcode.Lock
     sendLocked(after, ON_UPDATE_ACTIVE_NOTIFICATIONS, new Object[] {this, update});
   }
 
+  /**
+   * TGx101 (4PDA 2026-11-22 «если зайти в комментарии новости на канале, начинают приходить уведомления из чата канала»):
+   * while a channel's comments are open, TDLib gets every new message of its discussion group and makes a notification of
+   * each, though one isn't in that group — the official app shows none. Ordinary messages of a group or channel one isn't
+   * a member of are taken back; replies and mentions (their own group) stay
+   */
+  private boolean tgx101FromNonMember (TdApi.UpdateNotificationGroup update) {
+    if (update.type == null || update.type.getConstructor() != TdApi.NotificationGroupTypeMessages.CONSTRUCTOR) return false;
+    if (update.addedNotifications == null || update.addedNotifications.length == 0) return false;
+    TdApi.Chat chat = tdlib.chat(update.chatId);
+    if (chat == null || chat.type.getConstructor() != TdApi.ChatTypeSupergroup.CONSTRUCTOR) return false;
+    TdApi.ChatMemberStatus status = tdlib.chatStatus(update.chatId);
+    return status != null && !TD.isMember(status, false);
+  }
+
   @TdlibThread
   void onUpdateNotificationGroup (TdApi.UpdateNotificationGroup update) {
+    if (tgx101FromNonMember(update)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("notifications: " + update.addedNotifications.length + " from chat " + update.chatId + " taken back — not a member");
+      for (TdApi.Notification n : update.addedNotifications) {
+        tdlib.client().send(new TdApi.RemoveNotification(update.notificationGroupId, n.id), tdlib.silentHandler());
+      }
+      update.addedNotifications = new TdApi.Notification[0];
+      if (update.removedNotificationIds == null || update.removedNotificationIds.length == 0) return;
+    }
     if (Config.FOREGROUND_SERVICE_DEMO) {
       Context context = UI.getContext();
       @PushProcessor.ShowStatus int result = PushProcessor.showForegroundNotification(context, tdlib.context(), false, -1, tdlib.accountId(), true, new CountDownLatch(0));
