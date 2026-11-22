@@ -1209,8 +1209,8 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
 
   // TGx101 (user 2026-11-22: the left photo of an album stayed grey, and the journal had nothing on it): a picture still
   // empty 2 s after it was first drawn says once what it holds and why it may be empty
-  private long tgx101EmptySince;
-  private boolean tgx101EmptyNoted;
+  private long tgx101GreySince;
+  private boolean tgx101GreyNoted;
 
   // (2026-11-22, third look: nothing was noted while a photo was grey — it went grey later than 2 s after its first draw)
   // any photo / video of a chat that stays empty, see-through or with a recycled bitmap for 2 s in a row is noted, once
@@ -1223,17 +1223,17 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
     boolean shows = !receiver.needPlaceholder() && alpha >= .99f && paintAlpha >= .99f && !badBitmap;
     long now = android.os.SystemClock.uptimeMillis();
     if (shows) {
-      tgx101EmptySince = 0;
-      tgx101EmptyNoted = false;
+      tgx101GreySince = 0;
+      tgx101GreyNoted = false;
       return;
     }
-    if (tgx101EmptySince == 0) {
-      tgx101EmptySince = now;
+    if (tgx101GreySince == 0) {
+      tgx101GreySince = now;
       if (view != null) view.postInvalidateDelayed(2100); // a grey picture draws no more by itself: one more look then
       return;
     }
-    if (tgx101EmptyNoted || now - tgx101EmptySince < 2000) return;
-    tgx101EmptyNoted = true;
+    if (tgx101GreyNoted || now - tgx101GreySince < 2000) return;
+    tgx101GreyNoted = true;
     TdApi.File f = targetFile;
     String loaded;
     if (receiver instanceof ImageReceiver) {
