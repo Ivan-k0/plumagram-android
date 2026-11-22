@@ -74,12 +74,14 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
   private float tgx101StartX;
   private long tgx101DownAt;
   private boolean tgx101Sideways;
+  private float tgx101PrevMoveY; // the finger's y at the previous move, for the hand-over to the grid
 
   private void prepareIntercept (MotionEvent e) {
     currentScrollY = base.getRecyclerScrollY();
     tgx101StartX = e.getX();
     tgx101DownAt = e.getEventTime();
     tgx101Sideways = false;
+    tgx101PrevMoveY = e.getY();
 
     scrollStartY = 0;
     scrolling = false;
@@ -229,6 +231,8 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
         break;
       }
       case MotionEvent.ACTION_MOVE: {
+        final float tgx101Y = tgx101PrevMoveY; // where the finger was at the previous move
+        tgx101PrevMoveY = e.getY();
         if (scrolling) {
           if (e.getY() <= scrollStartY) {
             base.dispatchRecyclerTouchEvent(e);
@@ -247,8 +251,15 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
             // cancelled when the sheet took the touch, so it is given a fresh touch-down first (moves alone it ignored)
             MotionEvent down = MotionEvent.obtain(e);
             down.setAction(MotionEvent.ACTION_DOWN);
+            // (user 2026-11-22, slow drag up to the top: «затуп вверху» — the grid took the finger with a fresh touch and
+            // stood still until it went past its touch slop, ~8 dp) the touch is put a slop below the finger, so the grid
+            // counts the slop as passed and scrolls with the finger's very next move
+            int slop = android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop();
+            // put where the finger was a frame ago, a slop lower — and this frame's move given at once: the grid moves in
+            // the very frame it takes over (one frame stood still: 6 → 0 → 6)
+            down.setLocation(e.getX(), (tgx101Y != 0f ? tgx101Y : e.getY()) + slop + 1);
             base.dispatchRecyclerTouchEvent(down);
-            down.recycle();
+            down.recycle(); // this frame's move follows below, as before
           }
         }
         break;
