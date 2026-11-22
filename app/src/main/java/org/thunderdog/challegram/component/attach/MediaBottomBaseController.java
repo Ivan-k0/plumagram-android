@@ -604,10 +604,14 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       duration = fast ? 180l : 300l;
     } else if (speed > .05f) {
       // up: about the finger's speed in near-even steps (as recorded next to the other client); down: a softer landing
-      double t = (toHeight > currentHeight ? 1.6 : 2.0) * distance / speed;
+      // (recording 2026-11-22, six flicks up: 18 → 36 → 16 px a frame — the sheet sped up to twice the finger and slowed
+      // again, a hump felt as a jolt: 380 ms was too short for the way at the finger's speed.) Going on into the grid,
+      // the sheet keeps the finger's speed the whole way (start and end alike), as long as that takes, up to 1 s
+      boolean even = toHeight > currentHeight && endVelocity > 0f;
+      double t = (even ? 1.0 : toHeight > currentHeight ? 1.6 : 2.0) * distance / speed;
       // down up to 700 ms (recorded next to the reference 2026-11-22: capped at 420 the sheet had to speed up from the grid's
       // 28 px a frame to 40 to make it; there it only slows down)
-      duration = toHeight > currentHeight ? Math.max(160l, Math.min(380l, Math.round(t))) : Math.max(220l, Math.min(700l, Math.round(t)));
+      duration = even ? Math.max(160l, Math.min(1000l, Math.round(t))) : toHeight > currentHeight ? Math.max(160l, Math.min(380l, Math.round(t))) : Math.max(220l, Math.min(700l, Math.round(t)));
     } else {
       duration = fast ? 220l : 320l;
     }

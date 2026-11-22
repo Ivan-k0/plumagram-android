@@ -1218,7 +1218,12 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
     if (tgx101FirstDrawAt == 0) tgx101FirstDrawAt = now;
     if (now - tgx101FirstDrawAt < 2000) return;
     tgx101EmptyNoted = true;
-    if (!receiver.needPlaceholder()) return; // it came
+    // (second build: no line came while the photo was grey — the receiver thought it held the picture) the picture may sit
+    // there see-through: its fade-in stuck — so a held picture is noted too when it is not fully visible
+    float alpha = receiver.getAlpha(), paintAlpha = receiver.getPaintAlpha();
+    android.graphics.Bitmap bmp = receiver instanceof ImageReceiver ? ((ImageReceiver) receiver).getCurrentBitmap() : null;
+    boolean badBitmap = receiver instanceof ImageReceiver && !receiver.needPlaceholder() && (bmp == null || bmp.isRecycled());
+    if (!receiver.needPlaceholder() && alpha >= .99f && paintAlpha >= .99f && !badBitmap) return; // it came and shows
     TdApi.File f = targetFile;
     String loaded = null;
     if (receiver instanceof ImageReceiver) {
@@ -1227,10 +1232,13 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
     } else {
       loaded = receiver.getClass().getSimpleName();
     }
-    org.thunderdog.challegram.Tgx101Diag.mark("album picture empty 2 s: msg " + getSourceMessageId() + ", target " + (targetImageFile != null ? "set" : "none")
+    org.thunderdog.challegram.Tgx101Diag.mark("album picture not shown 2 s: msg " + getSourceMessageId() + ", target " + (targetImageFile != null ? "set" : "none")
       + (f != null ? ", file #" + f.id + " " + f.local.downloadedSize + "/" + f.size + " done " + f.local.isDownloadingCompleted + " active " + f.local.isDownloadingActive
         + " can " + f.local.canBeDownloaded + " path «" + f.local.path + "» exists " + (f.local.path != null && !f.local.path.isEmpty() && new java.io.File(f.local.path).exists()) : ", no file")
-      + ", receiver holds " + loaded + ", preview empty " + preview.needPlaceholder() + ", cell " + cellWidth + "×" + cellHeight);
+      + ", receiver holds " + loaded + ", empty " + receiver.needPlaceholder() + ", alpha " + alpha + ", paint alpha " + paintAlpha
+      + ", bounds " + receiver.getLeft() + "," + receiver.getTop() + "–" + receiver.getRight() + "," + receiver.getBottom()
+      + ", bitmap " + (bmp == null ? "none" : bmp.isRecycled() ? "recycled" : bmp.getWidth() + "×" + bmp.getHeight())
+      + ", preview empty " + preview.needPlaceholder() + ", cell " + cellWidth + "×" + cellHeight);
   }
 
   public <T extends View & DrawableProvider> void draw (T view, Canvas c, int startX, int startY, Receiver preview, Receiver receiver, float alpha) {
