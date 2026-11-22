@@ -677,9 +677,15 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     ValueAnimator a = ValueAnimator.ofFloat(0f, 1f);
     a.setDuration(duration);
     a.setInterpolator(t -> (1f - (float) Math.exp(-k * t)) / norm);
+    // (frame counter 2026-11-22: at the hand-over a whole vsync went by with no frame — the animator's first tick came out at
+    // the very place already shown, nothing moved, nothing was drawn) the glide runs on the real clock from a frame before
+    // its start, so every tick moves on
+    final long t0 = android.view.animation.AnimationUtils.currentAnimationTimeMillis() - 8; // the frame's own time, not the moment the code runs
+    final android.animation.TimeInterpolator curveOnClock = a.getInterpolator();
     a.addUpdateListener(an -> {
       if (recyclerView == null) return;
-      int target = Math.round(total * (float) an.getAnimatedValue());
+      float fraction = Math.min(1f, (android.view.animation.AnimationUtils.currentAnimationTimeMillis() - t0) / (float) duration);
+      int target = Math.round(total * curveOnClock.getInterpolation(fraction));
       int dy = target - done[0];
       if (dy != 0) {
         if (!recyclerView.canScrollVertically(1)) {
@@ -692,9 +698,6 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     });
     tgx101GridGlide = a;
     a.start();
-    // (recording 2026-11-22: 14 → 4 → 14 px at the top) the sheet's last frame and the grid's first one were a frame
-    // apart, the grid starting from naught — one frame stood still. It starts a frame in, so the motion has no gap
-    a.setCurrentPlayTime(Math.min(duration, 9l));
     org.thunderdog.challegram.Tgx101Diag.mark("attach grid: goes on at " + Math.round(velocity) + " px/s for " + Math.round(total) + " px in " + duration + " ms");
   }
 
