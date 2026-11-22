@@ -4365,6 +4365,8 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     return width >= 0 ? width + tgx101FwdIndent() : width;
   }
 
+  private String tgx101LastTimeLine;
+
   protected final void buildBubble (boolean force) {
     if (useBubbles()) {
       final boolean needBubble = useBubble();
@@ -4431,13 +4433,18 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
         // TGx101 (user 2026-11-07 14:02, screenshots of the official app: «пузыри тоньше, короткие на одну строку, иначе часы»):
         // why the time takes a line of its own — the numbers of each text message's decision
         if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && this instanceof TGMessageText && android.os.SystemClock.uptimeMillis() - tgx101MadeAt < 3000) {
-          org.thunderdog.challegram.Tgx101Diag.mark("time line: " + msg.chatId + "/" + msg.id + " last line " + bottomLineContentWidth + " + time " + bubbleTimePartWidth
+          String tgx101Line = "time line: " + msg.chatId + "/" + msg.id + " last line " + bottomLineContentWidth + " + time " + bubbleTimePartWidth
             + " vs max " + (allowHorizontalExtend ? pRealContentMaxWidth : Math.min(pRealContentMaxWidth, bubbleWidth)) + " (bubble " + defaultBubbleWidth + "), own line " + (timeAddedHeight > 0)
             + ", reactions vis " + messageReactions.getVisibility() + " expand " + messageReactions.getTimeHeightExpand() + " big " + useReactionBubbles()
             + ", forward " + useForward() + ", footer " + hasFooter()
             + " | content " + getContentHeight() + ", bubble h " + defaultBubbleHeight + ", reactions h " + messageReactions.getAnimatedHeight()
             + ", time h " + getBubbleTimePartHeight() + ", pads " + getBubblePaddingTop() + "/" + getBubblePaddingBottom() + ", gap " + getBubbleViewPaddingTop() + "+" + getBubbleViewPaddingBottom()
-            + ", compact " + tgx101CompactText());
+            + ", compact " + tgx101CompactText();
+          // (journal 2026-11-22: 43 659 such lines — a bubble with reactions rebuilds every frame) only what changed
+          if (!tgx101Line.equals(tgx101LastTimeLine)) {
+            tgx101LastTimeLine = tgx101Line;
+            org.thunderdog.challegram.Tgx101Diag.mark(tgx101Line);
+          }
         }
         if (messageReactions.getVisibility() > 0f && useReactionBubbles()) {
           final int reactionsWidth = (int) messageReactions.getAnimatedWidth() + xReactionBubblePadding * 2 - getBubblePaddingLeft() - getBubblePaddingRight();

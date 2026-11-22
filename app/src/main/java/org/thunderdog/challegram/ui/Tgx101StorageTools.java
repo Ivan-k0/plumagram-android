@@ -196,7 +196,8 @@ public final class Tgx101StorageTools {
     for (int k = 0; k < kinds.length; k++) {
       if (kinds[k] > 0) parts.add(Tgx101SavedKit.kindLabel(k).toLowerCase() + " " + kinds[k]);
     }
-    if (!parts.isEmpty()) b.append(": ").append(android.text.TextUtils.join(", ", parts));
+    // (user 2026-11-22 «"Сохранено за 7 дней: 7: заметка 5" — лишнее») the kinds in brackets after the number
+    if (!parts.isEmpty()) b.append(" (").append(android.text.TextUtils.join(", ", parts)).append(')');
     String top = null;
     int topCount = 0;
     for (Map.Entry<String, Integer> e : folders.entrySet()) {

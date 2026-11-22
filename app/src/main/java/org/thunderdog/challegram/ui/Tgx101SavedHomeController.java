@@ -2119,10 +2119,13 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       if (!selected.isEmpty()) toggleSelected(m);
       else Tgx101SavedKit.openInFeed(this, m);
     });
+    // (user 2026-11-22 «выделение "недавних" с двойной вибрацией, нужно с одинарной»): the system's long-press buzz is off
+    // on the row, the app's own (its strength from the settings) is played on the list
+    holder.itemView.setHapticFeedbackEnabled(false);
     holder.itemView.setOnLongClickListener(v -> {
       int index = recentRows.indexOf(self[0]);
       if (index < 0) return false;
-      UI.forceVibrate(v, false);
+      UI.forceVibrate(recentList, false);
       recentList.beginDrag(index);
       return true;
     });

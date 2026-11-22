@@ -3800,8 +3800,19 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     }
   }
 
+  private boolean tgx101MusicAsked;
+
   @Override
   public void onMenuItemPressed (int id, View view) {
+    if (id == R.id.menu_btn_more && !tgx101MusicAsked && currentItem != null && Tgx101ProfileMusic.audioOf(currentItem.getMessage()) != null && !Tgx101ProfileMusic.isLoaded(tdlib)) {
+      // the profile's songs first, so «Add / Remove from profile» says the right thing (one request; on an error ⋮ opens anyway)
+      tgx101MusicAsked = true;
+      Tgx101ProfileMusic.prepare(tdlib, () -> {
+        if (!isDestroyed()) onMenuItemPressed(id, view);
+        tgx101MusicAsked = false;
+      });
+      return;
+    }
     if (id == R.id.menu_btn_more) {
       IntList ids = new IntList(3);
       StringList strings = new StringList(3);
