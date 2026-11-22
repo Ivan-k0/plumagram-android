@@ -1228,7 +1228,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
 
   private void tgx101UpdateAsk () {
     if (tgx101AskView == null) return;
-    boolean ai = org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai();
+    boolean ai = Tgx101StorageTools.AI && org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai();
     if (!ai || query.length() < 3) {
       tgx101AskView.setVisibility(View.GONE);
       return;

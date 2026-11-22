@@ -89,7 +89,7 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
 
   @Override
   public CharSequence getName () {
-    return Lang.getString(localOnly ? R.string.Tgx101StorageRules : R.string.Tgx101SavedAiSort);
+    return Lang.getString(localOnly || !Tgx101StorageTools.AI ? R.string.Tgx101StorageRules : R.string.Tgx101SavedAiSort);
   }
 
   @Override
@@ -115,7 +115,7 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
         if (item.getData() instanceof String) view.setData((String) item.getData());
       }
     };
-    showStatus(Lang.getString(R.string.Tgx101SavedAiWorking));
+    showStatus(Lang.getString(localOnly || !Tgx101StorageTools.AI ? R.string.LoadingInformation : R.string.Tgx101SavedAiWorking));
     recyclerView.setAdapter(adapter);
     load();
   }
@@ -216,7 +216,7 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
   }
 
   private void ask (Tgx101SavedStore store) {
-    if (localOnly) {
+    if (localOnly || !Tgx101StorageTools.AI) {
       local(store, Lang.getString(R.string.Tgx101StorageRulesHint));
       return;
     }
@@ -336,12 +336,14 @@ public class Tgx101SavedAiSortController extends RecyclerViewController<Void> im
     checked = new boolean[batch.size()];
     List<ListItem> items = new ArrayList<>();
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, localNote != null ? localNote : Lang.getString(R.string.Tgx101SavedAiHint), false));
-    items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     String hint = org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSortHint(tdlib.id());
     ListItem hintItem = new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101AiSortHint, R.drawable.baseline_edit_24, R.string.Tgx101SavedAiWish);
     hintItem.setData(hint.isEmpty() ? Lang.getString(R.string.Tgx101SavedAiWishNone) : hint);
-    items.add(hintItem);
-    items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    if (!localOnly && Tgx101StorageTools.AI) { // the wish for the AI means nothing to the phone's rules
+      items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
+      items.add(hintItem);
+      items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
+    }
     for (Map.Entry<String, List<Integer>> e : proposal.entrySet()) {
       boolean isNew = !existing.containsKey(e.getKey().toLowerCase(Locale.ROOT));
       items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, e.getKey() + (isNew ? " · " + Lang.getString(R.string.Tgx101SavedAiNewFolder) : ""), false));

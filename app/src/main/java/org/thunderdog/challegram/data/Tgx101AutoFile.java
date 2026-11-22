@@ -77,7 +77,7 @@ public final class Tgx101AutoFile {
       }
       List<TdApi.Message> left = new ArrayList<>();
       for (int i = 0; i < batch.size(); i++) if (!placed[i]) left.add(batch.get(i));
-      if (left.isEmpty() || !Settings.instance().tgx101Ai()) {
+      if (left.isEmpty() || !org.thunderdog.challegram.ui.Tgx101StorageTools.AI || !Settings.instance().tgx101Ai()) {
         announce(moved);
         return;
       }

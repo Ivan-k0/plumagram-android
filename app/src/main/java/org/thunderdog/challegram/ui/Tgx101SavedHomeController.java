@@ -150,7 +150,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_tgx101SavedHome) {
       // (user 2026-11-08 «убери кнопку поиска в шапке хранилища»): the search pill under the header is the way in
-      header.addButton(menu, R.id.menu_btn_tgx101SavedOrder, R.drawable.baseline_stars_24, getHeaderIconColorId(), this, Screen.dp(49f)); // ✨ «Order» (user 2026-11-22)
+      header.addButton(menu, R.id.menu_btn_tgx101SavedOrder, Tgx101StorageTools.AI ? R.drawable.baseline_stars_24 : R.drawable.templarian_baseline_broom_24, getHeaderIconColorId(), this, Screen.dp(49f)); // ✨ «Order» (user 2026-11-22)
       header.addButton(menu, R.id.menu_btn_tgx101SavedFeed, R.drawable.baseline_forum_24, getHeaderIconColorId(), this, Screen.dp(49f));
       header.addButton(menu, R.id.menu_btn_tgx101SavedSettings, R.drawable.baseline_settings_24, getHeaderIconColorId(), this, Screen.dp(49f));
     }
@@ -158,7 +158,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
 
   @Override
   public void onMenuItemPressed (int id, View view) {
-    if (id == R.id.menu_btn_tgx101SavedAi) {
+    if (id == R.id.menu_btn_tgx101SavedAi && Tgx101StorageTools.AI) {
       navigateTo(new Tgx101SavedAiSortController(context, tdlib));
       return;
     }
@@ -2025,6 +2025,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
           applyTargets(r.swipe); // the last folder / tag on the buttons
           r.holder.bind(this, r.message, selected.contains(r.message.id), !selected.isEmpty()); // a renamed folder, a new tag
         }
+        paintRecentSelection();
         return;
       }
       recentShown = sig.toString();
@@ -2049,6 +2050,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
           recentList.addView(h);
         } else if (i > 0) {
           View sep = new View(context);
+          sep.setTag(RECENT_SEPARATOR);
           sep.setBackgroundColor(Theme.separatorColor());
           LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, Screen.dp(.5f)));
           sp.leftMargin = Screen.dp(66f);
@@ -2056,6 +2058,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         }
         recentList.addView(recentRow(messages.get(i)));
       }
+      paintRecentSelection();
     });
   }
 
@@ -2148,6 +2151,44 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
     return list;
   }
 
+  private static final Object RECENT_SEPARATOR = new Object();
+
+  /** (user 2026-11-22 «при выделении закругления не очень выглядят»): in «Recent» the rows stand in one straight-edged
+   *  card with lines between them — a lit row is a plain band the card's full width, and the lines touching it hide */
+  private void paintRecentSelection () {
+    // (.12 was the very colour of the Storage's ground — the lit band and the card's edges ran together, test 2026-11-22)
+    int fill = tint(accent(), .22f);
+    for (RecentRow r : recentRows) {
+      if (selected.contains(r.message.id)) r.holder.itemView.setBackgroundColor(fill);
+    }
+    for (int i = 0; i < recentList.getChildCount(); i++) {
+      View child = recentList.getChildAt(i);
+      if (child.getTag() != RECENT_SEPARATOR) continue;
+      boolean above = isLitRow(i - 1), below = isLitRow(i + 1);
+      // between two lit rows the line takes the band's colour, so they read as one band
+      child.setBackgroundColor(above && below ? fill : Theme.separatorColor());
+      child.setVisibility(above != below ? View.INVISIBLE : View.VISIBLE);
+      // the line starts after the icons; between two lit rows it spans the whole card, so no white stub is left
+      if (child.getLayoutParams() instanceof LinearLayout.LayoutParams) {
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) child.getLayoutParams();
+        int margin = above && below ? 0 : Screen.dp(66f);
+        if (lp.leftMargin != margin) {
+          lp.leftMargin = margin;
+          child.setLayoutParams(lp);
+        }
+      }
+    }
+  }
+
+  private boolean isLitRow (int index) {
+    if (index < 0 || index >= recentList.getChildCount()) return false;
+    View v = recentList.getChildAt(index);
+    for (RecentRow r : recentRows) {
+      if (r.swipe == v) return selected.contains(r.message.id);
+    }
+    return false;
+  }
+
   private void toggleSelected (TdApi.Message m) {
     if (!selected.remove(m.id)) selected.add(m.id);
     updateSelection();
@@ -2165,6 +2206,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       r.holder.bind(this, r.message, selected.contains(r.message.id), on);
       r.swipe.setSwipeEnabled(false);
     }
+    paintRecentSelection();
     selectionTitle.setText(Lang.getString(R.string.Tgx101SavedSelected, selected.size()));
     if (on) selectionPanel.update();
     boolean shown = selectionTop.getVisibility() == View.VISIBLE;

@@ -475,7 +475,9 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
   // TGx101 (user 11.10): the scroll-down arrow shows up only while scrolling down towards the newest messages
   // (dy > 0 in the reversed list) and hides again when scrolling up into the history; a short dead zone keeps
   // finger jitter from blinking it. The «return» arrow after a jump to a quote is not affected.
-  private boolean tgx101ScrollingDown;
+  // (user 2026-11-22 «когда захожу в чат, стрелка не появляется сразу, её нужно вызывать свайпом»): a chat opened above
+  // its newest message shows the arrow at once; scrolling up hides it, scrolling down brings it back, as before
+  private boolean tgx101ScrollingDown = true;
   private int tgx101ScrollDistance;
 
   private void tgx101TrackScrollDirection (int dy) {
@@ -601,7 +603,7 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     tdlib.settings().removePinnedMessageDismissListener(this);
     highlightMessageId = null;
     hasScrolled = false;
-    tgx101ScrollingDown = false;
+    tgx101ScrollingDown = true; // the next chat opens with the arrow in view
     tgx101ScrollDistance = 0;
     lastViewedMentionMessageId = 0;
     lastViewedReactionMessageId = 0;

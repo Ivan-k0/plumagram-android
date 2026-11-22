@@ -103,8 +103,10 @@ public class Tgx101SavedSettingsController extends RecyclerViewController<Void> 
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SavedStorageOn, 0, R.string.Tgx101SavedStorageOn));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiAutoTags, 0, R.string.Tgx101AiAutoTags));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    if (Tgx101StorageTools.AI) {
+      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiAutoTags, 0, R.string.Tgx101AiAutoTags));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    }
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101StorageAutoFolders, 0, R.string.Tgx101AutoFileSetting));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101StorageRow, 0, R.string.Tgx101StorageRowSetting));

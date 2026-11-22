@@ -7299,7 +7299,7 @@
   <string name="Tgx101SavedAsMessages">As messages</string>
   <string name="Tgx101SavedLookTgx">Look with tabs</string>
   <string name="Tgx101SavedLookChat">Chat look</string>
-  <string name="Tgx101AiAll">AI functions (assistant, Short, What I missed, storage)</string>
+  <string name="Tgx101AiAll">AI functions (assistant, Short, What I missed)</string>
   <string name="Tgx101SectionFeatures">Features</string>
   <string name="Tgx101SectionFeaturesHint">Storage, Don\'t peek, AI</string>
   <string name="Tgx101SectionNav">Menus and navigation</string>
@@ -7331,10 +7331,10 @@
   <string name="Tgx101StorageRules">Sort by the phone\'s rules</string>
   <string name="Tgx101StorageRulesWorking">Looking at how you sort…</string>
   <string name="Tgx101StorageRulesNothing">The rules found nothing to place: put a few records in folders by hand — the phone learns from them</string>
-  <string name="Tgx101StorageRulesHint">By the phone\'s rules, no AI: the folder you chose for the chat, where the records from the same chat and site lie, a word of the folder\'s name. Untick what shouldn\'t go.</string>
+  <string name="Tgx101StorageRulesHint">By the phone\'s rules: the folder you chose for the chat, where the records from the same chat and site lie, a word of the folder\'s name. Untick what shouldn\'t go.</string>
   <string name="Tgx101StorageRulesInstead">The AI said no (%1$s) — here is what the phone\'s own rules propose. Untick what shouldn\'t go.</string>
   <string name="Tgx101AutoFileSetting">New records into folders by themselves</string>
-  <string name="Tgx101AutoFileHint">A record saved from this phone and left out of folders goes to one of yours in 15 seconds: by the phone\'s rules, then by the AI when it\'s on. New folders aren\'t made. Everything moved is in «Put away by itself», with «Put back».</string>
+  <string name="Tgx101AutoFileHint">A record saved from this phone and left out of folders goes to one of yours in 15 seconds: by the phone\'s rules. New folders aren\'t made. Everything moved is in «Put away by itself», with «Put back».</string>
   <string name="Tgx101AutoFileLog">Put away by itself</string>
   <string name="Tgx101AutoFileNone">Nothing yet</string>
   <string name="Tgx101AutoFileUndo">Put back</string>

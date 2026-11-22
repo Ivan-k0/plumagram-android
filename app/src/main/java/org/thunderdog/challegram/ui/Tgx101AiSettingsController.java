@@ -47,7 +47,7 @@ public class Tgx101AiSettingsController extends RecyclerViewController<Void> imp
   public static String value () {
     Settings s = Settings.instance();
     if (!s.tgx101Ai()) return Lang.getString(R.string.Tgx101AiOff);
-    int on = (s.tgx101AiCompose() ? 1 : 0) + (s.tgx101AiSummary() ? 1 : 0) + (s.tgx101AiMissed() ? 1 : 0) + (s.tgx101AiSort() ? 1 : 0) + (s.tgx101MusicAi() ? 1 : 0);
+    int on = (s.tgx101AiCompose() ? 1 : 0) + (s.tgx101AiSummary() ? 1 : 0) + (s.tgx101AiMissed() ? 1 : 0) + (Tgx101StorageTools.AI && s.tgx101AiSort() ? 1 : 0) + (s.tgx101MusicAi() ? 1 : 0);
     return Lang.getString(R.string.Tgx101AiOnCount, on + " / 5");
   }
 
@@ -93,8 +93,10 @@ public class Tgx101AiSettingsController extends RecyclerViewController<Void> imp
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiMissed, 0, R.string.Tgx101AiMissedSetting));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
-    items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiSort, 0, R.string.Tgx101AiSortSetting));
-    items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    if (Tgx101StorageTools.AI) { // the Storage's AI is hidden (user 2026-11-22)
+      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiSort, 0, R.string.Tgx101AiSortSetting));
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+    }
     items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101AiMusic, 0, R.string.Tgx101TasteAi));
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     // TGx101 (user 2026-11-13): the person's own AI for when Telegram's says no (no Premium)

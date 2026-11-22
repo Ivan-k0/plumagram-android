@@ -38,7 +38,7 @@ public final class Tgx101AiAutoTag {
   private static final Runnable flush = Tgx101AiAutoTag::flush;
 
   public static void queue (Tdlib tdlib, TdApi.Message message) {
-    if (!Settings.instance().tgx101AiAutoTags() || !Tgx101SavedStore.get(tdlib).storageOn) return;
+    if (!org.thunderdog.challegram.ui.Tgx101StorageTools.AI || !Settings.instance().tgx101AiAutoTags() || !Tgx101SavedStore.get(tdlib).storageOn) return;
     UI.post(() -> {
       if (queueTdlib != null && queueTdlib != tdlib) queue.clear();
       queueTdlib = tdlib;

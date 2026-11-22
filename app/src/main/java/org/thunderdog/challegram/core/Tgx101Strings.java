@@ -1107,7 +1107,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SavedAsMessages, "Как сообщения");
     RU.put(R.string.Tgx101SavedLookTgx, "Вид с вкладками");
     RU.put(R.string.Tgx101SavedLookChat, "Вид чата");
-    RU.put(R.string.Tgx101AiAll, "Функции ИИ (помощник, Кратко, Что пропустил, Хранилище)");
+    RU.put(R.string.Tgx101AiAll, "Функции ИИ (помощник, Кратко, Что пропустил)");
     RU.put(R.string.Tgx101SectionFeatures, "Фишки");
     RU.put(R.string.Tgx101SectionFeaturesHint, "Хранилище, «Не подглядывай!», ИИ");
     RU.put(R.string.Tgx101SectionNav, "Меню и навигация");
@@ -1139,10 +1139,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101StorageRules, "Разобрать по правилам");
     RU.put(R.string.Tgx101StorageRulesWorking, "Смотрю, как вы раскладываете…");
     RU.put(R.string.Tgx101StorageRulesNothing, "Правилам нечего предложить: разложите несколько записей по папкам вручную — телефон учится на них");
-    RU.put(R.string.Tgx101StorageRulesHint, "По правилам телефона, без ИИ: папка, выбранная для чата, куда легли записи из того же чата и с того же сайта, слово из названия папки. Снимите галочки с лишнего.");
+    RU.put(R.string.Tgx101StorageRulesHint, "По правилам телефона: папка, выбранная для чата, куда легли записи из того же чата и с того же сайта, слово из названия папки. Снимите галочки с лишнего.");
     RU.put(R.string.Tgx101StorageRulesInstead, "ИИ отказал (%1$s) — вот что предлагают правила телефона. Снимите галочки с лишнего.");
     RU.put(R.string.Tgx101AutoFileSetting, "Раскладывать новое по папкам само");
-    RU.put(R.string.Tgx101AutoFileHint, "Запись, сохранённая с этого телефона и не попавшая в папку, через 15 секунд ляжет в одну из ваших: по правилам телефона, а если включён ИИ — и по его выбору. Новых папок не создаётся. Всё перемещённое — в «Разложено само», с кнопкой «Вернуть».");
+    RU.put(R.string.Tgx101AutoFileHint, "Запись, сохранённая с этого телефона и не попавшая в папку, через 15 секунд ляжет в одну из ваших: по правилам телефона. Новых папок не создаётся. Всё перемещённое — в «Разложено само», с кнопкой «Вернуть».");
     RU.put(R.string.Tgx101AutoFileLog, "Разложено само");
     RU.put(R.string.Tgx101AutoFileNone, "Пока ничего");
     RU.put(R.string.Tgx101AutoFileUndo, "Вернуть");

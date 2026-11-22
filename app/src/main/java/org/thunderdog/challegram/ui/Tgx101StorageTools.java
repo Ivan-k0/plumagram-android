@@ -43,6 +43,11 @@ import me.vkryl.core.lambda.RunnableData;
  * without asking; the rules only propose, the same screen of ticks as the AI's.
  */
 public final class Tgx101StorageTools {
+  /** (user 2026-11-22 «уберём все функции ИИ в хранилище… оставь их там где-то, полностью не удаляй»): the Storage's AI —
+   *  sorting into folders by the AI, the week in words, «Ask the AI» in the search, AI tags, auto-filing by the AI — is
+   *  hidden everywhere, settings included. The code stays; {@code true} brings it all back */
+  public static final boolean AI = false;
+
   private Tgx101StorageTools () { }
 
   private static final int SCAN = 3000, SAMPLES = 30, GROUPS_SHOWN = 30;
@@ -213,7 +218,7 @@ public final class Tgx101StorageTools {
       v.setText(phrase);
       v.setPadding(Screen.dp(20f), Screen.dp(4f), Screen.dp(20f), Screen.dp(8f));
       body.addView(v);
-    } else if (week > 0 && org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai()) {
+    } else if (AI && week > 0 && org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai()) {
       final String facts = b.toString();
       body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_stars_24, 0, Lang.getString(R.string.Tgx101StorageWeekAi), null, false, v -> {
         v.setEnabled(false);
@@ -225,7 +230,7 @@ public final class Tgx101StorageTools {
       }));
     }
     if (unfiled > 0) {
-      final boolean ai = org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSort() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai();
+      final boolean ai = AI && org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSort() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai();
       body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_folder_24, 0, Lang.getString(R.string.Tgx101StorageWeekUnfiled), String.valueOf(unfiled), false, v -> {
         handle.dismiss();
         c.navigateTo(new Tgx101SavedAiSortController(c.context(), c.tdlib()).tgx101LocalOnly(!ai));
@@ -319,9 +324,9 @@ public final class Tgx101StorageTools {
     h[0] = Tgx101Sheet.show(c, null, body -> {
       body.addView(Tgx101Sheet.title(c.context(), Lang.getString(R.string.Tgx101StorageOrder)));
       org.thunderdog.challegram.unsorted.Settings s = org.thunderdog.challegram.unsorted.Settings.instance();
-      final boolean ai = s.tgx101Ai() && s.tgx101AiSort();
+      final boolean ai = AI && s.tgx101Ai() && s.tgx101AiSort();
       body.addView(Tgx101Sheet.row(c.context(), ai ? R.drawable.baseline_stars_24 : R.drawable.baseline_folder_24, 0, Lang.getString(R.string.Tgx101StorageOrderSort),
-        Lang.getString(ai ? R.string.Tgx101StorageOrderByAi : R.string.Tgx101StorageOrderByRules), false, v -> {
+        AI ? Lang.getString(ai ? R.string.Tgx101StorageOrderByAi : R.string.Tgx101StorageOrderByRules) : null, false, v -> {
         h[0].dismiss();
         c.navigateTo(ai ? new Tgx101SavedAiSortController(c.context(), c.tdlib()) : new Tgx101SavedAiSortController(c.context(), c.tdlib()).tgx101LocalOnly(true));
       }));
@@ -338,7 +343,7 @@ public final class Tgx101StorageTools {
         UI.post(() -> showWeek(c), 200);
       }));
       Tgx101SavedAiSortController.Undo undo = Tgx101SavedAiSortController.pending(c.tdlib());
-      if (undo != null) {
+      if (AI && undo != null) {
         body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_undo_24, 0, Lang.getString(R.string.Tgx101SavedAiUndo, undo.count), null, false, v -> {
           h[0].dismiss();
           int n = Tgx101SavedAiSortController.undo(c.tdlib());
@@ -351,7 +356,7 @@ public final class Tgx101StorageTools {
 
   /** The search's «✨ Ask the AI»: the question as typed */
   public static void ask (ViewController<?> c, String question) {
-    if (question == null || question.trim().isEmpty()) return;
+    if (!AI || question == null || question.trim().isEmpty()) return;
     answerSheet(c, question.trim());
   }
 
