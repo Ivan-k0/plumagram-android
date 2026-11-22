@@ -211,7 +211,17 @@ public class MediaBottomGalleryController extends MediaBottomBaseController<Medi
     int spanCount = calculateSpanCount(Screen.currentWidth(), Screen.currentHeight());
 
     decoration = new GridSpacingItemDecoration(spanCount, Screen.dp(4f), true, true, true);
-    GridLayoutManager manager = new RtlGridLayoutManager(context(), spanCount);
+    // TGx101 (recording 2026-11-22: at the top a frame was missed, «gpu 15 ms» — the grid's first scroll brought rows whose
+    // photos were drawn for the first time in that frame) rows half a screen below the visible part are laid out and
+    // drawn ahead, so the hand-over from the sheet finds them ready
+    GridLayoutManager manager = new RtlGridLayoutManager(context(), spanCount) {
+      @Override
+      protected void calculateExtraLayoutSpace (@androidx.annotation.NonNull RecyclerView.State state, @androidx.annotation.NonNull int[] extraLayoutSpace) {
+        super.calculateExtraLayoutSpace(state, extraLayoutSpace);
+        int ahead = Screen.currentHeight() / 2;
+        extraLayoutSpace[1] = Math.max(extraLayoutSpace[1], ahead);
+      }
+    };
 
     int options = inSingleMediaMode() ? MediaGalleryAdapter.OPTION_NEVER_SELECTABLE :
       MediaGalleryAdapter.OPTION_SELECTABLE | MediaGalleryAdapter.OPTION_ALWAYS_SELECTABLE;

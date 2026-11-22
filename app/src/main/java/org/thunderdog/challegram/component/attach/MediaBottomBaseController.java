@@ -329,6 +329,10 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
           tgx101GridAt = 0;
           tgx101GridStep = 0f;
         }
+        if (dy < 0 && view.getScrollState() == RecyclerView.SCROLL_STATE_SETTLING && isExpanded() && canMinimizeHeight()
+          && view.computeVerticalScrollOffset() < Screen.dp(160f)) {
+          tgx101PrepareLeaveTop(); // the grid is about to hand over to the sheet: the chat is shown frames ahead
+        }
         if (dy < 0 && view.getScrollState() == RecyclerView.SCROLL_STATE_SETTLING && !isMoving && !animatingHeight
           && isExpanded() && canMinimizeHeight() && !view.canScrollVertically(-1)) {
           mediaLayout.prepareHeader();
@@ -840,7 +844,9 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       mediaLayout.prepareHeader();
       if (stopAtStart && !toUp) {
         stopAtStart = false;
-        animateCurrentHeight(startHeight, false, velocityY); // a flick down in the move that came from the grid: to half, not away
+        // a flick down in the move that came from the grid: to half, not away. (Recording 2026-11-22: the finger's full speed
+        // took it from −20 to −38 px a frame at the let-go; half of it, as everywhere else, keeps the pace)
+        animateCurrentHeight(startHeight, false, velocityY * .5f);
       } else if (toUp) {
         stopAtStart = false;
         if (canExpandHeight()) {
@@ -963,6 +969,11 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
   public void expandFully () {
     mediaLayout.prepareHeader();
     animateCurrentHeight(getMaxHeight(), false);
+  }
+
+  /** The chat under the sheet is shown ahead of the sheet leaving the top: showing it is a heavy frame of its own */
+  public void tgx101PrepareLeaveTop () {
+    mediaLayout.setContentVisible(true);
   }
 
   public boolean tgx101SwipeSection (boolean previous) {

@@ -132,14 +132,19 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
           // (it took a second swipe)
           int liveScrollY = base.getRecyclerScrollY();
           boolean backAtTop = currentScrollY != 0 && y > lastMoveY && liveScrollY <= 0;
+          float prevMoveY = lastMoveY;
           if (currentScrollY != 0 && y > lastMoveY && liveScrollY < org.thunderdog.challegram.tool.Screen.dp(40f) && !loggedNearTop) {
             loggedNearTop = true;
+            // (recording 2026-11-22: the frame the sheet took over from the grid came 18 ms late — the chat under the sheet
+            // was being shown in it) the chat is shown now, a few frames before the sheet leaves the top
+            base.tgx101PrepareLeaveTop();
             org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: grid near its top under a finger going down, scroll " + liveScrollY + " (was " + currentScrollY + " at the touch)");
           }
           lastMoveY = y;
           if (backAtTop) {
             intercepting = true;
-            interceptStartY = y;
+            // (same recording: one frame stood still at the hand-over, −6 between −18s) this frame's move counts already
+            interceptStartY = prevMoveY;
             base.onRecyclerMovementStarted(true); // the sheet stops at half in this move (as the other client does)
             ((BaseActivity) getContext()).setOrientationLockFlagEnabled(BaseActivity.ORIENTATION_FLAG_TOUCHING_MEDIA_LAYOUT, true);
             return true;

@@ -1209,40 +1209,50 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
 
   // TGx101 (user 2026-11-22: the left photo of an album stayed grey, and the journal had nothing on it): a picture still
   // empty 2 s after it was first drawn says once what it holds and why it may be empty
-  private long tgx101FirstDrawAt;
+  private long tgx101EmptySince;
   private boolean tgx101EmptyNoted;
 
-  private void tgx101NoteEmpty (Receiver preview, Receiver receiver) {
-    if (!org.thunderdog.challegram.BuildConfig.TGX101_DIAG || tgx101EmptyNoted) return;
-    long now = android.os.SystemClock.uptimeMillis();
-    if (tgx101FirstDrawAt == 0) tgx101FirstDrawAt = now;
-    if (now - tgx101FirstDrawAt < 2000) return;
-    tgx101EmptyNoted = true;
-    // (second build: no line came while the photo was grey — the receiver thought it held the picture) the picture may sit
-    // there see-through: its fade-in stuck — so a held picture is noted too when it is not fully visible
+  // (2026-11-22, third look: nothing was noted while a photo was grey — it went grey later than 2 s after its first draw)
+  // any photo / video of a chat that stays empty, see-through or with a recycled bitmap for 2 s in a row is noted, once
+  // per such spell, whenever it happens
+  private void tgx101NoteEmpty (View view, Receiver preview, Receiver receiver) {
+    if (!org.thunderdog.challegram.BuildConfig.TGX101_DIAG) return;
     float alpha = receiver.getAlpha(), paintAlpha = receiver.getPaintAlpha();
     android.graphics.Bitmap bmp = receiver instanceof ImageReceiver ? ((ImageReceiver) receiver).getCurrentBitmap() : null;
     boolean badBitmap = receiver instanceof ImageReceiver && !receiver.needPlaceholder() && (bmp == null || bmp.isRecycled());
-    if (!receiver.needPlaceholder() && alpha >= .99f && paintAlpha >= .99f && !badBitmap) return; // it came and shows
+    boolean shows = !receiver.needPlaceholder() && alpha >= .99f && paintAlpha >= .99f && !badBitmap;
+    long now = android.os.SystemClock.uptimeMillis();
+    if (shows) {
+      tgx101EmptySince = 0;
+      tgx101EmptyNoted = false;
+      return;
+    }
+    if (tgx101EmptySince == 0) {
+      tgx101EmptySince = now;
+      if (view != null) view.postInvalidateDelayed(2100); // a grey picture draws no more by itself: one more look then
+      return;
+    }
+    if (tgx101EmptyNoted || now - tgx101EmptySince < 2000) return;
+    tgx101EmptyNoted = true;
     TdApi.File f = targetFile;
-    String loaded = null;
+    String loaded;
     if (receiver instanceof ImageReceiver) {
       ImageFile cur = ((ImageReceiver) receiver).getCurrentFile();
       loaded = cur != null ? cur.getClass().getSimpleName() + " #" + cur.getId() : "nothing asked";
     } else {
       loaded = receiver.getClass().getSimpleName();
     }
-    org.thunderdog.challegram.Tgx101Diag.mark("album picture not shown 2 s: msg " + getSourceMessageId() + ", target " + (targetImageFile != null ? "set" : "none")
+    org.thunderdog.challegram.Tgx101Diag.mark("media not shown 2 s: msg " + getSourceMessageId() + " (" + (isVideo() ? "video" : "photo") + "), target " + (targetImageFile != null ? "set" : "none")
       + (f != null ? ", file #" + f.id + " " + f.local.downloadedSize + "/" + f.size + " done " + f.local.isDownloadingCompleted + " active " + f.local.isDownloadingActive
         + " can " + f.local.canBeDownloaded + " path «" + f.local.path + "» exists " + (f.local.path != null && !f.local.path.isEmpty() && new java.io.File(f.local.path).exists()) : ", no file")
       + ", receiver holds " + loaded + ", empty " + receiver.needPlaceholder() + ", alpha " + alpha + ", paint alpha " + paintAlpha
-      + ", bounds " + receiver.getLeft() + "," + receiver.getTop() + "–" + receiver.getRight() + "," + receiver.getBottom()
       + ", bitmap " + (bmp == null ? "none" : bmp.isRecycled() ? "recycled" : bmp.getWidth() + "×" + bmp.getHeight())
+      + ", bounds " + receiver.getLeft() + "," + receiver.getTop() + "–" + receiver.getRight() + "," + receiver.getBottom()
       + ", preview empty " + preview.needPlaceholder() + ", cell " + cellWidth + "×" + cellHeight);
   }
 
   public <T extends View & DrawableProvider> void draw (T view, Canvas c, int startX, int startY, Receiver preview, Receiver receiver, float alpha) {
-    tgx101NoteEmpty(preview, receiver);
+    tgx101NoteEmpty(view, preview, receiver);
     final float selectionFactor = selectionAnimator != null && source != null ? source.getSelectionFactor(selectionAnimator) : 0f;
     // TGx101 (user 2026-10-30, channel Jeteed in «Journal»: square corners while the feed's are round): «Journal» media
     // sit between margins now, so even full-width ones are cut to their own rounded shape

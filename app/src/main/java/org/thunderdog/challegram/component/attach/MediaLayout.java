@@ -2038,9 +2038,16 @@ public class MediaLayout extends FrameLayoutFix implements
     if (this.headerFactor != factor) {
       this.headerFactor = factor;
       if (headerView != null && !ignoreHeaderStyles) {
+        // (recording 2026-11-22: at the top a frame was missed, «gpu 13 ms» — the half-transparent header was drawn anew
+        // into an offscreen buffer every frame) while it fades, it is one hardware layer, which fades for free
+        int layer = factor > 0f && factor < 1f ? View.LAYER_TYPE_HARDWARE : View.LAYER_TYPE_NONE;
+        if (headerView.getLayerType() != layer) headerView.setLayerType(layer, null);
         headerView.setAlpha(factor);
-        int offsetY = HeaderView.getSize(false) + headerView.getFilling().getExtraHeight();
-        headerView.setTranslationY(-offsetY + (int) ((float) offsetY * factor));
+        // (user 2026-11-22 «при движении вверх проблема, когда галерея встречается с шапкой», recorded next to the
+        // reference): the header slid down from above while the grid rose — the two met head-on. The reference's header
+        // stays in its place and only fades in over the rising sheet; so does this one now
+        // fully faded out it goes off the screen again: it takes every touch, and would cover the chat's own header
+        headerView.setTranslationY(factor > 0f ? 0 : -HeaderView.getSize(false) - headerView.getFilling().getExtraHeight());
       }
       // (user 2026-11-19 «почему мигает строка состояния?», recording): the system changes the icons' colour ~40 ms after
       // it is asked — over those frames the white icons stood on the header already white and the clock was gone. The
