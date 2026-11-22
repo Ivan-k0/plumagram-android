@@ -107,6 +107,8 @@ public class MediaLayout extends FrameLayoutFix implements
 
   public static final long REVEAL_DURATION = 220l;
   public static final long REVEAL_HIDE_DURATION = 285l;
+  private static final long TGX101_SHOW_DURATION = 300l;
+  private static final android.view.animation.Interpolator TGX101_SHOW_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.4f, 0f, .2f, 1f);
 
   public static final int MODE_DEFAULT = 0;
   public static final int MODE_LOCATION = 1;
@@ -1140,8 +1142,12 @@ public class MediaLayout extends FrameLayoutFix implements
   @Override
   public Animator createCustomShowAnimator () {
     ValueAnimator animator = AnimatorUtils.simpleValueAnimator();
-    animator.setDuration(REVEAL_DURATION);
-    animator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    // TGx101 (user 2026-11-22, recording at 120 fps «рывка при открытии быть не должно вообще»): the decelerate started at
+    // twice the mean speed — in the first frame the sheet was ~300 px up and the message field gone under it at once.
+    // A curve that starts from rest and speeds up over ~10 frames, then slows the same way (.2,0,0,1 still sped up in
+    // 3–4 frames: 5 → 20 → 44 → 70 px a frame — felt as a push); no frame moves much more than its neighbour
+    animator.setDuration(TGX101_SHOW_DURATION);
+    animator.setInterpolator(TGX101_SHOW_CURVE);
     animator.addUpdateListener(animation -> setRevealFactor(AnimatorUtils.getFraction(animation)));
     animator.addListener(new AnimatorListenerAdapter() {
       @Override

@@ -3658,6 +3658,8 @@ public class ShareController extends TelegramViewController<ShareController.Args
     row.setPadding(Screen.dp(12f), Screen.dp(8f), Screen.dp(12f), Screen.dp(2f));
     ViewSupport.setThemedBackground(row, ColorId.filling, this);
     row.setClickable(true); // (user 2026-10-20) a tap between the buttons closed the whole window
+    row.setClipChildren(false); // the chips' corner tick reaches over their top edge (variant В)
+    row.setClipToPadding(false);
     tgx101NoName = tgx101Chip(context, R.string.Tgx101ForwardNoName, v -> {
       needHideAuthor = !needHideAuthor;
       Settings.instance().pmc().putBoolean("tgx101_fwd_no_name", needHideAuthor);
@@ -3739,8 +3741,40 @@ public class ShareController extends TelegramViewController<ShareController.Args
     tgx101UpdateOptionsRow();
   }
 
+  /** TGx101 (user 2026-11-22, mockup «Кнопки «Без имени»», variant В): the words stand in the middle; switched on, the
+   *  chip gets an accent outline and a round tick in its top right corner, like the tick on a chosen avatar */
+  private static final class Tgx101OptionChip extends TextView {
+    float badge; // 0 … 1
+    int badgeColor, ringColor;
+    private final android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+    private android.graphics.drawable.Drawable tick;
+
+    Tgx101OptionChip (Context context) {
+      super(context);
+    }
+
+    @Override
+    protected void onDraw (android.graphics.Canvas c) {
+      super.onDraw(c);
+      if (badge <= 0f) return;
+      // a single-line centred TextView scrolls its wide layout to centre the words: the canvas is shifted by that scroll
+      float r = Screen.dp(9f) * badge, cx = getScrollX() + getWidth() - Screen.dp(15f), cy = getScrollY() + Screen.dp(4f);
+      paint.setColor(ringColor);
+      c.drawCircle(cx, cy, r, paint);
+      paint.setColor(badgeColor);
+      c.drawCircle(cx, cy, r - Screen.dp(2f) * badge, paint);
+      if (tick == null) {
+        tick = org.thunderdog.challegram.tool.Drawables.get(getResources(), R.drawable.baseline_check_24).mutate();
+        tick.setColorFilter(new android.graphics.PorterDuffColorFilter(0xffffffff, android.graphics.PorterDuff.Mode.SRC_IN));
+      }
+      int half = Math.round(Screen.dp(6f) * badge);
+      tick.setBounds(Math.round(cx) - half, Math.round(cy) - half, Math.round(cx) + half, Math.round(cy) + half);
+      tick.draw(c);
+    }
+  }
+
   private TextView tgx101Chip (Context context, int textRes, View.OnClickListener click) {
-    TextView chip = new TextView(context);
+    TextView chip = new Tgx101OptionChip(context);
     chip.setText(Lang.getString(textRes));
     chip.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13f);
     chip.setGravity(Gravity.CENTER);
@@ -3871,42 +3905,45 @@ public class ShareController extends TelegramViewController<ShareController.Args
     chip.setVisibility(visible ? View.VISIBLE : View.GONE);
     Object was = chip.getTag();
     boolean animate = was instanceof Boolean && (Boolean) was != active && chip.isShown();
-    chip.setTypeface(active ? Fonts.getRobotoMedium() : Fonts.getRobotoRegular());
-    // TGx101 (user 2026-11-19 «когда жму на кнопки, текст смещается — этого быть не должно; просто появляется галочка и
-    // меняется вид без смещения»): the check had come in front of the words as a character — they moved right and down.
-    // Its place is kept always (empty while off) and the chip is as wide as its bolder words, so nothing moves
+    // TGx101 (user 2026-11-22 «чтобы были по центру, а не с края (с местом под галочку)», mockup variant В): no tick in
+    // front of the words and no place kept for it — the words are centred; «on» is the outline and the corner tick
     chip.setText(Lang.getString(textRes));
-    android.graphics.drawable.Drawable check = chip.getCompoundDrawables()[0];
-    if (check == null) {
-      check = org.thunderdog.challegram.tool.Drawables.get(chip.getResources(), R.drawable.baseline_check_24).mutate();
-      int size = Screen.dp(16f);
-      check.setBounds(0, 0, size, size);
-      chip.setCompoundDrawables(check, null, null, null);
-      chip.setCompoundDrawablePadding(Screen.dp(4f));
-      android.text.TextPaint bold = new android.text.TextPaint(chip.getPaint());
-      bold.setTypeface(Fonts.getRobotoMedium());
-      chip.setMinWidth(Math.round(bold.measureText(Lang.getString(textRes))) + size + Screen.dp(4f) + chip.getPaddingLeft() + chip.getPaddingRight() + Screen.dp(2f));
+    chip.setTypeface(active ? Fonts.getRobotoMedium() : Fonts.getRobotoRegular());
+    chip.setCompoundDrawables(null, null, null, null);
+    final Tgx101OptionChip c = chip instanceof Tgx101OptionChip ? (Tgx101OptionChip) chip : null;
+    final android.graphics.drawable.GradientDrawable bg = tgx101Pill(active ? on : off);
+    final int stroke = Math.max(1, Screen.dp(1.5f));
+    if (c != null) {
+      c.badgeColor = accent;
+      c.ringColor = Theme.fillingColor();
     }
-    check.setColorFilter(new android.graphics.PorterDuffColorFilter(accent, android.graphics.PorterDuff.Mode.SRC_IN));
-    final android.graphics.drawable.Drawable mark = check;
     if (animate) {
-      android.animation.ValueAnimator fade = android.animation.ValueAnimator.ofFloat(active ? 0f : 1f, active ? 1f : 0f);
-      fade.setDuration(220L); // together with the colour
-      fade.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
-      fade.addUpdateListener(an -> {
-        mark.setAlpha(Math.round(255 * (float) an.getAnimatedValue()));
-        chip.invalidate();
+      final boolean w = (Boolean) was;
+      final int fromBg = w ? on : off, toBg = active ? on : off, fromFg = w ? accent : plain, toFg = active ? accent : plain;
+      final float from = w ? 1f : 0f, to = active ? 1f : 0f;
+      chip.setBackground(bg);
+      android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(0f, 1f);
+      a.setDuration(220L);
+      a.setInterpolator(org.thunderdog.challegram.widget.PopupLayout.TGX101_OUT_CURVE);
+      a.addUpdateListener(an -> {
+        float f = (float) an.getAnimatedValue(), k = from + (to - from) * f;
+        bg.setColor(me.vkryl.core.ColorUtils.fromToArgb(fromBg, toBg, f));
+        bg.setStroke(stroke, me.vkryl.core.ColorUtils.alphaColor(k, accent));
+        chip.setTextColor(me.vkryl.core.ColorUtils.fromToArgb(fromFg, toFg, f));
+        if (c != null) {
+          c.badge = k;
+          c.invalidate();
+        }
       });
-      fade.start();
+      a.start();
     } else {
-      mark.setAlpha(active ? 255 : 0);
-    }
-    if (animate) {
-      boolean w = (Boolean) was;
-      tgx101AnimateColors(chip, w ? on : off, active ? on : off, w ? accent : plain, active ? accent : plain, null, chip::setTextColor);
-    } else {
+      bg.setStroke(stroke, active ? accent : 0);
+      chip.setBackground(bg);
       chip.setTextColor(active ? accent : plain);
-      chip.setBackground(tgx101Pill(active ? on : off));
+      if (c != null) {
+        c.badge = active ? 1f : 0f;
+        c.invalidate();
+      }
     }
     chip.setTag(active);
   }

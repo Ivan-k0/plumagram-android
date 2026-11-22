@@ -306,22 +306,28 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
         long now = SystemClock.uptimeMillis();
         // the grid's speed as the sheet would carry it (shrinking), over at least a frame: two steps in the same
         // millisecond counted as 27 000 px/s and the sheet flew down in 220 ms (journal 2026-11-19 20:51)
+        // (recordings 2026-11-22: the grid came back at ~25–32 px a frame and the sheet left at 60–64 — a jolt. The speed
+        // was averaged over the last 100 ms, when the fling was still fast.) Now it is the grid's last full step: the
+        // step that hits the top is cut short, so there the step before it counts
         if (dy < 0 && view.getScrollState() == RecyclerView.SCROLL_STATE_SETTLING) {
-          if (tgx101GridAt == 0 || now - tgx101GridAt > 100) {
-            tgx101GridAt = now;
-            tgx101GridDy = 0;
-          }
-          tgx101GridDy += -dy;
+          int offset = view.computeVerticalScrollOffset();
           long dt = now - tgx101GridAt;
-          if (dt >= 14) {
-            float v = Math.min(12f, tgx101GridDy / (float) dt);
-            tgx101Speed = tgx101SpeedAt != 0 && now - tgx101SpeedAt < 100 && tgx101Speed < 0f ? tgx101Speed * .4f - v * .6f : -v;
+          if (tgx101GridAt != 0 && dt >= 5 && dt <= 40) {
+            float v = Math.min(12f, Math.max(0, tgx101GridDy - offset) / (float) dt);
+            float use = !view.canScrollVertically(-1) && tgx101GridStep > 0f ? tgx101GridStep : v;
+            tgx101GridStep = v;
+            // measured on the phone (recording 2026-11-22, 120 fps): the grid's own figures ran ~1.7× what is seen on the
+            // screen (24–26 px a frame seen, 5556 px/s counted) while the sheet moves exactly as told — so ×0.6
+            tgx101Speed = -use * .6f;
             tgx101SpeedAt = now;
-            tgx101GridAt = now;
-            tgx101GridDy = 0;
+          } else {
+            tgx101GridStep = 0f;
           }
+          tgx101GridAt = now;
+          tgx101GridDy = offset;
         } else {
           tgx101GridAt = 0;
+          tgx101GridStep = 0f;
         }
         if (dy < 0 && view.getScrollState() == RecyclerView.SCROLL_STATE_SETTLING && !isMoving && !animatingHeight
           && isExpanded() && canMinimizeHeight() && !view.canScrollVertically(-1)) {
@@ -625,6 +631,60 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     }
   }
 
+  // TGx101 (user 2026-11-22, recording: «в первую секунду происходит „доезд“ галереи, а должно быть плавно с одинаковой
+  // скоростью»): the sheet reached the top at ~40 px a frame and the grid's own fling took over at half that, then crawled
+  // for a second (8 → 6 → 4 → 2 → 1 px). Now the grid goes on at exactly the sheet's speed and comes to rest in 0.3 s —
+  // a quadratic ease-out starts at its full speed, so the hand-over shows no step. A touch on the grid stops it
+  private ValueAnimator tgx101GridGlide;
+  private boolean tgx101GridGlideHooked;
+
+  private void tgx101GlideGrid (float velocity) {
+    if (recyclerView == null || velocity <= 0f) return;
+    if (tgx101GridGlide != null) tgx101GridGlide.cancel();
+    if (!tgx101GridGlideHooked) {
+      tgx101GridGlideHooked = true;
+      recyclerView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+        @Override
+        public boolean onInterceptTouchEvent (@androidx.annotation.NonNull RecyclerView rv, @androidx.annotation.NonNull MotionEvent e) {
+          if (e.getActionMasked() == MotionEvent.ACTION_DOWN && tgx101GridGlide != null) {
+            tgx101GridGlide.cancel();
+            tgx101GridGlide = null;
+          }
+          return false;
+        }
+      });
+    }
+    // (user 2026-11-22 «почему скролл останавливается? он должен продолжаться»): it goes on as a fling does — the speed
+    // fades exponentially (time constant tau) from exactly the sheet's speed; RecyclerView's own fling started at about
+    // half the speed it was given on this phone, which was the step seen at the top
+    final float tau = .33f; // s
+    final float v = velocity / 1000f; // px per ms
+    final long duration = Math.max(300l, Math.round(tau * 1000f * Math.log(Math.max(1.01f, velocity / 12f))));
+    final float k = duration / (tau * 1000f);
+    final float norm = 1f - (float) Math.exp(-k);
+    final float total = v * tau * 1000f * norm; // the speed at the start is total × k / norm / duration = v
+    final int[] done = {0};
+    ValueAnimator a = ValueAnimator.ofFloat(0f, 1f);
+    a.setDuration(duration);
+    a.setInterpolator(t -> (1f - (float) Math.exp(-k * t)) / norm);
+    a.addUpdateListener(an -> {
+      if (recyclerView == null) return;
+      int target = Math.round(total * (float) an.getAnimatedValue());
+      int dy = target - done[0];
+      if (dy != 0) {
+        if (!recyclerView.canScrollVertically(1)) {
+          an.cancel(); // the end of the grid
+          return;
+        }
+        recyclerView.scrollBy(0, dy);
+        done[0] = target;
+      }
+    });
+    tgx101GridGlide = a;
+    a.start();
+    org.thunderdog.challegram.Tgx101Diag.mark("attach grid: goes on at " + Math.round(velocity) + " px/s for " + Math.round(total) + " px in " + duration + " ms");
+  }
+
   // the sheet's own speed a moment ago (px per ms, + = growing): under the finger, or the grid's as it reached its top
   private float tgx101Speed;
   private long tgx101SpeedAt;
@@ -644,7 +704,8 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
   }
 
   private long tgx101GridAt;
-  private int tgx101GridDy;
+  private int tgx101GridDy; // the grid's scroll offset at tgx101GridAt
+  private float tgx101GridStep; // px per ms of the grid's previous step
 
   private void animateCurrentHeightImpl (int toHeight, long duration, android.view.animation.Interpolator curve, @androidx.annotation.Nullable Runnable after) {
     if (animatingHeight) {
@@ -770,7 +831,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
           // scrolling by the rest of the flick, as one move
           // the grid takes the rest of the flick once the sheet is at the top, as one move
           final int fling = velocityY < 0 ? Math.round(-velocityY * .7f) : 0;
-          animateCurrentHeight(getMaxHeight(), false, velocityY, fling > 0 && recyclerView != null ? () -> recyclerView.fling(0, fling) : null, fling);
+          animateCurrentHeight(getMaxHeight(), false, velocityY, fling > 0 && recyclerView != null ? () -> tgx101GlideGrid(fling) : null, fling);
         } else {
           animateCurrentHeight(startHeight, true);
         }

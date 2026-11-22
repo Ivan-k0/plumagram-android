@@ -2207,7 +2207,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
       r.swipe.setSwipeEnabled(false);
     }
     paintRecentSelection();
-    selectionTitle.setText(Lang.getString(R.string.Tgx101SavedSelected, selected.size()));
+    if (on) selectionTitle.setText(Lang.getString(R.string.Tgx101SavedSelected, selected.size())); // leaving, it keeps its count
     if (on) selectionPanel.update();
     boolean shown = selectionTop.getVisibility() == View.VISIBLE;
     if (on && !shown) {
@@ -2221,17 +2221,35 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
         if (hidden > 0) scroll.smoothScrollBy(0, -hidden);
         break;
       }
-      selectionTop.setTranslationY(-Screen.dp(64f));
-      selectionTop.animate().translationY(0f).setDuration(200).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
+      // (user 2026-11-22 «сильно резко всё исчезает, особенно шапка вверху и реакции снизу»): both bars come and go on
+      // the windows' soft curves, sliding and fading, 260 ms; the note field fades out and back where the panel was
+      selectionTop.animate().cancel();
+      selectionPanel.animate().cancel();
+      noteBar.animate().cancel();
+      if (selectionTop.getTranslationY() == 0f) selectionTop.setTranslationY(-Screen.dp(64f));
+      selectionTop.setAlpha(Math.min(selectionTop.getAlpha(), .2f));
+      selectionTop.animate().translationY(0f).alpha(1f).setDuration(260).setInterpolator(org.thunderdog.challegram.widget.PopupLayout.TGX101_IN_CURVE).withEndAction(null).start();
       noteBar.setVisibility(View.GONE);
+      noteBar.setAlpha(1f);
       selectionPanel.setVisibility(View.VISIBLE);
-      selectionPanel.setTranslationY(Screen.dp(80f));
-      selectionPanel.animate().translationY(0f).setDuration(200).setInterpolator(new android.view.animation.DecelerateInterpolator(1.6f)).start();
-    } else if (!on && shown) {
-      selectionTop.animate().translationY(-selectionTop.getHeight()).setDuration(160).withEndAction(() -> selectionTop.setVisibility(View.GONE)).start();
-      selectionPanel.animate().translationY(selectionPanel.getHeight()).setDuration(160).withEndAction(() -> {
+      if (selectionPanel.getTranslationY() == 0f) selectionPanel.setTranslationY(Screen.dp(80f));
+      selectionPanel.setAlpha(Math.min(selectionPanel.getAlpha(), .2f));
+      selectionPanel.animate().translationY(0f).alpha(1f).setDuration(260).setInterpolator(org.thunderdog.challegram.widget.PopupLayout.TGX101_IN_CURVE).withEndAction(null).start();
+    } else if (!on && shown && selectionTop.getTag() == null) {
+      selectionTop.setTag(Boolean.TRUE); // leaving
+      android.view.animation.Interpolator out = org.thunderdog.challegram.widget.PopupLayout.TGX101_OUT_CURVE;
+      selectionTop.animate().translationY(-selectionTop.getHeight()).alpha(0f).setDuration(260).setInterpolator(out).withEndAction(() -> {
+        selectionTop.setVisibility(View.GONE);
+        selectionTop.setTag(null);
+        selectionTop.setAlpha(1f);
+        if (!selected.isEmpty()) updateSelection(); // chosen again while leaving
+      }).start();
+      selectionPanel.animate().translationY(selectionPanel.getHeight()).alpha(0f).setDuration(260).setInterpolator(out).withEndAction(() -> {
         selectionPanel.setVisibility(View.GONE);
+        selectionPanel.setAlpha(1f);
+        noteBar.setAlpha(0f);
         noteBar.setVisibility(View.VISIBLE);
+        noteBar.animate().alpha(1f).setDuration(180).setInterpolator(org.thunderdog.challegram.widget.PopupLayout.TGX101_IN_CURVE).start();
       }).start();
     }
   }
