@@ -1796,6 +1796,24 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     // Base adapter
     baseAdapter = new SettingsAdapter(this) {
       @Override
+      protected SettingHolder initCustom (ViewGroup parent, int customViewType) {
+        if (customViewType == TGX101_CARD) {
+          org.thunderdog.challegram.widget.Tgx101ProfileCard card = new org.thunderdog.challegram.widget.Tgx101ProfileCard(context);
+          card.setOnClickListener(ProfileController.this);
+          return new SettingHolder(card);
+        }
+        return super.initCustom(parent, customViewType);
+      }
+
+      @Override
+      protected void modifyCustom (SettingHolder holder, int position, ListItem item, int customViewType, View view, boolean isUpdate) {
+        if (view instanceof org.thunderdog.challegram.widget.Tgx101ProfileCard) {
+          view.setId(item.getId());
+          tgx101BindCard(item.getId(), (org.thunderdog.challegram.widget.Tgx101ProfileCard) view);
+        }
+      }
+
+      @Override
       protected void setChatData (ListItem item, int position, BetterChatView chatView) {
         chatView.setEnabled(false);
         chatView.setChat((TGFoundChat) item.getData());
@@ -2954,6 +2972,36 @@ public class ProfileController extends ViewController<ProfileController.Args> im
   // — a tap plays all of them as one queue — and the «Profile music» tab with the whole list
   private int tgx101ProfileMusicCount = 1;
 
+  // TGx101 (user 2026-11-22, mockup «Музыка профиля»: «карточками»): the music and the channel are cards of their own
+  private static final int TGX101_CARD = 1;
+
+  private void tgx101BindCard (int id, org.thunderdog.challegram.widget.Tgx101ProfileCard card) {
+    if (id == R.id.btn_tgx101ProfileMusic) {
+      TdApi.Audio a = userFull != null ? userFull.firstProfileAudio : null;
+      if (a == null) {
+        card.bindMusic(Lang.getString(R.string.Tgx101ProfileMusic), null, null);
+        return;
+      }
+      String performer = StringUtils.isEmpty(a.performer) ? "" : a.performer + " — ";
+      String title = performer + (StringUtils.isEmpty(a.title) ? a.fileName : a.title);
+      String duration = a.duration > 0 ? Strings.buildDuration(a.duration) : Lang.getString(R.string.Tgx101ProfileMusic);
+      int more = tgx101ProfileMusicCount - 1;
+      card.bindMusic(title, duration, more > 0 ? Lang.getString(R.string.Tgx101ProfileMusicMore, more) + " ›" : null);
+    } else if (id == R.id.btn_tgx101PersonalChannel) {
+      long pcId = userFull != null ? userFull.personalChatId : 0;
+      TdApi.Chat pc = pcId != 0 ? tdlib.chat(pcId) : null;
+      if (pc == null) {
+        // one's own profile without a channel yet
+        card.bindChannel(tdlib, null, Lang.getString(R.string.Tgx101PersonalChannel), null, Lang.getString(R.string.Tgx101PersonalChannelAdd) + " ›");
+        return;
+      }
+      TdApi.Supergroup sg = ChatId.isSupergroup(pc.id) ? tdlib.cache().supergroup(ChatId.toSupergroupId(pc.id)) : null;
+      String subs = sg != null && sg.memberCount > 0 ? " · " + Lang.plural(R.string.xSubscribers, sg.memberCount) : "";
+      String last = pc.lastMessage != null ? TD.getTextFromMessage(pc.lastMessage) : null;
+      card.bindChannel(tdlib, pc, pc.title + subs, StringUtils.isEmpty(last) ? Lang.getString(R.string.Tgx101PersonalChannel) : last.replace('\n', ' '), "›");
+    }
+  }
+
   private void tgx101CheckProfileMusic () {
     if (isEditing() || user == null || TD.isBot(user)) return;
     boolean has = userFull != null && userFull.firstProfileAudio != null;
@@ -2966,7 +3014,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         for (int id : new int[] {R.id.btn_peer_id, R.id.btn_username, R.id.btn_birthdate, R.id.btn_description, R.id.btn_tgx101UserNote, R.id.btn_tgx101PersonalChannel}) {
           if ((id != R.id.btn_peer_id || Settings.instance().showPeerIds()) && baseAdapter.indexOfViewById(id) != -1) index++;
         }
-        addTopItem(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101ProfileMusic, R.drawable.baseline_music_note_24, R.string.Tgx101ProfileMusic), index);
+        addTopItem(new ListItem(ListItem.TYPE_CUSTOM - TGX101_CARD, R.id.btn_tgx101ProfileMusic, R.drawable.baseline_music_note_24, R.string.Tgx101ProfileMusic), index);
       }
     } else if (has) {
       updateValuedItem(R.id.btn_tgx101ProfileMusic);
@@ -3069,7 +3117,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         for (int id : new int[] {R.id.btn_peer_id, R.id.btn_username, R.id.btn_birthdate, R.id.btn_description, R.id.btn_tgx101UserNote}) {
           if ((id != R.id.btn_peer_id || Settings.instance().showPeerIds()) && baseAdapter.indexOfViewById(id) != -1) index++;
         }
-        addTopItem(new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101PersonalChannel, R.drawable.baseline_bullhorn_24, R.string.Tgx101PersonalChannel), index);
+        addTopItem(new ListItem(ListItem.TYPE_CUSTOM - TGX101_CARD, R.id.btn_tgx101PersonalChannel, R.drawable.baseline_bullhorn_24, R.string.Tgx101PersonalChannel), index);
       }
     } else if (has) {
       updateValuedItem(R.id.btn_tgx101PersonalChannel);
@@ -5934,6 +5982,9 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     final int itemId = item.getId();
     if (item.getViewType() == ListItem.TYPE_PADDING) {
       return item.getHeight(); // TGx101: the gap under the music and the channel (crash 2026-11-20 00:57 «AssertionError: 35»)
+    }
+    if (item.getViewType() == ListItem.TYPE_CUSTOM - TGX101_CARD) {
+      return org.thunderdog.challegram.widget.Tgx101ProfileCard.rowHeight();
     }
     switch (item.getViewType()) {
       case ListItem.TYPE_INFO_MULTILINE: {
