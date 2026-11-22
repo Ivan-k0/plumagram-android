@@ -128,6 +128,11 @@ public class MediaLayout extends FrameLayoutFix implements
   // Children
   private MediaBottomBaseController<?>[] controllers;
   private @Nullable MediaBottomBar bottomBar;
+
+  /** a sideways swipe over the half sheet: to the previous (finger to the right) or next section */
+  public boolean tgx101SwipeSection (boolean previous) {
+    return bottomBar != null && bottomBar.getVisibility() == View.VISIBLE && bottomBar.tgx101SwipeTo(previous);
+  }
   private @Nullable ShadowView shadowView;
   private MediaBottomBaseController<?> currentController;
 

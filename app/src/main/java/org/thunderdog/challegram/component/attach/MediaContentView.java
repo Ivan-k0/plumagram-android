@@ -70,8 +70,16 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
 
   private int currentScrollY;
 
+  // TGx101 (user 2026-11-22): a sideways swipe over the half sheet changes the section (the bottom bar's tabs)
+  private float tgx101StartX;
+  private long tgx101DownAt;
+  private boolean tgx101Sideways;
+
   private void prepareIntercept (MotionEvent e) {
     currentScrollY = base.getRecyclerScrollY();
+    tgx101StartX = e.getX();
+    tgx101DownAt = e.getEventTime();
+    tgx101Sideways = false;
 
     scrollStartY = 0;
     scrolling = false;
@@ -107,7 +115,16 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
         }
         if (intercepting || isAnimating) {
           return true;
-        } else if (shouldIntercept) {
+        }
+        if (!base.isExpanded()) {
+          float dx = e.getX() - tgx101StartX, dy = e.getY() - touchStartY;
+          if (Math.abs(dx) > touchSlop && Math.abs(dx) > Math.abs(dy) * 2f) {
+            intercepting = true;
+            tgx101Sideways = true;
+            return true; // the grid gets a cancel: no photo is tapped
+          }
+        }
+        if (shouldIntercept) {
           float y = e.getY();
           float yDiff = y - touchStartY;
           // TGx101 (user 2026-11-18, variant 2 «одним движением»): the grid was scrolled when the finger came down and has
@@ -181,6 +198,22 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
 
     if (!intercepting) {
       return super.onTouchEvent(e);
+    }
+
+    if (tgx101Sideways) {
+      int action = e.getActionMasked();
+      if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+        intercepting = false;
+        tgx101Sideways = false;
+        float dx = e.getX() - tgx101StartX;
+        long dt = Math.max(1, e.getEventTime() - tgx101DownAt);
+        boolean far = Math.abs(dx) >= Screen.dp(48f), quick = Math.abs(dx) / dt >= Screen.dp(250f) / 1000f && Math.abs(dx) >= touchSlop * 2;
+        if (action == MotionEvent.ACTION_UP && (far || quick)) {
+          boolean switched = base.tgx101SwipeSection(dx > 0);
+          org.thunderdog.challegram.Tgx101Diag.mark("attach: sideways swipe " + Math.round(dx) + " px in " + dt + " ms → " + (switched ? (dx > 0 ? "previous" : "next") + " section" : "no section there"));
+        }
+      }
+      return true;
     }
 
     flingDetector.onTouchEvent(e);

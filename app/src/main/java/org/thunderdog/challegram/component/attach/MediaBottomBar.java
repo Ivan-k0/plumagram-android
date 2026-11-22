@@ -560,6 +560,12 @@ public class MediaBottomBar extends FrameLayoutFix implements GestureDetector.On
     return tgx101Fling;
   }
 
+  /** TGx101 (user 2026-11-22 «в этом положении шапка внизу должна листаться по свайпам»): a sideways swipe over the half
+   *  sheet goes to the neighbouring section, as a fling over the bar itself does */
+  public boolean tgx101SwipeTo (boolean previous) {
+    return handleFling(previous);
+  }
+
   private boolean handleFling (boolean left) {
     if (items == null || items.length == 0 || overlayFactor != 0f) {
       return false;

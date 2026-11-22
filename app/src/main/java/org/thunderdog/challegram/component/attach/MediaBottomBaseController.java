@@ -955,6 +955,10 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     animateCurrentHeight(getMaxHeight(), false);
   }
 
+  public boolean tgx101SwipeSection (boolean previous) {
+    return !isExpanded() && mediaLayout.tgx101SwipeSection(previous);
+  }
+
   public boolean isExpanded () {
     return currentHeight == getMaxHeight();
   }
