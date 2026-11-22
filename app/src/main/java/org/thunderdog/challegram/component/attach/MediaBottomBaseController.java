@@ -688,6 +688,9 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     });
     tgx101GridGlide = a;
     a.start();
+    // (recording 2026-11-22: 14 → 4 → 14 px at the top) the sheet's last frame and the grid's first one were a frame
+    // apart, the grid starting from naught — one frame stood still. It starts a frame in, so the motion has no gap
+    a.setCurrentPlayTime(Math.min(duration, 9l));
     org.thunderdog.challegram.Tgx101Diag.mark("attach grid: goes on at " + Math.round(velocity) + " px/s for " + Math.round(total) + " px in " + duration + " ms");
   }
 
@@ -848,8 +851,11 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
           // (recorded next to the reference app 2026-11-22, the same 80 ms flick): there the sheet rises evenly at about half
           // the finger's speed (~20 px a frame) and the grid goes on at that very speed — here it rose at the full speed,
           // 20–42 px a frame. Half the flick for both, start and end alike, so the sheet goes up evenly
-          final int fling = velocityY < 0 ? Math.round(-velocityY * .5f) : 0;
-          animateCurrentHeight(getMaxHeight(), false, velocityY * .5f, fling > 0 && recyclerView != null ? () -> tgx101GlideGrid(fling) : null, fling);
+          // (recording 2026-11-22, a slow flick: 6 → 14 px a frame — the way at the finger's speed took longer than allowed,
+          // so the sheet sped up) the sheet goes evenly at the finger's speed, or faster when that would take over 0.7 s
+          float cruise = velocityY < 0 ? Math.max(-velocityY * .5f, Math.max(0, getMaxHeight() - currentHeight) / .7f) : 0f;
+          final int fling = Math.round(cruise);
+          animateCurrentHeight(getMaxHeight(), false, -cruise, fling > 0 && recyclerView != null ? () -> tgx101GlideGrid(fling) : null, fling);
         } else {
           animateCurrentHeight(startHeight, true);
         }

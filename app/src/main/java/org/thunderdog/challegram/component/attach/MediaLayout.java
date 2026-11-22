@@ -2073,12 +2073,25 @@ public class MediaLayout extends FrameLayoutFix implements
 
   private boolean visible = true;
 
+  // TGx101 (user 2026-11-22 «в начале есть затуп, где шапка "Все медиа"», recording: at the top one frame moved 2 px and
+  // the next came 18 ms late): the chat under the sheet was hidden in the very frame the sheet reached the top — the frame
+  // where the grid takes the motion over. It is hidden half a second later now, when the motion has settled; shown at once
+  private final Runnable tgx101HideContent = () -> {
+    if (!visible) {
+      NavigationController c = UI.getNavigation();
+      if (c != null) c.getValue().setVisibility(View.INVISIBLE);
+    }
+  };
+
   public void setContentVisible (boolean visible) {
     if (this.visible != visible) {
       this.visible = visible;
-      NavigationController c = UI.getNavigation();
-      if (c != null) {
-        c.getValue().setVisibility(visible ? View.VISIBLE : View.INVISIBLE);
+      removeCallbacks(tgx101HideContent);
+      if (visible) {
+        NavigationController c = UI.getNavigation();
+        if (c != null) c.getValue().setVisibility(View.VISIBLE);
+      } else {
+        postDelayed(tgx101HideContent, 500);
       }
     }
   }
