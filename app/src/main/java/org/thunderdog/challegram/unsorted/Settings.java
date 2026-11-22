@@ -4366,7 +4366,19 @@ public class Settings {
       view.setEllipsize(android.text.TextUtils.TruncateAt.MARQUEE);
       view.setMarqueeRepeatLimit(1);
       view.setHorizontalFadingEdgeEnabled(true);
-      view.postDelayed(() -> view.setSelected(true), 1000); // starts after a second, as in the mockup
+      // TGx101 (journal 2026-11-22: «Сохранить 2 файла в галерею» ran as a marquee and the menu redrew 120 times a second for
+      // seconds): words that don't fit are first made smaller, down to 80 %; only what still doesn't fit scrolls
+      final float sizeDp = baseDp * scale;
+      view.postDelayed(() -> {
+        int room = view.getWidth() - view.getCompoundPaddingLeft() - view.getCompoundPaddingRight();
+        CharSequence text = view.getText();
+        if (room <= 0 || text == null) return;
+        float need = view.getPaint().measureText(text, 0, text.length());
+        if (need <= room) return;
+        float fit = Math.max(.8f, room / need * .98f);
+        view.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, sizeDp * fit);
+        if (view.getPaint().measureText(text, 0, text.length()) > room) view.setSelected(true); // still too long: scrolls once
+      }, 1000);
     }
   }
 

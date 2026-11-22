@@ -1207,7 +1207,34 @@ public class MediaWrapper implements FileProgressComponent.SimpleListener, FileP
       + (f.remote.id != null && !f.remote.id.isEmpty() ? " id" : "");
   }
 
+  // TGx101 (user 2026-11-22: the left photo of an album stayed grey, and the journal had nothing on it): a picture still
+  // empty 2 s after it was first drawn says once what it holds and why it may be empty
+  private long tgx101FirstDrawAt;
+  private boolean tgx101EmptyNoted;
+
+  private void tgx101NoteEmpty (Receiver preview, Receiver receiver) {
+    if (!org.thunderdog.challegram.BuildConfig.TGX101_DIAG || tgx101EmptyNoted) return;
+    long now = android.os.SystemClock.uptimeMillis();
+    if (tgx101FirstDrawAt == 0) tgx101FirstDrawAt = now;
+    if (now - tgx101FirstDrawAt < 2000) return;
+    tgx101EmptyNoted = true;
+    if (!receiver.needPlaceholder()) return; // it came
+    TdApi.File f = targetFile;
+    String loaded = null;
+    if (receiver instanceof ImageReceiver) {
+      ImageFile cur = ((ImageReceiver) receiver).getCurrentFile();
+      loaded = cur != null ? cur.getClass().getSimpleName() + " #" + cur.getId() : "nothing asked";
+    } else {
+      loaded = receiver.getClass().getSimpleName();
+    }
+    org.thunderdog.challegram.Tgx101Diag.mark("album picture empty 2 s: msg " + getSourceMessageId() + ", target " + (targetImageFile != null ? "set" : "none")
+      + (f != null ? ", file #" + f.id + " " + f.local.downloadedSize + "/" + f.size + " done " + f.local.isDownloadingCompleted + " active " + f.local.isDownloadingActive
+        + " can " + f.local.canBeDownloaded + " path «" + f.local.path + "» exists " + (f.local.path != null && !f.local.path.isEmpty() && new java.io.File(f.local.path).exists()) : ", no file")
+      + ", receiver holds " + loaded + ", preview empty " + preview.needPlaceholder() + ", cell " + cellWidth + "×" + cellHeight);
+  }
+
   public <T extends View & DrawableProvider> void draw (T view, Canvas c, int startX, int startY, Receiver preview, Receiver receiver, float alpha) {
+    tgx101NoteEmpty(preview, receiver);
     final float selectionFactor = selectionAnimator != null && source != null ? source.getSelectionFactor(selectionAnimator) : 0f;
     // TGx101 (user 2026-10-30, channel Jeteed in «Journal»: square corners while the feed's are round): «Journal» media
     // sit between margins now, so even full-width ones are cut to their own rounded shape

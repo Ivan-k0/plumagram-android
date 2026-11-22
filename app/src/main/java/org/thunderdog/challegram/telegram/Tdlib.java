@@ -239,11 +239,15 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
   private final ResultHandler<TdApi.File> imageLoadHandler = (file, error) -> {
     if (error != null) {
       Log.e(Log.TAG_IMAGE_LOADER, "DownloadFile failed: %s", TD.toErrorString(error));
+      org.thunderdog.challegram.loader.ImageActor.tgx101Mark(0, "image: download refused — " + TD.toErrorString(error));
     } else {
       if (file.local.isDownloadingCompleted) {
         ImageLoader.instance().onLoad(Tdlib.this, file);
       } else if (!file.local.isDownloadingActive) {
         Log.e(Log.TAG_IMAGE_LOADER, "WARNING: Image load not started");
+        // TGx101 (user 2026-11-22: a photo of an album stayed grey, nothing in the journal) why it never came
+        org.thunderdog.challegram.loader.ImageActor.tgx101Mark(file.id, "image: file #" + file.id + " not downloading — can " + file.local.canBeDownloaded
+          + ", local «" + file.local.path + "» " + file.local.downloadedSize + "/" + file.size + ", remote " + (file.remote != null ? file.remote.isUploadingCompleted + "/" + file.remote.uploadedSize : "none"));
       }
     }
   };

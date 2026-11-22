@@ -1113,6 +1113,13 @@ public class MediaLayout extends FrameLayoutFix implements
     });
     animator.addListener(endListener);
     animator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    long tgx101Even = getCurrentController().tgx101DismissDuration();
+    if (tgx101Even > 0) {
+      // flicked away: the rest of the way at the finger's speed, evenly (as the reference app does), no closing burst
+      animator.setDuration(tgx101Even);
+      animator.setInterpolator(AnimatorUtils.LINEAR_INTERPOLATOR);
+      org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: flicked away, the rest in " + tgx101Even + " ms evenly");
+    }
     getCurrentController().onBottomBarAnimationStart(true);
     return animator;
   }

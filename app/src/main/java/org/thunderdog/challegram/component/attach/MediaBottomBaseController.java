@@ -318,7 +318,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
             tgx101GridStep = v;
             // measured on the phone (recording 2026-11-22, 120 fps): the grid's own figures ran ~1.7× what is seen on the
             // screen (24–26 px a frame seen, 5556 px/s counted) while the sheet moves exactly as told — so ×0.6
-            tgx101Speed = -use * .6f;
+            tgx101Speed = -use * .45f; // (second recording: ×0.6 still left at 30–34 after 24–26)
             tgx101SpeedAt = now;
           } else {
             tgx101GridStep = 0f;
@@ -605,7 +605,9 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     } else if (speed > .05f) {
       // up: about the finger's speed in near-even steps (as recorded next to the other client); down: a softer landing
       double t = (toHeight > currentHeight ? 1.6 : 2.0) * distance / speed;
-      duration = toHeight > currentHeight ? Math.max(160l, Math.min(380l, Math.round(t))) : Math.max(220l, Math.min(420l, Math.round(t)));
+      // down up to 700 ms (recorded next to the reference 2026-11-22: capped at 420 the sheet had to speed up from the grid's
+      // 28 px a frame to 40 to make it; there it only slows down)
+      duration = toHeight > currentHeight ? Math.max(160l, Math.min(380l, Math.round(t))) : Math.max(220l, Math.min(700l, Math.round(t)));
     } else {
       duration = fast ? 220l : 320l;
     }
@@ -657,7 +659,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     // (user 2026-11-22 «почему скролл останавливается? он должен продолжаться»): it goes on as a fling does — the speed
     // fades exponentially (time constant tau) from exactly the sheet's speed; RecyclerView's own fling started at about
     // half the speed it was given on this phone, which was the step seen at the top
-    final float tau = .33f; // s
+    final float tau = .7f; // s — set by recording next to the reference app (its grid halves every ~0.3 s, stops after ~1.6 s)
     final float v = velocity / 1000f; // px per ms
     final long duration = Math.max(300l, Math.round(tau * 1000f * Math.log(Math.max(1.01f, velocity / 12f))));
     final float k = duration / (tau * 1000f);
@@ -788,6 +790,15 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
 
   public void onBottomBarAnimationComplete () {
     useBottomBarChange = false;
+    tgx101DismissSpeed = 0f;
+  }
+
+  private float tgx101DismissSpeed; // px per ms the sheet was flicked away with, 0 when not flicked
+
+  /** How long the hide takes to go the rest of the way at the flick's speed, or 0 to use the usual hide */
+  public long tgx101DismissDuration () {
+    if (tgx101DismissSpeed < .5f || currentHeight <= 0) return 0;
+    return Math.max(120l, Math.min(360l, Math.round(currentHeight / Math.min(8f, tgx101DismissSpeed))));
   }
 
   public void onRecyclerMovementStarted () {
@@ -830,8 +841,11 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
           // (user 2026-11-18, variant 2 «без остановки»): a flick from the half sheet opens it and the grid goes on
           // scrolling by the rest of the flick, as one move
           // the grid takes the rest of the flick once the sheet is at the top, as one move
-          final int fling = velocityY < 0 ? Math.round(-velocityY * .7f) : 0;
-          animateCurrentHeight(getMaxHeight(), false, velocityY, fling > 0 && recyclerView != null ? () -> tgx101GlideGrid(fling) : null, fling);
+          // (recorded next to the reference app 2026-11-22, the same 80 ms flick): there the sheet rises evenly at about half
+          // the finger's speed (~20 px a frame) and the grid goes on at that very speed — here it rose at the full speed,
+          // 20–42 px a frame. Half the flick for both, start and end alike, so the sheet goes up evenly
+          final int fling = velocityY < 0 ? Math.round(-velocityY * .5f) : 0;
+          animateCurrentHeight(getMaxHeight(), false, velocityY * .5f, fling > 0 && recyclerView != null ? () -> tgx101GlideGrid(fling) : null, fling);
         } else {
           animateCurrentHeight(startHeight, true);
         }
@@ -844,6 +858,12 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
         useBottomBarChange = true;
         barChangeFromHeight = currentHeight;
         barChangeHeightDiff = -currentHeight;
+        // (user 2026-11-22 «посмотри анимацию вниз, там тоже рывок»; recorded next to the reference app): flicked away,
+        // the sheet went on at ~3× the finger's speed for its last two frames. The reference keeps the finger's speed to
+        // the end, evenly — the hide now does the same
+        float fingerSpeed = SystemClock.uptimeMillis() - tgx101SpeedAt < 120 ? Math.abs(tgx101Speed) : 0f;
+        // ×0.55: set by recording (the full figure went 52–58 px a frame after the finger's 28; the reference keeps 28)
+        tgx101DismissSpeed = Math.max(fingerSpeed, Math.abs(velocityY) / 1000f * .5f) * .55f;
         mediaLayout.hideBottomBarAndDismiss();
       }
 

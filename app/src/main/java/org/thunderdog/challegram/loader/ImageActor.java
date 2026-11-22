@@ -113,8 +113,23 @@ public class ImageActor implements ImageReader.Listener, AudioController.ApicLis
 
   // Local image loader
 
+  // TGx101 (user 2026-11-22: a photo of an album stayed grey, nothing in the journal): why an image didn't come, once per file
+  private static final java.util.Set<Integer> tgx101Marked = java.util.Collections.synchronizedSet(new java.util.HashSet<>());
+
+  public static void tgx101Mark (int fileId, String text) {
+    if (!org.thunderdog.challegram.BuildConfig.TGX101_DIAG) return;
+    if (fileId != 0 && !tgx101Marked.add(fileId)) return;
+    org.thunderdog.challegram.Tgx101Diag.mark(text);
+  }
+
   @Override
   public void onImageLoaded (boolean success, Bitmap result) {
+    if (!success && org.thunderdog.challegram.BuildConfig.TGX101_DIAG) {
+      String path = file.getFilePath();
+      java.io.File f = path != null ? new java.io.File(path) : null;
+      tgx101Mark(file.getId(), "image: #" + file.getId() + " " + file.getClass().getSimpleName() + " couldn't be read — path «" + path + "» exists " + (f != null && f.exists())
+        + ", readable " + (f != null && f.canRead()) + ", " + (f != null ? f.length() : -1) + " bytes, cancelled " + isCancelled);
+    }
     if (success) {
       if (file.needPalette()) {
         try {
