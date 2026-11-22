@@ -8276,16 +8276,34 @@ public class MessagesController extends ViewController<MessagesController.Argume
         break;
       }
       case ACTION_JOIN_CHAT: {
-        tdlib.client().send(new TdApi.AddChatMember(chat.id, tdlib.myUserId(), 0), result -> {
+        // TGx101 (4PDA 2026-11-22, Android 5.1, public group @Vlessforu: «не присоединяется, при нажатии ничего не
+        // происходит»): the wide «Join» bar asked AddChatMember for oneself and showed an error only as a tooltip over the
+        // bar, and nothing went to the journal. Public chats are joined with JoinChat (a join request comes back as
+        // INVITE_REQUEST_SENT); every outcome goes to the journal and an error is shown as a toast too
+        final long joinChatId = chat.id;
+        final boolean isChannelChat = tdlib.isChannel(joinChatId);
+        final String title = tdlib.chatTitle(joinChatId);
+        org.thunderdog.challegram.Tgx101Diag.mark("join: wide bar, chat " + joinChatId + ", status " + Tdlib.tgx101StatusName(tdlib.chatStatus(joinChatId)) + ", api " + android.os.Build.VERSION.SDK_INT);
+        tdlib.client().send(ChatId.isUserChat(joinChatId) || ChatId.isSecret(joinChatId) ? new TdApi.AddChatMember(joinChatId, tdlib.myUserId(), 0) : new TdApi.JoinChat(joinChatId), result -> {
           if (result.getConstructor() == TdApi.Error.CONSTRUCTOR) {
+            String err = TD.toErrorString(result);
+            boolean requestSent = err != null && err.contains("INVITE_REQUEST_SENT");
+            org.thunderdog.challegram.Tgx101Diag.mark("join: wide bar, chat " + joinChatId + (requestSent ? " — join request sent" : " refused: " + err));
             runOnUiThreadOptional(() -> {
+              if (requestSent) {
+                UI.showToast(Lang.getString(isChannelChat ? R.string.RequestJoinChannelSent : R.string.RequestJoinGroupSent, title), android.widget.Toast.LENGTH_SHORT);
+                return;
+              }
+              UI.showError(result);
               if (isFocused()) {
                 context
                   .tooltipManager()
                   .builder(actionButton)
-                  .show(this, tdlib, R.drawable.baseline_error_24, TD.toErrorString(result));
+                  .show(this, tdlib, R.drawable.baseline_error_24, err);
               }
             });
+          } else {
+            org.thunderdog.challegram.Tgx101Diag.mark("join: wide bar, chat " + joinChatId + " → joined, status now " + Tdlib.tgx101StatusName(tdlib.chatStatus(joinChatId)));
           }
         });
         break;
