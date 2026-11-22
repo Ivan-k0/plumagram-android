@@ -157,44 +157,7 @@ public final class Tgx101SavedActions {
           after.run();
         });
       }));
-      // (user 2026-10-21 «3 вариант с ИИ»): the AI puts the records without a folder into folders
-      if (org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSort()) body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_stars_24, 0, Lang.getString(R.string.Tgx101SavedAiSort), null, false, v -> {
-        h[0].dismiss();
-        c.navigateTo(new Tgx101SavedAiSortController(c.context(), c.tdlib()));
-      }));
-      // (user 2026-11-14, Storage variant А): the same without the AI, the copies saved twice, the week in numbers
-      if (!org.thunderdog.challegram.unsorted.Settings.instance().tgx101AiSort() || !org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai()) {
-        body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_folder_24, 0, Lang.getString(R.string.Tgx101StorageRules), null, false, v -> {
-          h[0].dismiss();
-          c.navigateTo(new Tgx101SavedAiSortController(c.context(), c.tdlib()).tgx101LocalOnly(true));
-        }));
-      }
-      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_content_copy_24, 0, Lang.getString(R.string.Tgx101StorageDuplicates), null, false, v -> {
-        h[0].dismiss();
-        UI.post(() -> Tgx101StorageTools.showDuplicates(c), 200);
-      }));
-      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_date_range_24, 0, Lang.getString(R.string.Tgx101StorageWeek), null, false, v -> {
-        h[0].dismiss();
-        UI.post(() -> Tgx101StorageTools.showWeek(c), 200);
-      }));
-      // (user 2026-11-14, Storage variants Б and В): what went to folders by itself, and a question in words
-      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_folder_24, 0, Lang.getString(R.string.Tgx101AutoFileLog), null, false, v -> {
-        h[0].dismiss();
-        UI.post(() -> Tgx101StorageTools.showAutoLog(c), 200);
-      }));
-      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_search_24, 0, Lang.getString(R.string.Tgx101StorageAsk), null, false, v -> {
-        h[0].dismiss();
-        UI.post(() -> Tgx101StorageTools.showAsk(c), 200);
-      }));
-      Tgx101SavedAiSortController.Undo undo = Tgx101SavedAiSortController.pending(c.tdlib());
-      if (undo != null) {
-        body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_undo_24, 0, Lang.getString(R.string.Tgx101SavedAiUndo, undo.count), null, false, v -> {
-          h[0].dismiss();
-          int n = Tgx101SavedAiSortController.undo(c.tdlib());
-          UI.showToast(Lang.getString(R.string.Tgx101SavedAiUndone, n), android.widget.Toast.LENGTH_SHORT);
-          after.run();
-        }));
-      }
+      // (user 2026-11-22 «ИИ-функции хранилища по кнопке „новое“ — им там не место»): the order tools moved to ✨ «Порядок» in the header
       // (user 2026-10-17 «если убрать метку с главного экрана, то как её вернуть?»): the tags that aren't tiles, one tap back
       Tgx101SavedStore store = Tgx101SavedStore.get(c.tdlib());
       List<String> hidden = new ArrayList<>();

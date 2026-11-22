@@ -1178,6 +1178,22 @@ public class Tgx101SavedListController extends ViewController<Void> {
     searchField.setImeOptions(EditorInfo.IME_ACTION_SEARCH);
     Tgx101SavedHomeController.styleField(searchField, false); // the chats' field bubble, like every field in the storage
     box.addView(searchField, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f)));
+    // TGx101 (user 2026-11-22: «Спросить Хранилище» goes to the search): with words typed and the AI on, the first line asks it
+    tgx101AskView = Tgx101SavedHomeController.text(context, 14.5f, Theme.getColor(org.thunderdog.challegram.theme.ColorId.textLink), true);
+    tgx101AskView.setSingleLine(true);
+    tgx101AskView.setEllipsize(TextUtils.TruncateAt.END);
+    tgx101AskView.setGravity(Gravity.CENTER_VERTICAL);
+    tgx101AskView.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
+    tgx101AskView.setBackground(Tgx101SavedHomeController.card(Theme.fillingColor(), 17f));
+    Views.setClickable(tgx101AskView);
+    tgx101AskView.setOnClickListener(v -> {
+      org.thunderdog.challegram.tool.Keyboard.hide(searchField);
+      Tgx101StorageTools.ask(this, query);
+    });
+    tgx101AskView.setVisibility(View.GONE);
+    LinearLayout.LayoutParams askParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(40f));
+    askParams.topMargin = Screen.dp(10f);
+    box.addView(tgx101AskView, askParams);
     HorizontalScrollView chipsScroll = new HorizontalScrollView(context);
     chipsScroll.setHorizontalScrollBarEnabled(false);
     searchChips = new LinearLayout(context);
@@ -1195,6 +1211,7 @@ public class Tgx101SavedListController extends ViewController<Void> {
       @Override
       public void afterTextChanged (Editable s) {
         query = s.toString().trim();
+        tgx101UpdateAsk();
         searchField.removeCallbacks(runSearch);
         searchField.postDelayed(runSearch, 350); // typing pauses: search, not on every letter
       }
@@ -1205,6 +1222,19 @@ public class Tgx101SavedListController extends ViewController<Void> {
       org.thunderdog.challegram.tool.Keyboard.hide(searchField);
       return true;
     });
+  }
+
+  private TextView tgx101AskView;
+
+  private void tgx101UpdateAsk () {
+    if (tgx101AskView == null) return;
+    boolean ai = org.thunderdog.challegram.unsorted.Settings.instance().tgx101Ai();
+    if (!ai || query.length() < 3) {
+      tgx101AskView.setVisibility(View.GONE);
+      return;
+    }
+    tgx101AskView.setText(Lang.getString(R.string.Tgx101StorageAskQuery, query));
+    tgx101AskView.setVisibility(View.VISIBLE);
   }
 
   private TextView chip (String label, boolean on, View.OnClickListener click) {

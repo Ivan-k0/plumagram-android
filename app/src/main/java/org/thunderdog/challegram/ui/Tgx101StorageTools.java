@@ -308,6 +308,52 @@ public final class Tgx101StorageTools {
     return b.toString();
   }
 
+  /**
+   * (user 2026-11-22 «ИИ-функции хранилища по кнопке „новое“ — им там не место. додумай решение»): ✨ «Order» in the Storage's
+   * header — into folders (by the AI when it is on, by the phone's rules otherwise), what went there by itself, the same
+   * thing twice, the week. The question in words lives in the search
+   */
+  public static void showOrder (ViewController<?> c, Runnable after) {
+    final Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
+    h[0] = Tgx101Sheet.show(c, null, body -> {
+      body.addView(Tgx101Sheet.title(c.context(), Lang.getString(R.string.Tgx101StorageOrder)));
+      org.thunderdog.challegram.unsorted.Settings s = org.thunderdog.challegram.unsorted.Settings.instance();
+      final boolean ai = s.tgx101Ai() && s.tgx101AiSort();
+      body.addView(Tgx101Sheet.row(c.context(), ai ? R.drawable.baseline_stars_24 : R.drawable.baseline_folder_24, 0, Lang.getString(R.string.Tgx101StorageOrderSort),
+        Lang.getString(ai ? R.string.Tgx101StorageOrderByAi : R.string.Tgx101StorageOrderByRules), false, v -> {
+        h[0].dismiss();
+        c.navigateTo(ai ? new Tgx101SavedAiSortController(c.context(), c.tdlib()) : new Tgx101SavedAiSortController(c.context(), c.tdlib()).tgx101LocalOnly(true));
+      }));
+      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_history_24, 0, Lang.getString(R.string.Tgx101AutoFileLog), null, false, v -> {
+        h[0].dismiss();
+        UI.post(() -> showAutoLog(c), 200);
+      }));
+      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_content_copy_24, 0, Lang.getString(R.string.Tgx101StorageDuplicates), null, false, v -> {
+        h[0].dismiss();
+        UI.post(() -> showDuplicates(c), 200);
+      }));
+      body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_date_range_24, 0, Lang.getString(R.string.Tgx101StorageWeek), null, false, v -> {
+        h[0].dismiss();
+        UI.post(() -> showWeek(c), 200);
+      }));
+      Tgx101SavedAiSortController.Undo undo = Tgx101SavedAiSortController.pending(c.tdlib());
+      if (undo != null) {
+        body.addView(Tgx101Sheet.row(c.context(), R.drawable.baseline_undo_24, 0, Lang.getString(R.string.Tgx101SavedAiUndo, undo.count), null, false, v -> {
+          h[0].dismiss();
+          int n = Tgx101SavedAiSortController.undo(c.tdlib());
+          UI.showToast(Lang.getString(R.string.Tgx101SavedAiUndone, n), android.widget.Toast.LENGTH_SHORT);
+          after.run();
+        }));
+      }
+    });
+  }
+
+  /** The search's «✨ Ask the AI»: the question as typed */
+  public static void ask (ViewController<?> c, String question) {
+    if (question == null || question.trim().isEmpty()) return;
+    answerSheet(c, question.trim());
+  }
+
   public static void showAsk (ViewController<?> c) {
     Tgx101SavedActions.askText(c, Lang.getString(R.string.Tgx101StorageAsk), "", Lang.getString(R.string.Tgx101StorageAskExample), question -> {
       if (question == null || question.trim().isEmpty()) return;

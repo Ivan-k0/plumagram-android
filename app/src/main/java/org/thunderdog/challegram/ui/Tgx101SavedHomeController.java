@@ -150,6 +150,7 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   public void fillMenuItems (int id, HeaderView header, LinearLayout menu) {
     if (id == R.id.menu_tgx101SavedHome) {
       // (user 2026-11-08 «убери кнопку поиска в шапке хранилища»): the search pill under the header is the way in
+      header.addButton(menu, R.id.menu_btn_tgx101SavedOrder, R.drawable.baseline_stars_24, getHeaderIconColorId(), this, Screen.dp(49f)); // ✨ «Order» (user 2026-11-22)
       header.addButton(menu, R.id.menu_btn_tgx101SavedFeed, R.drawable.baseline_forum_24, getHeaderIconColorId(), this, Screen.dp(49f));
       header.addButton(menu, R.id.menu_btn_tgx101SavedSettings, R.drawable.baseline_settings_24, getHeaderIconColorId(), this, Screen.dp(49f));
     }
@@ -159,6 +160,10 @@ public class Tgx101SavedHomeController extends ViewController<Void> implements M
   public void onMenuItemPressed (int id, View view) {
     if (id == R.id.menu_btn_tgx101SavedAi) {
       navigateTo(new Tgx101SavedAiSortController(context, tdlib));
+      return;
+    }
+    if (id == R.id.menu_btn_tgx101SavedOrder) {
+      Tgx101StorageTools.showOrder(this, () -> { });
       return;
     }
     if (id == R.id.menu_btn_tgx101SavedSearch) {

@@ -1149,6 +1149,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101AutoFileOne, "«%1$s» → %2$s");
     RU.put(R.string.Tgx101AutoFileMany, "Разложено по папкам само: %1$d");
     RU.put(R.string.Tgx101StorageAsk, "Спросить Хранилище");
+    RU.put(R.string.Tgx101StorageOrder, "Порядок");
+    RU.put(R.string.Tgx101StorageOrderSort, "Разложить по папкам");
+    RU.put(R.string.Tgx101StorageOrderByAi, "с ИИ");
+    RU.put(R.string.Tgx101StorageOrderByRules, "по правилам телефона");
+    RU.put(R.string.Tgx101StorageAskQuery, "✨ Спросить ИИ: «%1$s»");
     RU.put(R.string.Tgx101StorageAskExample, "Где тот счёт за плитку от мастера?");
     RU.put(R.string.Tgx101StorageAskByAi, "ИИ видел только подписи, названия и источники до 40 записей, отобранных телефоном.");
     RU.put(R.string.Tgx101StorageAskFailed, "ИИ не ответил — вот что нашлось по словам");
@@ -2065,6 +2070,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101WaveMixKnown, "Больше знакомого");
     RU.put(R.string.Tgx101WaveMixDefault, "Вперемешку");
     RU.put(R.string.Tgx101WaveMixNew, "Больше нового");
+    RU.put(R.string.Tgx101WaveMixKnownShort, "Знакомое");
+    RU.put(R.string.Tgx101WaveMixNewShort, "Новое");
     RU.put(R.string.Tgx101WaveMood, "Настроение");
     RU.put(R.string.Tgx101WaveMoodNeedsAi, "Настроение — с ИИ: включите его в «Мой вкус»");
     RU.put(R.string.Tgx101WaveMoodAny, "Любое");

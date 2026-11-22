@@ -1308,6 +1308,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
           }), 200);
         }));
       }
+      body.addView(tgx101SheetDivider());
       // (user 2026-11-20, the ⋮ order: «Поток (внутри добавь "Скрыто из потока")»)
       body.addView(Tgx101Sheet.row(context, R.drawable.tgx101_thumb_down_outline_24, 0, Lang.getString(R.string.Tgx101DislikeHidden), null, false, v -> {
         handle[0].dismiss();
@@ -1323,6 +1324,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         handle[0].dismiss();
         tgx101ShowWaveSheet();
       });
+      body.addView(tgx101SheetDivider());
       final boolean on = settings.tgx101WaveHints();
       body.addView(Tgx101Sheet.row(context, R.drawable.baseline_search_24, 0, Lang.getString(on ? R.string.Tgx101WaveHintsOff : R.string.Tgx101WaveHintsOn), null, on, v -> {
         settings.setTgx101WaveHints(!on);
@@ -1339,18 +1341,38 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
   /** (user 2026-11-14, «настроить поток»): known ↔ new, and the mood when the AI is on; the next tracks follow at once, «start anew» — all */
   private void tgx101FillWaveKnobs (android.widget.LinearLayout body, Runnable refresh) {
     final org.thunderdog.challegram.unsorted.Settings settings = org.thunderdog.challegram.unsorted.Settings.instance();
-    body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101WaveMix)));
+    // TGx101 (user 2026-11-22 «оформить красиво, чтобы не сливалось, с иконками у основных строк», screenshot of «Поток»):
+    // the two knobs are small headed blocks under a line — «known and new» three segments in a row, the mood a row of
+    // pills — instead of eleven rows of the same look as the actions above them
+    body.addView(tgx101SheetDivider());
+    body.addView(tgx101SheetHeader(R.drawable.round_shuffle_24, Lang.getString(R.string.Tgx101WaveMix)));
     final int mix = settings.tgx101WaveMix();
     final int[] mixes = {org.thunderdog.challegram.unsorted.Settings.TGX101_WAVE_MIX_KNOWN, org.thunderdog.challegram.unsorted.Settings.TGX101_WAVE_MIX_DEFAULT, org.thunderdog.challegram.unsorted.Settings.TGX101_WAVE_MIX_NEW};
-    final int[] mixNames = {R.string.Tgx101WaveMixKnown, R.string.Tgx101WaveMixDefault, R.string.Tgx101WaveMixNew};
+    final int[] mixNames = {R.string.Tgx101WaveMixKnownShort, R.string.Tgx101WaveMixDefault, R.string.Tgx101WaveMixNewShort}; // short: three fit in a row
+    android.widget.LinearLayout segments = new android.widget.LinearLayout(context);
+    segments.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    segments.setPadding(Screen.dp(3f), Screen.dp(3f), Screen.dp(3f), Screen.dp(3f));
+    android.graphics.drawable.GradientDrawable track = new android.graphics.drawable.GradientDrawable();
+    track.setColor(ColorUtils.alphaColor(.07f, Theme.textAccentColor()));
+    track.setCornerRadius(Screen.dp(14f));
+    segments.setBackground(track);
     for (int i = 0; i < mixes.length; i++) {
       final int value = mixes[i];
-      body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(mixNames[i]), null, mix == value, v -> {
+      android.widget.TextView seg = tgx101Pill(Lang.getString(mixNames[i]), mix == value, Screen.dp(4f));
+      seg.setGravity(android.view.Gravity.CENTER);
+      if (mix != value) seg.setBackground(null); // on the track only the chosen one has its own ground
+      seg.setOnClickListener(v -> {
         settings.setTgx101WaveMix(value);
         refresh.run();
-      }));
+      });
+      segments.addView(seg, new android.widget.LinearLayout.LayoutParams(0, Screen.dp(38f), 1f));
     }
-    body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101WaveMood)));
+    android.widget.LinearLayout.LayoutParams segParams = new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT);
+    segParams.setMargins(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(6f));
+    body.addView(segments, segParams);
+
+    body.addView(tgx101SheetDivider());
+    body.addView(tgx101SheetHeader(R.drawable.baseline_emoticon_outline_24, Lang.getString(R.string.Tgx101WaveMood)));
     if (!org.thunderdog.challegram.player.Tgx101MusicAi.isOn()) {
       body.addView(Tgx101Sheet.row(context, R.drawable.baseline_stars_24, 0, Lang.getString(R.string.Tgx101WaveMoodNeedsAi), null, false, v -> {
         refresh.run(); // closes this one
@@ -1359,28 +1381,91 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
       return;
     }
     final String mood = settings.tgx101WaveMood();
-    body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101WaveMoodAny), null, mood.isEmpty(), v -> {
-      settings.setTgx101WaveMood(null);
-      refresh.run();
-    }));
-    for (final String m : org.thunderdog.challegram.player.Tgx101MusicAi.MOODS) {
-      body.addView(Tgx101Sheet.row(context, 0, 0, org.thunderdog.challegram.player.Tgx101MusicAi.moodLabel(m), null, m.equals(mood), v -> {
-        settings.setTgx101WaveMood(m);
+    android.widget.LinearLayout pills = new android.widget.LinearLayout(context);
+    pills.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    pills.setPadding(Screen.dp(16f), 0, Screen.dp(16f), 0);
+    java.util.List<String> keys = new java.util.ArrayList<>();
+    keys.add("");
+    java.util.Collections.addAll(keys, org.thunderdog.challegram.player.Tgx101MusicAi.MOODS);
+    for (final String m : keys) {
+      String label = m.isEmpty() ? Lang.getString(R.string.Tgx101WaveMoodAny) : org.thunderdog.challegram.player.Tgx101MusicAi.moodLabel(m);
+      android.widget.TextView pill = tgx101Pill(label, m.equals(mood), Screen.dp(16f));
+      pill.setOnClickListener(v -> {
+        settings.setTgx101WaveMood(m.isEmpty() ? null : m);
         refresh.run();
-      }));
+      });
+      android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(38f));
+      lp.rightMargin = Screen.dp(8f);
+      pills.addView(pill, lp);
     }
     final boolean own = !mood.isEmpty() && !org.thunderdog.challegram.player.Tgx101MusicAi.isMood(mood);
-    body.addView(Tgx101Sheet.row(context, R.drawable.baseline_edit_24, 0, own ? mood : Lang.getString(R.string.Tgx101WaveMoodOwn), null, own, v -> {
+    android.widget.TextView ownPill = tgx101Pill("✎ " + (own ? mood : Lang.getString(R.string.Tgx101WaveMoodOwn)), own, Screen.dp(16f));
+    ownPill.setOnClickListener(v -> {
       refresh.run(); // closes this one
       UI.post(() -> Tgx101SavedActions.askName(this, Lang.getString(R.string.Tgx101WaveMoodOwn), own ? mood : "", written -> {
         settings.setTgx101WaveMood(written.trim());
         tgx101ShowWaveSheet();
       }), 200);
-    }));
+    });
+    pills.addView(ownPill, new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(38f)));
+    android.widget.HorizontalScrollView scroller = new android.widget.HorizontalScrollView(context);
+    scroller.setHorizontalScrollBarEnabled(false);
+    scroller.setOverScrollMode(View.OVER_SCROLL_NEVER);
+    scroller.addView(pills);
+    body.addView(scroller, new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, android.view.ViewGroup.LayoutParams.WRAP_CONTENT));
     android.widget.TextView note = Tgx101SavedHomeController.text(context, 13f, Theme.textDecentColor(), false);
     note.setText(Lang.getString(R.string.Tgx101WaveMoodHint));
-    note.setPadding(Screen.dp(20f), Screen.dp(2f), Screen.dp(20f), Screen.dp(6f));
+    note.setPadding(Screen.dp(20f), Screen.dp(8f), Screen.dp(20f), Screen.dp(6f));
     body.addView(note);
+  }
+
+  /** a hairline between the blocks of a sheet */
+  private View tgx101SheetDivider () {
+    View line = new View(context);
+    line.setBackgroundColor(Theme.separatorColor());
+    android.widget.LinearLayout.LayoutParams lp = new android.widget.LinearLayout.LayoutParams(android.view.ViewGroup.LayoutParams.MATCH_PARENT, Math.max(1, Screen.dp(.5f)));
+    lp.setMargins(Screen.dp(20f), Screen.dp(8f), Screen.dp(20f), Screen.dp(4f));
+    line.setLayoutParams(lp);
+    return line;
+  }
+
+  /** a block's small header: an icon and grey words, apart from the rows */
+  private View tgx101SheetHeader (int icon, CharSequence text) {
+    android.widget.LinearLayout row = new android.widget.LinearLayout(context);
+    row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    row.setGravity(android.view.Gravity.CENTER_VERTICAL);
+    row.setPadding(Screen.dp(20f), Screen.dp(10f), Screen.dp(20f), Screen.dp(10f));
+    android.widget.ImageView iv = new android.widget.ImageView(context);
+    iv.setImageResource(icon);
+    iv.setColorFilter(Theme.textDecentColor());
+    row.addView(iv, new android.widget.LinearLayout.LayoutParams(Screen.dp(18f), Screen.dp(18f)));
+    android.widget.TextView label = new android.widget.TextView(context);
+    label.setText(text);
+    label.setTextColor(Theme.textDecentColor());
+    label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
+    label.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+    label.setPadding(Screen.dp(10f), 0, 0, 0);
+    row.addView(label);
+    return row;
+  }
+
+  /** a rounded pill: the chosen one in the link colour on its tint, the rest plain on a faint ground */
+  private android.widget.TextView tgx101Pill (CharSequence text, boolean selected, int sidePadding) {
+    android.widget.TextView pill = new org.thunderdog.challegram.widget.EmojiTextView(context);
+    pill.setText(text);
+    pill.setSingleLine(true);
+    pill.setGravity(android.view.Gravity.CENTER);
+    pill.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14.5f);
+    pill.setPadding(sidePadding, 0, sidePadding, 0);
+    int link = Theme.getColor(org.thunderdog.challegram.theme.ColorId.textLink);
+    pill.setTextColor(selected ? link : Theme.textAccentColor());
+    if (selected) pill.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+    bg.setColor(selected ? ColorUtils.alphaColor(.18f, link) : ColorUtils.alphaColor(.07f, Theme.textAccentColor()));
+    bg.setCornerRadius(Screen.dp(12f));
+    pill.setBackground(bg);
+    org.thunderdog.challegram.tool.Views.setClickable(pill);
+    return pill;
   }
 
   private void tgx101StartWave () {

@@ -7341,6 +7341,11 @@
   <string name="Tgx101AutoFileOne">«%1$s» → %2$s</string>
   <string name="Tgx101AutoFileMany">Put in folders by itself: %1$d</string>
   <string name="Tgx101StorageAsk">Ask the Storage</string>
+  <string name="Tgx101StorageOrder">Order</string>
+  <string name="Tgx101StorageOrderSort">Sort into folders</string>
+  <string name="Tgx101StorageOrderByAi">by the AI</string>
+  <string name="Tgx101StorageOrderByRules">by the phone\'s rules</string>
+  <string name="Tgx101StorageAskQuery">✨ Ask the AI: «%1$s»</string>
   <string name="Tgx101StorageAskExample">Where is that bill for the tiles?</string>
   <string name="Tgx101StorageAskByAi">The AI saw only the captions, titles and sources of up to 40 records the phone picked first.</string>
   <string name="Tgx101StorageAskFailed">The AI didn\'t answer — here is what the words find</string>
@@ -7671,6 +7676,8 @@
   <string name="Tgx101WaveMixKnown">More of the known</string>
   <string name="Tgx101WaveMixDefault">Mixed</string>
   <string name="Tgx101WaveMixNew">More of the new</string>
+  <string name="Tgx101WaveMixKnownShort">Familiar</string>
+  <string name="Tgx101WaveMixNewShort">New</string>
   <string name="Tgx101WaveMood">Mood</string>
   <string name="Tgx101WaveMoodNeedsAi">Moods come with the AI — switch it on in «My taste»</string>
   <string name="Tgx101WaveMoodAny">Any</string>
