@@ -389,7 +389,7 @@ public final class Tgx101Sheet {
       row.addView(sq, p);
     } else if (iconRes != 0) {
       android.widget.ImageView icon = new android.widget.ImageView(context);
-      icon.setImageResource(iconRes);
+      icon.setImageResource(org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(iconRes));
       icon.setColorFilter(Theme.getColor(org.thunderdog.challegram.theme.ColorId.icon));
       LinearLayout.LayoutParams p = new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f));
       p.rightMargin = Screen.dp(18f);

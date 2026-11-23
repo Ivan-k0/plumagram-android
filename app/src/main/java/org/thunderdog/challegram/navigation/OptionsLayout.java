@@ -237,7 +237,7 @@ public class OptionsLayout extends LinearLayout implements Animated, RootFrameLa
     text.setPadding(Screen.dp(17f), Screen.dp(1f), Screen.dp(17f), 0);
     text.setCompoundDrawablePadding(Screen.dp(18f));
     if (icon != 0) {
-      Drawable drawable = Drawables.get(context.getResources(), icon);
+      Drawable drawable = Drawables.get(context.getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(icon));
       if (drawable != null) {
         final int drawableColorId;
         if (iconColor == ViewController.OptionColor.NORMAL) {

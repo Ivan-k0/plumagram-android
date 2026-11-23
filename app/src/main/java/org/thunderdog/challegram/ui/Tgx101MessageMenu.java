@@ -1941,20 +1941,56 @@ public final class Tgx101MessageMenu {
     return me.vkryl.core.ColorUtils.alphaColor(.8f, Theme.getColor(ColorId.text));
   }
 
-  static int outlined (int icon) {
-    if (!Settings.instance().tgx101MenuOutlinedIcons()) return icon; // (user 2026-11-23 «два варианта иконок на выбор»)
+  /** TGx101 (user 2026-11-23, mockup «Значки меню», style Б; «переноси везде»): every menu and window of the app draws these
+   *  thin outlined icons in place of the filled ones, unless «Контурные значки» is off */
+  public static int outlined (int icon) {
+    if (!Settings.instance().tgx101MenuOutlinedIcons()) return icon;
     if (icon == R.drawable.baseline_reply_24) return R.drawable.tgx101_o_reply_24;
-    if (icon == R.drawable.baseline_content_copy_24) return R.drawable.tgx101_o_copy_24;
-    if (icon == R.drawable.baseline_link_24) return R.drawable.tgx101_o_link_24;
-    if (icon == R.drawable.baseline_translate_24) return R.drawable.tgx101_o_translate_24;
-    if (icon == R.drawable.baseline_delete_24 || icon == R.drawable.baseline_delete_forever_24) return R.drawable.tgx101_o_delete_24;
+    if (icon == R.drawable.baseline_delete_24) return R.drawable.tgx101_o_delete_24;
+    if (icon == R.drawable.baseline_delete_forever_24) return R.drawable.tgx101_o_delete_24;
     if (icon == R.drawable.baseline_edit_24) return R.drawable.tgx101_o_edit_24;
     if (icon == R.drawable.baseline_bookmark_24) return R.drawable.tgx101_o_bookmark_24;
     if (icon == R.drawable.baseline_forward_24) return R.drawable.tgx101_o_forward_24;
     if (icon == R.drawable.deproko_baseline_pin_24) return R.drawable.tgx101_o_pin_24;
+    if (icon == R.drawable.deproko_baseline_pin_undo_24) return R.drawable.tgx101_o_unpin_24;
     if (icon == R.drawable.baseline_music_note_24) return R.drawable.tgx101_o_music_24;
     if (icon == R.drawable.baseline_file_download_24) return R.drawable.tgx101_o_download_24;
     if (icon == R.drawable.baseline_report_24) return R.drawable.tgx101_o_report_24;
+    if (icon == R.drawable.baseline_content_copy_24) return R.drawable.tgx101_o_copy_24;
+    if (icon == R.drawable.baseline_link_24) return R.drawable.tgx101_o_link_24;
+    if (icon == R.drawable.baseline_translate_24) return R.drawable.tgx101_o_translate_24;
+    if (icon == R.drawable.baseline_cancel_24) return R.drawable.tgx101_o_cancel_24;
+    if (icon == R.drawable.baseline_close_24) return R.drawable.tgx101_o_close_24;
+    if (icon == R.drawable.baseline_warning_24) return R.drawable.tgx101_o_warning_24;
+    if (icon == R.drawable.baseline_visibility_24) return R.drawable.tgx101_o_visibility_24;
+    if (icon == R.drawable.baseline_eye_off_24) return R.drawable.tgx101_o_eye_off_24;
+    if (icon == R.drawable.baseline_check_24) return R.drawable.tgx101_o_check_24;
+    if (icon == R.drawable.baseline_check_circle_24) return R.drawable.tgx101_o_check_circle_24;
+    if (icon == R.drawable.baseline_remove_circle_24) return R.drawable.tgx101_o_remove_circle_24;
+    if (icon == R.drawable.baseline_folder_24) return R.drawable.tgx101_o_folder_24;
+    if (icon == R.drawable.baseline_info_24) return R.drawable.tgx101_o_info_24;
+    if (icon == R.drawable.baseline_error_24) return R.drawable.tgx101_o_error_24;
+    if (icon == R.drawable.baseline_image_24) return R.drawable.tgx101_o_image_24;
+    if (icon == R.drawable.baseline_person_add_24) return R.drawable.tgx101_o_person_add_24;
+    if (icon == R.drawable.baseline_person_24) return R.drawable.tgx101_o_person_24;
+    if (icon == R.drawable.baseline_notifications_24) return R.drawable.tgx101_o_notifications_24;
+    if (icon == R.drawable.baseline_notifications_off_24) return R.drawable.tgx101_o_notifications_off_24;
+    if (icon == R.drawable.baseline_search_24) return R.drawable.tgx101_o_search_24;
+    if (icon == R.drawable.baseline_date_range_24) return R.drawable.tgx101_o_date_range_24;
+    if (icon == R.drawable.baseline_archive_24) return R.drawable.tgx101_o_archive_24;
+    if (icon == R.drawable.baseline_mic_24) return R.drawable.tgx101_o_mic_24;
+    if (icon == R.drawable.baseline_block_24) return R.drawable.tgx101_o_block_24;
+    if (icon == R.drawable.baseline_open_in_browser_24) return R.drawable.tgx101_o_open_in_browser_24;
+    if (icon == R.drawable.baseline_lock_24) return R.drawable.tgx101_o_lock_24;
+    if (icon == R.drawable.baseline_chat_bubble_24) return R.drawable.tgx101_o_chat_24;
+    if (icon == R.drawable.baseline_settings_24) return R.drawable.tgx101_o_settings_24;
+    if (icon == R.drawable.baseline_insert_drive_file_24) return R.drawable.tgx101_o_file_24;
+    if (icon == R.drawable.baseline_camera_alt_24) return R.drawable.tgx101_o_camera_24;
+    if (icon == R.drawable.baseline_phone_24) return R.drawable.tgx101_o_phone_24;
+    if (icon == R.drawable.baseline_add_24) return R.drawable.tgx101_o_add_24;
+    if (icon == R.drawable.baseline_label_24) return R.drawable.tgx101_o_label_24;
+    if (icon == R.drawable.baseline_stars_24) return R.drawable.tgx101_o_stars_24;
+    if (icon == R.drawable.baseline_forum_24) return R.drawable.tgx101_o_forum_24;
     return icon;
   }
 

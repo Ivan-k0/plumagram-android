@@ -1287,6 +1287,48 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       org.thunderdog.challegram.tool.Views.setClickable(b);
       org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(b);
       b.setOnClickListener(v -> tgx101PickBlockIcon(body, ids, Math.min(slot, ids.size())));
+      if (slot < ids.size()) {
+        // (user 2026-11-23 «значки нужно дать возможность перемещать по удержанию»): hold an icon and drag it along the row
+        final float[] drag = {Float.NaN, 0f};
+        b.setOnLongClickListener(v -> {
+          drag[0] = drag[1];
+          v.setElevation(Screen.dp(6f));
+          v.animate().scaleX(1.15f).scaleY(1.15f).setDuration(120).start();
+          org.thunderdog.challegram.tool.UI.forceVibrate(v, false);
+          return true;
+        });
+        b.setOnTouchListener((v, e) -> {
+          switch (e.getActionMasked()) {
+            case android.view.MotionEvent.ACTION_DOWN:
+              drag[1] = e.getRawX();
+              drag[0] = Float.NaN;
+              break;
+            case android.view.MotionEvent.ACTION_MOVE:
+              if (!Float.isNaN(drag[0])) {
+                v.setTranslationX(e.getRawX() - drag[0]);
+                v.getParent().requestDisallowInterceptTouchEvent(true);
+                return true;
+              }
+              break;
+            case android.view.MotionEvent.ACTION_UP:
+            case android.view.MotionEvent.ACTION_CANCEL:
+              if (!Float.isNaN(drag[0])) {
+                float dx = e.getRawX() - drag[0];
+                int to = Math.max(0, Math.min(ids.size() - 1, slot + Math.round(dx / Math.max(1, v.getWidth()))));
+                drag[0] = Float.NaN;
+                if (to != slot) {
+                  Integer moved = ids.remove(slot);
+                  ids.add(to, moved);
+                  tgx101SaveBlockIcons(ids);
+                }
+                tgx101FillBlockIcons(body);
+                return true;
+              }
+              break;
+          }
+          return false;
+        });
+      }
       row.addView(b, new android.widget.LinearLayout.LayoutParams(0, Screen.dp(56f), 1f));
     }
     android.widget.LinearLayout.LayoutParams rp = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);

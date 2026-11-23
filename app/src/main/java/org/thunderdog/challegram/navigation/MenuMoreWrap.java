@@ -217,7 +217,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     menuItem.setOnClickListener(listener);
     menuItem.setText(title);
     org.thunderdog.challegram.unsorted.Settings.tgx101StyleRow(menuItem, 16f);
-    Drawable drawable = icon != 0 ? Drawables.get(getResources(), icon) : null;
+    Drawable drawable = icon != 0 ? Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(icon)) : null;
     menuItem.setGravity(Gravity.CENTER_VERTICAL | Lang.gravity());
     menuItem.setVisibility(View.VISIBLE);
     if (drawable != null) {
@@ -248,7 +248,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
 
     final int maxWidth = Screen.dp(250);
     final int textRightOffset = Screen.dp(menuItem.isLocked ? 41 : 17);
-    final Drawable finalIcon = menuItem.iconResId != 0 ? Drawables.get(getResources(), menuItem.iconResId) : menuItem.icon;
+    final Drawable finalIcon = menuItem.iconResId != 0 ? Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(menuItem.iconResId)) : menuItem.icon;
     final AvatarReceiver receiver = (menuItem.messageSenderId != null && menuItem.iconResId == 0) ?
       complexAvatarReceiver.getAvatarReceiver(Td.getSenderId(menuItem.messageSenderId)) : null;
     if (receiver != null) {
@@ -426,7 +426,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     menuItem.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(ITEM_HEIGHT)));
     menuItem.setPadding(Screen.dp(17f), 0, Screen.dp(17f), 0);
     menuItem.setCompoundDrawablePadding(Screen.dp(18f));
-    icon = iconRes != 0 ? Drawables.get(getResources(), iconRes) : icon;
+    icon = iconRes != 0 ? Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(iconRes)) : icon;
     if (icon != null) {
       if (forcedTheme != null) {
         icon.setColorFilter(Paints.getColorFilter(forcedTheme.getColor(ColorId.icon)));

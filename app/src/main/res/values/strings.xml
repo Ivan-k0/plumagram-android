@@ -6044,7 +6044,7 @@
   <string name="Tgx101TextWeightRestart">Restart the app to apply the text weight</string>
   <string name="Tgx101MessageMenuSection">Message menu</string>
   <string name="Tgx101MessageMenu">Compact message menu</string>
-  <string name="Tgx101MenuOutlinedIcons">Outlined icons</string>
+  <string name="Tgx101MenuOutlinedIcons">Thin icons in menus</string>
   <string name="Tgx101InRow">already in the row</string>
   <string name="Tgx101Empty">Empty</string>
   <string name="Tgx101MessageMenuBlockIcons">Icons below</string>

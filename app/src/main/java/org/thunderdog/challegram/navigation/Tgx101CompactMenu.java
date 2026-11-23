@@ -329,7 +329,7 @@ public final class Tgx101CompactMenu {
     row.setTextColor(color(forcedTheme, textColorId));
     Settings.tgx101StyleRow(row, 16f);
     if (item.icon != 0) {
-      Drawable icon = Drawables.get(context.getResources(), item.icon);
+      Drawable icon = Drawables.get(context.getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(item.icon));
       if (icon != null) {
         icon = icon.mutate();
         int iconColorId;
