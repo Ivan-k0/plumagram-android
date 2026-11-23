@@ -82,6 +82,15 @@ public class SettingsWrapBuilder {
 
   public boolean disableFooter;
 
+  /** TGx101 (user 2026-11-23, recorded next to the reference: «делай как эталон»): a narrow card in the middle of the
+   *  screen with text buttons, coming in with a slight growth and leaving by fading where it stands */
+  public boolean tgx101Center;
+
+  public SettingsWrapBuilder setTgx101Center (boolean center) {
+    this.tgx101Center = center;
+    return this;
+  }
+
   public SettingsWrapBuilder setDisableFooter (boolean disableFooter) {
     this.disableFooter = disableFooter;
     return this;

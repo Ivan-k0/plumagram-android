@@ -550,6 +550,7 @@ public class TdlibUi extends Handler {
     final int noRevokeCountFinal = noRevokeCount;
 
     context.showSettings(new SettingsWrapBuilder(R.id.btn_deleteMessagesWithRevoke)
+      .setTgx101Center(true) // (user 2026-11-23 «делай как эталон»): in the middle, narrow, leaving by a fade
       .addHeaderItem(title)
       .setRawItems(
       new ListItem[]{

@@ -2031,6 +2031,10 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
   private static final float TGX101_BUTTON_HEIGHT = 40f, TGX101_BUTTON_RADIUS = 14f, TGX101_BUTTON_SIDE = 16f,
     TGX101_BUTTON_TOP = 12f, TGX101_BUTTON_BOTTOM = 16f, TGX101_BUTTON_BETWEEN = 10f;
 
+  private static boolean tgx101LeftHand () {
+    return org.thunderdog.challegram.unsorted.Settings.instance().isTgx101MessageMenuLeftHand();
+  }
+
   private static int tgx101FooterHeight () {
     return OptionsLayout.TGX101_CARD ? Screen.dp(TGX101_BUTTON_TOP + TGX101_BUTTON_HEIGHT + TGX101_BUTTON_BOTTOM) : Screen.dp(56f);
   }
@@ -2040,8 +2044,21 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       super(context);
     }
 
+    /** the card's own height (rows and buttons) when it stands in the middle of the screen, else null */
+    @Nullable me.vkryl.core.lambda.FutureInt tgx101CenterHeight;
+
     @Override
     public void onApplyMarginInsets (View child, LayoutParams params, Rect legacyInsets, Rect insets, Rect insetsWithoutIme) {
+      if (OptionsLayout.TGX101_CARD && tgx101CenterHeight != null) {
+        // TGx101 (as the reference, 2026-11-23): narrow, in the middle of the screen
+        int width = Math.min(Screen.dp(320f), Screen.currentWidth() - Screen.dp(48f));
+        int side = Math.max(Screen.dp(24f), (Screen.currentWidth() - width) / 2);
+        int h = tgx101CenterHeight.getIntValue();
+        int bottom = Math.max(insetsWithoutIme.bottom + Screen.dp(24f), (Screen.currentHeight() - h) / 2);
+        Views.setMargins(params, insets.left + side, 0, insets.right + side, bottom);
+        setBottomInset(0);
+        return;
+      }
       if (OptionsLayout.TGX101_CARD) {
         // TGx101 (mockup «Окна», variant А): a floating card with side and bottom gaps.
         // The popup root drops a bottom inset no taller than the navigation bar, so the card sat on the
@@ -2362,6 +2379,10 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         // TGx101: «Cancel» and the action share the row equally, with even gaps around and between them
         buttonRow = new android.widget.LinearLayout(context);
         buttonRow.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+        // (user 2026-11-23 «кнопки в подобных окнах не растягивать на весь экран — тянуться тяжело; правша — вправо, левша —
+        // влево»): the buttons are as wide as their words and stand together at the side of the hand chosen in «Меню под
+        // руку», the action nearest the thumb
+        buttonRow.setGravity((tgx101LeftHand() ? Gravity.LEFT : Gravity.RIGHT) | Gravity.CENTER_VERTICAL);
         FrameLayoutFix.LayoutParams rowParams = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(TGX101_BUTTON_HEIGHT), Gravity.BOTTOM);
         rowParams.leftMargin = rowParams.rightMargin = Screen.dp(TGX101_BUTTON_SIDE);
         rowParams.bottomMargin = Screen.dp(TGX101_BUTTON_BOTTOM);
@@ -2385,13 +2406,23 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         if (OptionsLayout.TGX101_CARD) {
           // TGx101 (mockup «Окна», variant А; reworked 11.10): «Cancel» grey, the action filled with its colour
           android.graphics.drawable.GradientDrawable pill = new android.graphics.drawable.GradientDrawable();
-          pill.setCornerRadius(Screen.dp(TGX101_BUTTON_RADIUS));
-          pill.setColor(i == 1 ? Theme.getColor(colorId) : me.vkryl.core.ColorUtils.alphaColor(.07f, Theme.getColor(ColorId.text)));
-          button.setBackground(pill);
-          if (i == 1) button.setTextColor(0xffffffff);
+          pill.setCornerRadius(Screen.dp(b.tgx101Center ? TGX101_BUTTON_HEIGHT / 2f : TGX101_BUTTON_RADIUS));
+          if (b.tgx101Center) {
+            // as the reference: words only — «Cancel» in the accent, the action in its own colour (a press still shows)
+            pill.setColor(0);
+            button.setTextColor(Theme.getColor(i == 1 ? colorId : ColorId.textNeutral));
+            org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(button, Screen.dp(TGX101_BUTTON_HEIGHT / 2f), this);
+          } else {
+            pill.setColor(i == 1 ? Theme.getColor(colorId) : me.vkryl.core.ColorUtils.alphaColor(.07f, Theme.getColor(ColorId.text)));
+            button.setBackground(pill);
+            if (i == 1) button.setTextColor(0xffffffff);
+          }
           button.setSingleLine(true);
           button.setEllipsize(android.text.TextUtils.TruncateAt.END);
-          button.setLayoutParams(new android.widget.LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+          button.setMinWidth(Screen.dp(b.tgx101Center ? 72f : 104f));
+          button.setPadding(Screen.dp(b.tgx101Center ? 14f : 20f), 0, Screen.dp(b.tgx101Center ? 14f : 20f), 0);
+          android.widget.LinearLayout.LayoutParams bp = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
+          button.setLayoutParams(bp);
           button.setText(text = i == 0 ? b.cancelStr : b.saveStr);
           if (i == 0) settings.cancelButton = button; else settings.doneButton = button;
           button.setId(i == 0 ? R.id.btn_cancel : R.id.btn_save);
@@ -2410,13 +2441,15 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
 
         if (!OptionsLayout.TGX101_CARD) Views.setClickable(button);
         if (buttonRow != null) {
-          buttonRow.addView(button, Lang.rtl() ? 0 : buttonRow.getChildCount()); // «Cancel» on the leading side
+          // right hand: «Cancel», then the action at the very right; left hand: the action at the very left, then «Cancel»
+          boolean actionFirst = tgx101LeftHand() != Lang.rtl();
+          buttonRow.addView(button, actionFirst ? 0 : buttonRow.getChildCount());
         } else {
           footerView.addView(button);
         }
       }
       if (buttonRow != null && buttonRow.getChildCount() == 2) {
-        ((android.widget.LinearLayout.LayoutParams) buttonRow.getChildAt(1).getLayoutParams()).leftMargin = Screen.dp(TGX101_BUTTON_BETWEEN);
+        ((android.widget.LinearLayout.LayoutParams) buttonRow.getChildAt(1).getLayoutParams()).leftMargin = Screen.dp(b.tgx101Center ? 4f : TGX101_BUTTON_BETWEEN);
       }
     }
 
@@ -2456,7 +2489,35 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       ((LinearLayoutManager) recyclerView.getLayoutManager()).scrollToPositionWithOffset(checkedIndex, (Screen.currentActualHeight() - tgx101FooterHeight()) / 2 - viewHeight / 2);
     }
     popupLayout.addThemeListeners(this);
-    popupLayout.showSimplePopupView(settingsLayout, Math.min(Screen.currentHeight() / 2 + tgx101FooterHeight(), popupHeight));
+    if (b.tgx101Center && OptionsLayout.TGX101_CARD && footerView != null) {
+      settingsLayout.tgx101CenterHeight = () -> settings.adapter.measureHeight(-1) + tgx101FooterHeight();
+      popupLayout.showAnimatedPopupView(settingsLayout, new PopupLayout.AnimatedPopupProvider() {
+        @Override
+        public void prepareShowAnimation () {
+          settingsLayout.setAlpha(0f);
+          settingsLayout.setScaleX(.94f);
+          settingsLayout.setScaleY(.94f);
+        }
+
+        @Override
+        public void launchShowAnimation (PopupLayout popup) {
+          popup.animateRevealFactor(1f);
+          settingsLayout.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(220).setInterpolator(PopupLayout.TGX101_IN_CURVE)
+            .withEndAction(popup::onCustomShowComplete).start();
+        }
+
+        @Override
+        public boolean launchHideAnimation (PopupLayout popup, me.vkryl.android.animator.FactorAnimator originalAnimator) {
+          // as the reference: it fades where it stands, quickly — no slide down
+          popup.animateRevealFactor(0f);
+          settingsLayout.animate().alpha(0f).scaleX(.98f).scaleY(.98f).setDuration(140).setInterpolator(AnimatorUtils.LINEAR_INTERPOLATOR)
+            .withEndAction(popup::onCustomHideAnimationComplete).start();
+          return true;
+        }
+      });
+    } else {
+      popupLayout.showSimplePopupView(settingsLayout, Math.min(Screen.currentHeight() / 2 + tgx101FooterHeight(), popupHeight));
+    }
 
     onCreatePopupLayout(popupLayout);
     return settings;
