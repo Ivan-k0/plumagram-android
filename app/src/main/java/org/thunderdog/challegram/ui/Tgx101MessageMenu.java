@@ -808,9 +808,16 @@ public final class Tgx101MessageMenu {
           sorted.remove(found);
         }
       }
-      if (iconItems.size() < 2) { // one icon alone is no row: it goes back to the list
-        sorted.addAll(0, iconItems);
-        iconItems.clear();
+      // (user 2026-11-23 «всегда должно быть минимум 4 значка»): what this message can't do (edit someone else's message…)
+      // leaves a place that the next item of the list takes, «More…» never
+      for (int i = 0; iconItems.size() < MIN_BLOCK_ICONS && i < sorted.size(); ) {
+        ViewController.OptionItem next = sorted.get(i);
+        if (next.id == R.id.btn_messageMore || next.id == R.id.btn_tgx101SelectInPlace) {
+          i++;
+          continue;
+        }
+        iconItems.add(next);
+        sorted.remove(i);
       }
     }
     shownIds.clear();
@@ -1896,7 +1903,7 @@ public final class Tgx101MessageMenu {
 
   /** The «blocks» view's row: reply, delete, edit, forward (in this order, those the message has) */
   private static final int[] BLOCK_ICON_IDS = {R.id.btn_messageReply, R.id.btn_messageDelete, R.id.btn_messageEdit, R.id.btn_messageShare};
-  public static final int MAX_BLOCK_ICONS = 5;
+  public static final int MAX_BLOCK_ICONS = 5, MIN_BLOCK_ICONS = 4;
 
   /** (user 2026-11-23 «кнопки в этом меню тоже нужно ставить самим»): the icons chosen in the settings, or the default */
   public static int[] blockIconIds () {
@@ -1926,7 +1933,7 @@ public final class Tgx101MessageMenu {
     Drawable icon = item.icon != 0 ? Drawables.get(context.getResources(), item.icon) : null;
     if (icon != null) {
       icon = icon.mutate();
-      icon.setColorFilter(Paints.getColorFilter(isDelete ? Theme.getColor(ColorId.iconNegative) : Theme.getColor(ColorId.icon)));
+      icon.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.icon))); // (user 2026-11-23) «Delete» not red here
       button.setImageDrawable(icon);
     }
     button.setContentDescription(item.name);
