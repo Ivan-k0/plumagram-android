@@ -360,6 +360,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MessageMenuBlocks, "Меню блоками");
     RU.put(R.string.Tgx101MessageMenuBlockIcons, "Значки внизу");
     RU.put(R.string.Tgx101InRow, "уже в ряду");
+    RU.put(R.string.Tgx101MenuOutlinedIcons, "Контурные значки");
     RU.put(R.string.Tgx101Empty, "Пусто");
     RU.put(R.string.Tgx101MessageMenuBlockIconsHint, "Нажмите на значок, чтобы заменить его. От 4 до 5 значков. В меню удержите значок, чтобы увидеть, что он делает.");
     RU.put(R.string.Tgx101MessageMenuHandRight, "Правую");

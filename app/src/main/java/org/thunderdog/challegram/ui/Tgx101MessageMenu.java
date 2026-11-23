@@ -882,7 +882,9 @@ public final class Tgx101MessageMenu {
       if (bottomItem != null) longest = Math.max(longest, paint.measureText(String.valueOf(shortName(bottomItem))));
       int need = Math.round(longest) + Screen.dp(16f + 21f + 14f + 20f);
       need = Math.max(need, iconItems.size() * Screen.dp(52f));
-      int widest = Screen.currentWidth() - Screen.dp(24f) - (cardEdgeGap - overhang);
+      // (screenshot 2026-11-23 at a big font: the card ran past the left edge) the column's 12 dp margins and the card's
+      // own gap at its side are kept
+      int widest = Screen.currentWidth() - Screen.dp(24f) - cardEdgeGap - Screen.dp(8f);
       int fitted = blocks ? Math.max(Screen.dp(180f), Math.min(widest, need)) : Math.max(cardWidth, Math.min(widest, need));
       if (fitted != cardWidth) {
         int diff = cardWidth - fitted;
@@ -1878,7 +1880,7 @@ public final class Tgx101MessageMenu {
         // (user 2026-11-23 «значки внизу не должны отличаться по контрасту — сделай везде одинаковые»): every icon of the
         // menu in the text's colour, «Delete» too
         icon.setColorFilter(Paints.getColorFilter(item.id == R.id.btn_messageSelect ? Theme.chatSendButtonColor() : Theme.getColor(ColorId.text)));
-        int size = Screen.dp(21f);
+        int size = Math.round(Screen.dp(21f) * Math.max(1f, Settings.tgx101UiScale())); // grows with the text (user 2026-11-23)
         icon.setBounds(0, 0, size, size);
         if (Lang.rtl()) {
           row.setCompoundDrawables(null, null, icon, null);
@@ -1926,6 +1928,8 @@ public final class Tgx101MessageMenu {
   /** TGx101 (user 2026-11-23 «меньше значков с заливкой — бросается в глаза; значки везде одинаковые по контрасту»):
    *  the menu draws outlined icons in place of the filled ones, all in the text's colour */
   static int outlined (int icon) {
+    if (!Settings.instance().tgx101MenuOutlinedIcons()) return icon; // (user 2026-11-23 «два варианта иконок на выбор»)
+    if (icon == R.drawable.baseline_reply_24) return R.drawable.tgx101_o_reply_24;
     if (icon == R.drawable.baseline_delete_24 || icon == R.drawable.baseline_delete_forever_24) return R.drawable.tgx101_o_delete_24;
     if (icon == R.drawable.baseline_edit_24) return R.drawable.tgx101_o_edit_24;
     if (icon == R.drawable.baseline_bookmark_24) return R.drawable.tgx101_o_bookmark_24;
@@ -1964,7 +1968,11 @@ public final class Tgx101MessageMenu {
   private static View iconButton (Context context, Host host, ViewController.OptionItem item, OptionDelegate delegate) {
     ImageView button = new ImageView(context);
     button.setId(item.id);
-    button.setScaleType(ImageView.ScaleType.CENTER);
+    // the icon grows with the text size chosen (user 2026-11-23 «иконки тоже должны вырастать вместе с текстом»)
+    float iconScale = Math.max(1f, Settings.tgx101UiScale());
+    button.setScaleType(ImageView.ScaleType.FIT_CENTER);
+    int pad = Math.max(0, (Screen.dp(54f) - Math.round(Screen.dp(24f) * iconScale)) / 2);
+    button.setPadding(0, pad, 0, pad);
     boolean isDelete = item.id == R.id.btn_messageDelete;
     Drawable icon = item.icon != 0 ? Drawables.get(context.getResources(), outlined(item.icon)) : null;
     if (icon != null) {

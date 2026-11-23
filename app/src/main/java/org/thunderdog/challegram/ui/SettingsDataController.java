@@ -545,6 +545,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
             }
           }
           view.setData(names.toString());
+        } else if (itemId == R.id.btn_tgx101MenuOutlinedIcons) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101MenuOutlinedIcons(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MessageMenuBlocks) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101MessageMenuBlocks(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MessageMenuHand) {
@@ -639,6 +641,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MessageMenuBlocks, 0, R.string.Tgx101MessageMenuBlocks),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MessageMenuBlockIcons, 0, R.string.Tgx101MessageMenuBlockIcons),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MenuOutlinedIcons, 0, R.string.Tgx101MenuOutlinedIcons),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         // TGx101 (user 2026-10-11): long press, swipe and double tap are on the «Message gestures» screen
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Gestures, 0, R.string.Tgx101Gestures),
@@ -1358,7 +1362,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_pullToSearch) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
     if (id == R.id.btn_tgx101ChatMenuOrder) return 2;
-    if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuBlur || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuBlocks || id == R.id.btn_tgx101MessageMenuBlockIcons || id == R.id.btn_tgx101MessageMenuOrder
+    if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuBlur || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuBlocks || id == R.id.btn_tgx101MessageMenuBlockIcons || id == R.id.btn_tgx101MenuOutlinedIcons || id == R.id.btn_tgx101MessageMenuOrder
       || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101Gestures) return 2;
     // quick replies to a call by message — with the calls (user 2026-10-22 «быстрые ответы на звонок перенести в «Звонки»»)
     if (id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2 || id == R.id.btn_tgx101QuickReply3
@@ -2010,6 +2014,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setShowTgx101CallBar(toggleResult);
     } else if (id == R.id.btn_tgx101MessageMenuBlockIcons) {
       tgx101ShowBlockIcons();
+    } else if (id == R.id.btn_tgx101MenuOutlinedIcons) {
+      Settings.instance().setTgx101MenuOutlinedIcons(toggleResult); // already toggled above
     } else if (id == R.id.btn_tgx101MessageMenuBlocks) {
       Settings.instance().setTgx101MessageMenuBlocks(toggleResult); // already toggled above
     } else if (id == R.id.btn_tgx101MessageMenuHand) {

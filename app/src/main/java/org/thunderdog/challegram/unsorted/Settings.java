@@ -3381,6 +3381,17 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_MESSAGE_MENU_BLOCKS, blocks);
   }
 
+  private static final String KEY_TGX101_MENU_OUTLINED = "tgx101_menu_outlined_icons";
+
+  /** The message menu's icons: outlined (default) or the filled ones as before */
+  public boolean tgx101MenuOutlinedIcons () {
+    return pmc.getBoolean(KEY_TGX101_MENU_OUTLINED, true);
+  }
+
+  public void setTgx101MenuOutlinedIcons (boolean outlined) {
+    pmc.putBoolean(KEY_TGX101_MENU_OUTLINED, outlined);
+  }
+
   private static final String KEY_TGX101_MESSAGE_MENU_BLOCK_ICONS = "tgx101_message_menu_block_icons";
 
   /** The «blocks» view's icons, as places in Tgx101MessageMenu.ORDERABLE_IDS ("0,21,3,4"); null — the default */
