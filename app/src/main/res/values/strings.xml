@@ -6045,6 +6045,9 @@
   <string name="Tgx101MessageMenuSection">Message menu</string>
   <string name="Tgx101MessageMenu">Compact message menu</string>
   <string name="Tgx101MenuOutlinedIcons">Thin icons in menus</string>
+  <string name="Tgx101MessageMenuView">Message menu view</string>
+  <string name="Tgx101MessageMenuViewBlocks">Blocks</string>
+  <string name="Tgx101MessageMenuViewList">List</string>
   <string name="Tgx101InRow">already in the row</string>
   <string name="Tgx101Empty">Empty</string>
   <string name="Tgx101MessageMenuBlockIcons">Icons below</string>

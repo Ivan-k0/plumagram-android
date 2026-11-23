@@ -359,6 +359,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MessageMenuHand, "Меню под руку");
     RU.put(R.string.Tgx101MessageMenuBlocks, "Меню блоками");
     RU.put(R.string.Tgx101MessageMenuBlockIcons, "Значки внизу");
+    RU.put(R.string.Tgx101MessageMenuView, "Вид меню сообщения");
+    RU.put(R.string.Tgx101MessageMenuViewBlocks, "Блоками");
+    RU.put(R.string.Tgx101MessageMenuViewList, "Списком");
     RU.put(R.string.Tgx101InRow, "уже в ряду");
     RU.put(R.string.Tgx101MenuOutlinedIcons, "Тонкие значки в меню");
     RU.put(R.string.Tgx101Empty, "Пусто");

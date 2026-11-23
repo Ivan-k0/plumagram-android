@@ -535,16 +535,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         } else if (itemId == R.id.btn_tgx101CallBar) {
           view.getToggler().setRadioEnabled(Settings.instance().showTgx101CallBar(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MessageMenuBlockIcons) {
-          StringBuilder names = new StringBuilder();
-          for (int iconId : Tgx101MessageMenu.blockIconIds()) {
-            for (int k = 0; k < Tgx101MessageMenu.ORDERABLE_IDS.length; k++) {
-              if (Tgx101MessageMenu.ORDERABLE_IDS[k] == iconId) {
-                if (names.length() > 0) names.append(", ");
-                names.append(Lang.getString(Tgx101MessageMenu.ORDERABLE_NAMES[k]));
-              }
-            }
-          }
-          view.setData(names.toString());
+          view.setData(Settings.instance().tgx101MessageMenuBlocks() ? R.string.Tgx101MessageMenuViewBlocks : R.string.Tgx101MessageMenuViewList);
         } else if (itemId == R.id.btn_tgx101MenuOutlinedIcons) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101MenuOutlinedIcons(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MessageMenuBlocks) {
@@ -638,9 +629,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101MessageMenuHand, 0, R.string.Tgx101MessageMenuHand),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MessageMenuBlocks, 0, R.string.Tgx101MessageMenuBlocks),
-        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
-        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MessageMenuBlockIcons, 0, R.string.Tgx101MessageMenuBlockIcons),
+        // (user 2026-11-23 «вынеси в отдельное меню, чтобы не загромождать»): the view and its icons on one screen of their own
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MessageMenuBlockIcons, 0, R.string.Tgx101MessageMenuView),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MenuOutlinedIcons, 0, R.string.Tgx101MenuOutlinedIcons),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1263,7 +1253,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
 
   private void tgx101FillBlockIcons (android.widget.LinearLayout body) {
     body.removeAllViews();
-    body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101MessageMenuBlockIcons)));
+    body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101MessageMenuView)));
+    final boolean blocksOn = Settings.instance().tgx101MessageMenuBlocks();
+    body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101MessageMenuBlocks), null, blocksOn, v -> {
+      Settings.instance().setTgx101MessageMenuBlocks(!Settings.instance().tgx101MessageMenuBlocks());
+      tgx101FillBlockIcons(body);
+    }));
+    android.widget.TextView iconsHeader = Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101MessageMenuBlockIcons));
+    iconsHeader.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
+    body.addView(iconsHeader);
     final List<Integer> ids = new ArrayList<>();
     for (int itemId : Tgx101MessageMenu.blockIconIds()) ids.add(itemId);
     android.widget.LinearLayout row = new android.widget.LinearLayout(context);
@@ -1335,6 +1333,15 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     rp.leftMargin = rp.rightMargin = Screen.dp(20f);
     rp.topMargin = Screen.dp(6f);
     body.addView(row, rp);
+    if (!blocksOn) { // the menu is a list: its icons are greyed and can't be changed
+      iconsHeader.setAlpha(.4f);
+      row.setAlpha(.4f);
+      for (int c = 0; c < row.getChildCount(); c++) {
+        row.getChildAt(c).setEnabled(false);
+        row.getChildAt(c).setOnLongClickListener(null);
+        row.getChildAt(c).setOnTouchListener(null);
+      }
+    }
     android.widget.TextView hint = new android.widget.TextView(context);
     hint.setText(Lang.getString(R.string.Tgx101MessageMenuBlockIconsHint));
     hint.setTextColor(Theme.textDecentColor());
