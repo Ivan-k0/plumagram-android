@@ -623,6 +623,11 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     // (user 2026-11-19 «а свайпом вверх рывок есть?», same recording): at the top the sheet came to rest and the grid
     // then set off again — it now gets there at the speed the grid goes on with
     float endSlope = distance > 0 ? Math.min(3f, Math.abs(endVelocity) / 1000f * duration / distance) : 0f;
+    if (toHeight < currentHeight && endSlope == 0f && slope > 0f) {
+      // (user 2026-11-23 «в конце затуп, когда опускал галерею», recording: every way down ended in ~10 frames of crawling,
+      // −8 −8 −4 −4 −4 px) as in the reference, the sheet lands still moving — about a third of its start speed — and stops
+      endSlope = slope * .35f;
+    }
     android.view.animation.Interpolator curve = new Tgx101GlideCurve(slope, endSlope);
     org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: " + currentHeight + " → " + toHeight + " px, finger " + Math.round(velocity) + " px/s, start " + Math.round(speed * 1000f) + " px/s, " + duration + " ms" + (animatingHeight ? " (one already running)" : ""));
     if (after != null && endVelocity > 0f && distance > 0) {
@@ -722,7 +727,9 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     long now = SystemClock.uptimeMillis();
     if (tgx101SpeedHeight >= 0 && now - tgx101SpeedAt < 8) return; // over a frame at least, not two events at once
     if (tgx101SpeedHeight >= 0 && now - tgx101SpeedAt < 100) {
-      float v = Math.max(-12f, Math.min(12f, (height - tgx101SpeedHeight) / (float) (now - tgx101SpeedAt)));
+      // ×0.5: the sheet's own animations play at the phone's animation scale (0.5, kept on purpose — user 2026-11-22), the
+      // finger does not; untouched, a sheet let go after a stop flew off at twice the finger (recording 2026-11-23: −24 → −56)
+      float v = .5f * Math.max(-12f, Math.min(12f, (height - tgx101SpeedHeight) / (float) (now - tgx101SpeedAt)));
       tgx101Speed = tgx101Speed == 0f ? v : tgx101Speed * .4f + v * .6f;
     } else {
       tgx101Speed = 0f;
@@ -906,7 +913,8 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
         // the end, evenly — the hide now does the same
         float fingerSpeed = SystemClock.uptimeMillis() - tgx101SpeedAt < 120 ? Math.abs(tgx101Speed) : 0f;
         // ×0.55: set by recording (the full figure went 52–58 px a frame after the finger's 28; the reference keeps 28)
-        tgx101DismissSpeed = Math.max(fingerSpeed, Math.abs(velocityY) / 1000f * .5f) * .55f;
+        // (the finger's speed under the sheet is halved where it is measured since 2026-11-23 — doubled back here)
+        tgx101DismissSpeed = Math.max(fingerSpeed * 2f, Math.abs(velocityY) / 1000f * .5f) * .55f;
         mediaLayout.hideBottomBarAndDismiss();
       }
 
