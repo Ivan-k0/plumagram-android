@@ -2051,8 +2051,9 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     public void onApplyMarginInsets (View child, LayoutParams params, Rect legacyInsets, Rect insets, Rect insetsWithoutIme) {
       if (OptionsLayout.TGX101_CARD && tgx101CenterHeight != null) {
         // TGx101 (as the reference, 2026-11-23): narrow, in the middle of the screen
-        int width = Math.min(Screen.dp(320f), Screen.currentWidth() - Screen.dp(48f));
-        int side = Math.max(Screen.dp(24f), (Screen.currentWidth() - width) / 2);
+        // as wide as the reference's (~86 % of the phone, 360 dp at most): at 320 «Уведомление всем участникам» was cut
+        int width = Math.min(Screen.dp(360f), Screen.currentWidth() - Screen.dp(40f));
+        int side = Math.max(Screen.dp(20f), (Screen.currentWidth() - width) / 2);
         int h = tgx101CenterHeight.getIntValue();
         int bottom = Math.max(insetsWithoutIme.bottom + Screen.dp(24f), (Screen.currentHeight() - h) / 2);
         // the card's top too: a long list is held to the screen and scrolls inside, instead of running up to the status bar
@@ -2343,6 +2344,8 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
           case ListItem.TYPE_CHECKBOX_OPTION_WITH_AVATAR:
           case ListItem.TYPE_CHECKBOX_OPTION_MULTILINE:
           case ListItem.TYPE_CHECKBOX_OPTION_REVERSE: {
+            // (2026-11-23, the narrow card: «Уведомление всем участникам» was cut with «…») the words are set a little smaller
+            if (tgx101Center) view.setTgx101FitName(true);
             view.findCheckBox().setChecked(item.isSelected(), isUpdate);
             break;
           }

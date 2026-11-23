@@ -541,6 +541,24 @@ public class SettingView extends FrameLayoutFix implements FactorAnimator.Target
   }
 
   private void setDisplayItemName (CharSequence str, float availWidth, TextPaint paint, float textSize) {
+    if (tgx101FitName && !allowMultiLineName && str != null && availWidth > 0) {
+      // TGx101 (2026-11-23, the narrow card in the middle): words that don't fit are set a little smaller (down to 13 sp)
+      // on one line, instead of «…»
+      float need = U.measureText(str, paint);
+      if (need > availWidth) {
+        float size = Math.max(13f, textSize * availWidth / need * .98f);
+        displayItemName = str;
+        displayItemNameLayout = null;
+        displayItemNameWidth = 0;
+        displayItemNameText = new Text.Builder(tdlib, str, null, (int) availWidth, Paints.robotoStyleProvider(size), this, null)
+          .textFlags(Text.FLAG_CUSTOM_LONG_PRESS)
+          .singleLine(true)
+          .view(this)
+          .build();
+        checkEmojiListener();
+        return;
+      }
+    }
     if (allowMultiLineName) {
       displayItemName = str;
       displayItemNameLayout = null;
@@ -579,6 +597,16 @@ public class SettingView extends FrameLayoutFix implements FactorAnimator.Target
   }
 
   private boolean allowMultiLineName;
+  private boolean tgx101FitName;
+
+  /** the name is set a little smaller when it doesn't fit, rather than cut */
+  public void setTgx101FitName (boolean fit) {
+    if (this.tgx101FitName != fit) {
+      this.tgx101FitName = fit;
+      if (getMeasuredWidth() > 0) buildLayout(getMeasuredWidth(), getMeasuredHeight());
+      invalidate();
+    }
+  }
 
   public void setAllowMultiLineName (boolean allowMultiLineName) {
     if (this.allowMultiLineName != allowMultiLineName) {
