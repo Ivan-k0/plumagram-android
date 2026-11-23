@@ -625,6 +625,16 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     float endSlope = distance > 0 ? Math.min(3f, Math.abs(endVelocity) / 1000f * duration / distance) : 0f;
     android.view.animation.Interpolator curve = new Tgx101GlideCurve(slope, endSlope);
     org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: " + currentHeight + " → " + toHeight + " px, finger " + Math.round(velocity) + " px/s, start " + Math.round(speed * 1000f) + " px/s, " + duration + " ms" + (animatingHeight ? " (one already running)" : ""));
+    if (after != null && endVelocity > 0f && distance > 0) {
+      // (user 2026-11-23 «наверху ускорение»: a quick flick — the sheet, held to 160 ms at least and its animator run at the
+      // phone's animation scale, came to the top at another speed than the one the grid then set off with) the grid goes
+      // on at the speed the sheet really arrives with — its end slope over the duration as the phone plays it
+      float scale = android.os.Build.VERSION.SDK_INT >= 26 ? ValueAnimator.getDurationScale() : 1f;
+      if (scale <= 0f) scale = 1f;
+      tgx101ArrivalSpeed = endSlope * distance / (duration * scale) * 1000f;
+    } else {
+      tgx101ArrivalSpeed = 0f;
+    }
     animateCurrentHeightImpl(toHeight, duration, curve, after);
   }
 
@@ -646,9 +656,11 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
   // for a second (8 → 6 → 4 → 2 → 1 px). Now the grid goes on at exactly the sheet's speed and comes to rest in 0.3 s —
   // a quadratic ease-out starts at its full speed, so the hand-over shows no step. A touch on the grid stops it
   private ValueAnimator tgx101GridGlide;
+  private float tgx101ArrivalSpeed; // px/s the sheet comes to the top with, as really played
   private boolean tgx101GridGlideHooked;
 
   private void tgx101GlideGrid (float velocity) {
+    if (tgx101ArrivalSpeed > 0f) velocity = tgx101ArrivalSpeed;
     if (recyclerView == null || velocity <= 0f) return;
     if (tgx101GridGlide != null) tgx101GridGlide.cancel();
     if (!tgx101GridGlideHooked) {
@@ -771,6 +783,18 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
 
   public boolean isAnimating () {
     return animatingHeight || useBottomBarChange;
+  }
+
+  /** A finger came down while the sheet moves by itself (not while it closes): it stops there, the finger takes it */
+  public void tgx101StopForFinger () {
+    if (animatingHeight && !useBottomBarChange) {
+      animatingHeight = false;
+      if (heightAnimator != null) {
+        heightAnimator.cancel(); // its «after» (the grid's glide) is not run on a cancel
+        heightAnimator = null;
+      }
+      org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: a finger stopped it at " + currentHeight + " px");
+    }
   }
 
   public boolean isInsideRecyclerView (float x, float y) {

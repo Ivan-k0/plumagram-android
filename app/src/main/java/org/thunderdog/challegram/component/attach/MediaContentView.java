@@ -87,6 +87,10 @@ public class MediaContentView extends FrameLayoutFix implements GestureDetector.
     scrolling = false;
 
     intercepting = false;
+    // (user 2026-11-23 «отзывчивость должна быть молниеносной», recording: a second quick swipe down while the sheet was
+    // still going to half was dropped — touches were ignored for the whole 513 ms) a finger now stops the sheet where it
+    // is and takes it from there; only the closing itself still lets nothing in
+    base.tgx101StopForFinger();
     isAnimating = base.isAnimating();
     touchStartY = e.getY();
     lastMoveY = touchStartY;
