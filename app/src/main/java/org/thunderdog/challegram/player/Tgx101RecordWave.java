@@ -39,6 +39,7 @@ final class Tgx101RecordWave {
   private final Path path = new Path();
   private final Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private float level, slow, near;
+  private float heard, slowSpeed; // the loudness as heard (attack/release), the water's own speed (a soft spring)
   private float visible, cancel;
   private long lastFrame;
 
@@ -59,22 +60,29 @@ final class Tgx101RecordWave {
   }
 
   void reset () {
-    level = slow = near = 0f;
+    level = slow = near = heard = slowSpeed = 0f;
     lastFrame = 0;
   }
 
   void draw (Canvas c, View host, int width, int height) {
     if (visible <= 0f || width <= 0 || height <= 0) {
       lastFrame = 0;
-      slow = near = 0f;
+      slow = near = heard = slowSpeed = 0f;
       return;
     }
     long now = SystemClock.uptimeMillis();
     float dt = lastFrame == 0 ? FRAME_MS : Math.min(64f, now - lastFrame);
     lastFrame = now;
     float target = level * visible;
-    slow += (target - slow) * (1f - (float) Math.exp(-dt / 260f));
-    near += (target - near) * (1f - (float) Math.exp(-dt / 110f));
+    // TGx101 (user 2026-11-23 «волна сильно резко поднимается и сильно резко опускается — плавнее, органичнее»): the
+    // loudness is heard with an attack and a slower release (a word lifts it in ~0.15 s, silence lets it go over ~0.5 s);
+    // the water level follows it on a soft spring (≈1.1 Hz, damped 0.8) — it swells and settles with a little give,
+    // instead of chasing every syllable; the sway grows and calms over ~0.25 / 0.6 s
+    heard += (target - heard) * (1f - (float) Math.exp(-dt / (target > heard ? 150f : 480f)));
+    float sec = dt / 1000f, omega = 2f * (float) Math.PI * 1.1f, zeta = .8f;
+    slowSpeed += (omega * omega * (heard - slow) - 2f * zeta * omega * slowSpeed) * sec;
+    slow = Math.max(0f, Math.min(1.1f, slow + slowSpeed * sec));
+    near += (heard - near) * (1f - (float) Math.exp(-dt / (heard > near ? 250f : 600f)));
 
     float lvl = height * (.14f + .62f * slow) * visible * (1f - cancel * .85f);
     float surface = height - lvl;
