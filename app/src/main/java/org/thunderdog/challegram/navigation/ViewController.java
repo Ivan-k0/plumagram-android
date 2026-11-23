@@ -2055,7 +2055,9 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         int side = Math.max(Screen.dp(24f), (Screen.currentWidth() - width) / 2);
         int h = tgx101CenterHeight.getIntValue();
         int bottom = Math.max(insetsWithoutIme.bottom + Screen.dp(24f), (Screen.currentHeight() - h) / 2);
-        Views.setMargins(params, insets.left + side, 0, insets.right + side, bottom);
+        // the card's top too: a long list is held to the screen and scrolls inside, instead of running up to the status bar
+        int top = Math.max(insets.top, Screen.currentHeight() - bottom - h);
+        Views.setMargins(params, insets.left + side, top, insets.right + side, bottom);
         setBottomInset(0);
         return;
       }
@@ -2186,6 +2188,9 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
 
     final ArrayList<ListItem> items = new ArrayList<>(b.rawItems.length * 2 + 1 + (b.headerItems != null && !b.headerItems.isEmpty() ? b.headerItems.size() + 1 : 0));
     boolean first = true;
+    // TGx101 (user 2026-11-23 «окна с галочками, которые у нас внизу, — все по центру, как „Удалить“»): every window of
+    // ticks and choices with buttons stands narrow in the middle, its buttons at the hand's side, leaving by a fade
+    final boolean tgx101Center = OptionsLayout.TGX101_CARD && !b.disableFooter;
 
     items.add(new ListItem(ListItem.TYPE_SHADOW_TOP));
     if (b.headerItems != null && !b.headerItems.isEmpty()) {
@@ -2247,7 +2252,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     };
     recyclerView.addItemDecoration(new BottomInsetFillingDecoration(ColorId.filling));
     settings.recyclerView = recyclerView;
-    if (b.allowResize) {
+    if (b.allowResize && !tgx101Center) { // (in the middle the card is as tall as its rows — no offset above them)
       recyclerView.addItemDecoration(new RecyclerView.ItemDecoration() {
         @Override
         public void getItemOffsets (@NonNull Rect outRect, @NonNull View view, @NonNull RecyclerView parent, @NonNull RecyclerView.State state) {
@@ -2406,8 +2411,8 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         if (OptionsLayout.TGX101_CARD) {
           // TGx101 (mockup «Окна», variant А; reworked 11.10): «Cancel» grey, the action filled with its colour
           android.graphics.drawable.GradientDrawable pill = new android.graphics.drawable.GradientDrawable();
-          pill.setCornerRadius(Screen.dp(b.tgx101Center ? TGX101_BUTTON_HEIGHT / 2f : TGX101_BUTTON_RADIUS));
-          if (b.tgx101Center) {
+          pill.setCornerRadius(Screen.dp(tgx101Center ? TGX101_BUTTON_HEIGHT / 2f : TGX101_BUTTON_RADIUS));
+          if (tgx101Center) {
             // as the reference: words only — «Cancel» in the accent, the action in its own colour (a press still shows)
             pill.setColor(0);
             button.setTextColor(Theme.getColor(i == 1 ? colorId : ColorId.textNeutral));
@@ -2419,8 +2424,8 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
           }
           button.setSingleLine(true);
           button.setEllipsize(android.text.TextUtils.TruncateAt.END);
-          button.setMinWidth(Screen.dp(b.tgx101Center ? 72f : 104f));
-          button.setPadding(Screen.dp(b.tgx101Center ? 14f : 20f), 0, Screen.dp(b.tgx101Center ? 14f : 20f), 0);
+          button.setMinWidth(Screen.dp(tgx101Center ? 72f : 104f));
+          button.setPadding(Screen.dp(tgx101Center ? 14f : 20f), 0, Screen.dp(tgx101Center ? 14f : 20f), 0);
           android.widget.LinearLayout.LayoutParams bp = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT);
           button.setLayoutParams(bp);
           button.setText(text = i == 0 ? b.cancelStr : b.saveStr);
@@ -2449,7 +2454,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         }
       }
       if (buttonRow != null && buttonRow.getChildCount() == 2) {
-        ((android.widget.LinearLayout.LayoutParams) buttonRow.getChildAt(1).getLayoutParams()).leftMargin = Screen.dp(b.tgx101Center ? 4f : TGX101_BUTTON_BETWEEN);
+        ((android.widget.LinearLayout.LayoutParams) buttonRow.getChildAt(1).getLayoutParams()).leftMargin = Screen.dp(tgx101Center ? 4f : TGX101_BUTTON_BETWEEN);
       }
     }
 
@@ -2489,8 +2494,9 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       ((LinearLayoutManager) recyclerView.getLayoutManager()).scrollToPositionWithOffset(checkedIndex, (Screen.currentActualHeight() - tgx101FooterHeight()) / 2 - viewHeight / 2);
     }
     popupLayout.addThemeListeners(this);
-    if (b.tgx101Center && OptionsLayout.TGX101_CARD && footerView != null) {
-      settingsLayout.tgx101CenterHeight = () -> settings.adapter.measureHeight(-1) + tgx101FooterHeight();
+    if (tgx101Center && footerView != null) {
+      // a long list keeps to the screen (with room above and below) and scrolls inside the card
+      settingsLayout.tgx101CenterHeight = () -> Math.min(settings.adapter.measureHeight(-1) + tgx101FooterHeight(), Screen.currentHeight() - Screen.dp(140f));
       popupLayout.showAnimatedPopupView(settingsLayout, new PopupLayout.AnimatedPopupProvider() {
         @Override
         public void prepareShowAnimation () {
