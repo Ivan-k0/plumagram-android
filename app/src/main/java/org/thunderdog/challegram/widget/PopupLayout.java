@@ -1143,7 +1143,8 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
    *  menu, the sheets, the ⋮ menus and the cards in the middle — 55 % black on a dark theme, 35 % on a light one; going
    *  from one to the next, the screen keeps the same darkness */
   public static int tgx101Dim () {
-    return ColorUtils.color(Theme.isDark() ? 140 : 90, 0);
+    // (user 2026-11-23, next to the reference: «затемнение не такое сильное, как у нас») 40 % dark, 27 % light (was 55 / 35)
+    return ColorUtils.color(Theme.isDark() ? 102 : 70, 0);
   }
 
   private class BackgroundView extends View {

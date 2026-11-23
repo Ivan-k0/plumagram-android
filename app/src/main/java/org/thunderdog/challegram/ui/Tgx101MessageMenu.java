@@ -515,10 +515,8 @@ public final class Tgx101MessageMenu {
     // TGx101 (user 2026-11-23, the reference recorded on the phone): the «blocks» view is as wide as the reference's —
     // about 68 % of the screen — so its row of icons has room for the thumb
     final boolean blocks = Settings.instance().tgx101MessageMenuBlocks();
-    if (blocks) {
-      cardWidth = Math.min(Screen.dp(296f), Math.round(Screen.currentWidth() * .68f));
-      maxCardWidth = Math.max(maxCardWidth, cardWidth + Screen.dp(24f));
-    }
+    // (user 2026-11-23 «узкое меню тоже нормально выглядит… можно смело делать узкое, если рисовать окна под кнопки»):
+    // the usual width at most; the card then fits its rows (below)
     // The card keeps its width (user 2026-09-30); long items use short names in this menu, see shortName()
     // The reactions pill fits whole reactions and sticks out of the card by ~16–20 dp on each side
     int overhangMin = Screen.dp(REACTIONS_OVERHANG);
@@ -872,6 +870,26 @@ public final class Tgx101MessageMenu {
     scroll.setVerticalScrollBarEnabled(false);
     scroll.addView(list);
     cardMain.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    if (blocks) {
+      // (user 2026-11-23 «у них окна по ширине подстраиваются под кнопки — намного аккуратнее»): the card is as wide as
+      // its longest row or its icons need, no wider than before
+      android.text.TextPaint paint = new android.text.TextPaint();
+      paint.setTextSize(Screen.sp(15f));
+      paint.setTypeface(Fonts.getRobotoRegular());
+      float longest = 0;
+      for (ViewController.OptionItem item : sorted) longest = Math.max(longest, paint.measureText(String.valueOf(shortName(item))));
+      if (bottomItem != null) longest = Math.max(longest, paint.measureText(String.valueOf(shortName(bottomItem))));
+      int need = Math.round(longest) + Screen.dp(16f + 21f + 14f + 20f);
+      need = Math.max(need, iconItems.size() * Screen.dp(52f));
+      int fitted = Math.max(Screen.dp(180f), Math.min(cardWidth, need));
+      if (fitted < cardWidth) {
+        int diff = cardWidth - fitted;
+        cardWidth = fitted;
+        cardParams.width = cardWidth;
+        card.setLayoutParams(cardParams);
+        org.thunderdog.challegram.Tgx101Diag.mark("menu: blocks fitted to " + cardWidth + " px (" + diff + " narrower)");
+      }
+    }
     if (!iconItems.isEmpty()) {
       // the row of icons: a card of its own under the list, as wide, icons only (a hold shows the name)
       LinearLayout iconCard = new LinearLayout(context);
@@ -1933,7 +1951,7 @@ public final class Tgx101MessageMenu {
     Drawable icon = item.icon != 0 ? Drawables.get(context.getResources(), item.icon) : null;
     if (icon != null) {
       icon = icon.mutate();
-      icon.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.icon))); // (user 2026-11-23) «Delete» not red here
+      icon.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.text))); // (user 2026-11-23) «Delete» not red; as bright as the words, as the reference
       button.setImageDrawable(icon);
     }
     button.setContentDescription(item.name);

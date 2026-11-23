@@ -4385,23 +4385,25 @@ public class Settings {
       view.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
     }
     if (scale > 1f) {
+      // TGx101 (user 2026-11-23 «полоса бежит и шрифт меняется на ходу — зачем он уменьшается?»): words that don't fit are
+      // set a little smaller BEFORE the row is first drawn (down to 80 %), and what still doesn't fit ends with «…» — no
+      // running line, nothing changes while it is looked at
       view.setSingleLine(true);
-      view.setEllipsize(android.text.TextUtils.TruncateAt.MARQUEE);
-      view.setMarqueeRepeatLimit(1);
-      view.setHorizontalFadingEdgeEnabled(true);
-      // TGx101 (journal 2026-11-22: «Сохранить 2 файла в галерею» ran as a marquee and the menu redrew 120 times a second for
-      // seconds): words that don't fit are first made smaller, down to 80 %; only what still doesn't fit scrolls
+      view.setEllipsize(android.text.TextUtils.TruncateAt.END);
       final float sizeDp = baseDp * scale;
-      view.postDelayed(() -> {
-        int room = view.getWidth() - view.getCompoundPaddingLeft() - view.getCompoundPaddingRight();
-        CharSequence text = view.getText();
-        if (room <= 0 || text == null) return;
-        float need = view.getPaint().measureText(text, 0, text.length());
-        if (need <= room) return;
-        float fit = Math.max(.8f, room / need * .98f);
-        view.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, sizeDp * fit);
-        if (view.getPaint().measureText(text, 0, text.length()) > room) view.setSelected(true); // still too long: scrolls once
-      }, 1000);
+      view.getViewTreeObserver().addOnPreDrawListener(new android.view.ViewTreeObserver.OnPreDrawListener() {
+        @Override
+        public boolean onPreDraw () {
+          view.getViewTreeObserver().removeOnPreDrawListener(this);
+          int room = view.getWidth() - view.getCompoundPaddingLeft() - view.getCompoundPaddingRight();
+          CharSequence text = view.getText();
+          if (room <= 0 || text == null) return true;
+          float need = view.getPaint().measureText(text, 0, text.length());
+          if (need <= room) return true;
+          view.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, sizeDp * Math.max(.8f, room / need * .98f));
+          return false; // this frame is skipped; the next one is drawn already at its size
+        }
+      });
     }
   }
 
