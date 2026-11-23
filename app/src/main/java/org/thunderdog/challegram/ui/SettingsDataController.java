@@ -1234,6 +1234,99 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     R.drawable.tgx101_menu_24, R.drawable.baseline_keyboard_24
   };
 
+  // TGx101 (user 2026-11-23, approved mockup «Значки внизу меню»): the row of icons as in the menu; a tap on an icon
+  // opens the list of actions — the ones already in the row greyed out, the current one ticked; the 5th place may be empty
+  private void tgx101ShowBlockIcons () {
+    final Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
+    h[0] = Tgx101Sheet.show(this, () -> adapter.updateValuedSettingById(R.id.btn_tgx101MessageMenuBlockIcons), body -> tgx101FillBlockIcons(body));
+  }
+
+  private static int tgx101Place (int itemId) {
+    for (int k = 0; k < Tgx101MessageMenu.ORDERABLE_IDS.length; k++) if (Tgx101MessageMenu.ORDERABLE_IDS[k] == itemId) return k;
+    return -1;
+  }
+
+  private void tgx101SaveBlockIcons (List<Integer> ids) {
+    StringBuilder places = new StringBuilder();
+    for (int itemId : ids) {
+      int k = tgx101Place(itemId);
+      if (k < 0) continue;
+      if (places.length() > 0) places.append(',');
+      places.append(k);
+    }
+    Settings.instance().setTgx101MessageMenuBlockIcons(places.toString());
+  }
+
+  private void tgx101FillBlockIcons (android.widget.LinearLayout body) {
+    body.removeAllViews();
+    body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101MessageMenuBlockIcons)));
+    final List<Integer> ids = new ArrayList<>();
+    for (int itemId : Tgx101MessageMenu.blockIconIds()) ids.add(itemId);
+    android.widget.LinearLayout row = new android.widget.LinearLayout(context);
+    row.setOrientation(android.widget.LinearLayout.HORIZONTAL);
+    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+    bg.setColor(Theme.getColor(org.thunderdog.challegram.theme.ColorId.background));
+    bg.setCornerRadius(Screen.dp(16f));
+    row.setBackground(bg);
+    for (int place = 0; place < Tgx101MessageMenu.MAX_BLOCK_ICONS; place++) {
+      final int slot = place;
+      android.widget.ImageView b = new android.widget.ImageView(context);
+      b.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+      if (slot < ids.size()) {
+        int k = tgx101Place(ids.get(slot));
+        b.setImageResource(Tgx101MessageMenu.outlined(Tgx101MessageMenu.ORDERABLE_ICONS[k]));
+        b.setColorFilter(Theme.getColor(org.thunderdog.challegram.theme.ColorId.text));
+      } else {
+        b.setImageResource(R.drawable.baseline_add_24);
+        b.setColorFilter(Theme.getColor(org.thunderdog.challegram.theme.ColorId.icon));
+      }
+      org.thunderdog.challegram.tool.Views.setClickable(b);
+      org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(b);
+      b.setOnClickListener(v -> tgx101PickBlockIcon(body, ids, Math.min(slot, ids.size())));
+      row.addView(b, new android.widget.LinearLayout.LayoutParams(0, Screen.dp(56f), 1f));
+    }
+    android.widget.LinearLayout.LayoutParams rp = new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    rp.leftMargin = rp.rightMargin = Screen.dp(20f);
+    rp.topMargin = Screen.dp(6f);
+    body.addView(row, rp);
+    android.widget.TextView hint = new android.widget.TextView(context);
+    hint.setText(Lang.getString(R.string.Tgx101MessageMenuBlockIconsHint));
+    hint.setTextColor(Theme.textDecentColor());
+    hint.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 13f);
+    hint.setPadding(Screen.dp(20f), Screen.dp(12f), Screen.dp(20f), Screen.dp(16f));
+    body.addView(hint);
+  }
+
+  private void tgx101PickBlockIcon (android.widget.LinearLayout body, List<Integer> ids, int slot) {
+    body.removeAllViews();
+    body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101MessageMenuBlockIcons) + " · " + (slot + 1)));
+    final Integer current = slot < ids.size() ? ids.get(slot) : null;
+    if (slot >= Tgx101MessageMenu.MIN_BLOCK_ICONS && current != null && slot == ids.size() - 1) {
+      body.addView(Tgx101Sheet.row(context, R.drawable.baseline_remove_circle_24, 0, Lang.getString(R.string.Tgx101Empty), null, false, v -> {
+        ids.remove(slot);
+        tgx101SaveBlockIcons(ids);
+        tgx101FillBlockIcons(body);
+      }));
+    }
+    for (int k = 0; k < Tgx101MessageMenu.ORDERABLE_IDS.length; k++) {
+      final int itemId = Tgx101MessageMenu.ORDERABLE_IDS[k];
+      if (itemId == R.id.btn_messageMore || itemId == R.id.btn_tgx101SelectInPlace) continue;
+      boolean used = ids.contains(itemId) && (current == null || current != itemId);
+      boolean isCurrent = current != null && current == itemId;
+      View r = Tgx101Sheet.row(context, Tgx101MessageMenu.outlined(Tgx101MessageMenu.ORDERABLE_ICONS[k]), 0, Lang.getString(Tgx101MessageMenu.ORDERABLE_NAMES[k]),
+        used ? Lang.getString(R.string.Tgx101InRow) : null, isCurrent, used ? null : v -> {
+          if (slot < ids.size()) ids.set(slot, itemId); else ids.add(itemId);
+          tgx101SaveBlockIcons(ids);
+          tgx101FillBlockIcons(body);
+        });
+      if (used) {
+        r.setAlpha(.4f);
+        r.setClickable(false);
+      }
+      body.addView(r);
+    }
+  }
+
   private static int tgx101SectionIndex (int id) {
     for (int i = 0; i < TGX101_SECTION_IDS.length; i++) {
       if (TGX101_SECTION_IDS[i] == id) return i;
@@ -1916,19 +2009,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     } else if (id == R.id.btn_tgx101CallBar) {
       Settings.instance().setShowTgx101CallBar(toggleResult);
     } else if (id == R.id.btn_tgx101MessageMenuBlockIcons) {
-      int[] chosen = Tgx101MessageMenu.blockIconIds();
-      List<ListItem> rows = new ArrayList<>();
-      for (int k = 0; k < Tgx101MessageMenu.ORDERABLE_IDS.length; k++) {
-        int itemId = Tgx101MessageMenu.ORDERABLE_IDS[k];
-        if (itemId == R.id.btn_messageMore || itemId == R.id.btn_tgx101SelectInPlace) continue; // «More…» stays a row
-        boolean on = false;
-        for (int c : chosen) if (c == itemId) on = true;
-        rows.add(new ListItem(ListItem.TYPE_CHECKBOX_OPTION, itemId, Tgx101MessageMenu.ORDERABLE_ICONS[k], Tgx101MessageMenu.ORDERABLE_NAMES[k], on));
-      }
-      showSettings(new SettingsWrapBuilder(id)
-        .addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.Tgx101MessageMenuBlockIconsHint))
-        .setRawItems(rows.toArray(new ListItem[0]))
-        .setIntDelegate(this));
+      tgx101ShowBlockIcons();
     } else if (id == R.id.btn_tgx101MessageMenuBlocks) {
       Settings.instance().setTgx101MessageMenuBlocks(toggleResult); // already toggled above
     } else if (id == R.id.btn_tgx101MessageMenuHand) {

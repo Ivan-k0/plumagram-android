@@ -870,24 +870,26 @@ public final class Tgx101MessageMenu {
     scroll.setVerticalScrollBarEnabled(false);
     scroll.addView(list);
     cardMain.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-    if (blocks) {
-      // (user 2026-11-23 «у них окна по ширине подстраиваются под кнопки — намного аккуратнее»): the card is as wide as
-      // its longest row or its icons need, no wider than before
+    {
+      // (user 2026-11-23 «у них окна по ширине подстраиваются под кнопки — намного аккуратнее»; «а если шрифт 140 % — пять
+      // букв поместится?»): the card is as wide as its longest row needs at the chosen text size — narrower in «blocks»,
+      // wider for a big font, up to the screen; only past the screen do the words get smaller
       android.text.TextPaint paint = new android.text.TextPaint();
-      paint.setTextSize(Screen.sp(15f));
-      paint.setTypeface(Fonts.getRobotoRegular());
+      paint.setTextSize(Screen.dp(15f * Settings.tgx101UiScale()));
+      paint.setTypeface(Settings.instance().tgx101UiBold() ? Fonts.getRobotoMedium() : Fonts.getRobotoRegular());
       float longest = 0;
       for (ViewController.OptionItem item : sorted) longest = Math.max(longest, paint.measureText(String.valueOf(shortName(item))));
       if (bottomItem != null) longest = Math.max(longest, paint.measureText(String.valueOf(shortName(bottomItem))));
       int need = Math.round(longest) + Screen.dp(16f + 21f + 14f + 20f);
       need = Math.max(need, iconItems.size() * Screen.dp(52f));
-      int fitted = Math.max(Screen.dp(180f), Math.min(cardWidth, need));
-      if (fitted < cardWidth) {
+      int widest = Screen.currentWidth() - Screen.dp(24f) - (cardEdgeGap - overhang);
+      int fitted = blocks ? Math.max(Screen.dp(180f), Math.min(widest, need)) : Math.max(cardWidth, Math.min(widest, need));
+      if (fitted != cardWidth) {
         int diff = cardWidth - fitted;
         cardWidth = fitted;
         cardParams.width = cardWidth;
         card.setLayoutParams(cardParams);
-        org.thunderdog.challegram.Tgx101Diag.mark("menu: blocks fitted to " + cardWidth + " px (" + diff + " narrower)");
+        org.thunderdog.challegram.Tgx101Diag.mark("menu: card fitted to " + cardWidth + " px (" + diff + " narrower)");
       }
     }
     if (!iconItems.isEmpty()) {
@@ -1870,10 +1872,12 @@ public final class Tgx101MessageMenu {
     row.setText(shortName(item));
     Settings.tgx101StyleRow(row, 15f);
     if (item.icon != 0) {
-      Drawable icon = Drawables.get(context.getResources(), item.icon);
+      Drawable icon = Drawables.get(context.getResources(), outlined(item.icon));
       if (icon != null) {
         icon = icon.mutate();
-        icon.setColorFilter(Paints.getColorFilter(isDelete ? Theme.getColor(ColorId.iconNegative) : item.id == R.id.btn_messageSelect ? Theme.chatSendButtonColor() : Theme.getColor(ColorId.icon)));
+        // (user 2026-11-23 «значки внизу не должны отличаться по контрасту — сделай везде одинаковые»): every icon of the
+        // menu in the text's colour, «Delete» too
+        icon.setColorFilter(Paints.getColorFilter(item.id == R.id.btn_messageSelect ? Theme.chatSendButtonColor() : Theme.getColor(ColorId.text)));
         int size = Screen.dp(21f);
         icon.setBounds(0, 0, size, size);
         if (Lang.rtl()) {
@@ -1919,6 +1923,20 @@ public final class Tgx101MessageMenu {
     return row;
   }
 
+  /** TGx101 (user 2026-11-23 «меньше значков с заливкой — бросается в глаза; значки везде одинаковые по контрасту»):
+   *  the menu draws outlined icons in place of the filled ones, all in the text's colour */
+  static int outlined (int icon) {
+    if (icon == R.drawable.baseline_delete_24 || icon == R.drawable.baseline_delete_forever_24) return R.drawable.tgx101_o_delete_24;
+    if (icon == R.drawable.baseline_edit_24) return R.drawable.tgx101_o_edit_24;
+    if (icon == R.drawable.baseline_bookmark_24) return R.drawable.tgx101_o_bookmark_24;
+    if (icon == R.drawable.baseline_forward_24) return R.drawable.tgx101_o_forward_24;
+    if (icon == R.drawable.deproko_baseline_pin_24) return R.drawable.tgx101_o_pin_24;
+    if (icon == R.drawable.baseline_music_note_24) return R.drawable.tgx101_o_music_24;
+    if (icon == R.drawable.baseline_file_download_24) return R.drawable.tgx101_o_download_24;
+    if (icon == R.drawable.baseline_report_24) return R.drawable.tgx101_o_report_24;
+    return icon;
+  }
+
   /** The «blocks» view's row: reply, delete, edit, forward (in this order, those the message has) */
   private static final int[] BLOCK_ICON_IDS = {R.id.btn_messageReply, R.id.btn_messageDelete, R.id.btn_messageEdit, R.id.btn_messageShare};
   public static final int MAX_BLOCK_ICONS = 5, MIN_BLOCK_ICONS = 4;
@@ -1948,7 +1966,7 @@ public final class Tgx101MessageMenu {
     button.setId(item.id);
     button.setScaleType(ImageView.ScaleType.CENTER);
     boolean isDelete = item.id == R.id.btn_messageDelete;
-    Drawable icon = item.icon != 0 ? Drawables.get(context.getResources(), item.icon) : null;
+    Drawable icon = item.icon != 0 ? Drawables.get(context.getResources(), outlined(item.icon)) : null;
     if (icon != null) {
       icon = icon.mutate();
       icon.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.text))); // (user 2026-11-23) «Delete» not red; as bright as the words, as the reference
