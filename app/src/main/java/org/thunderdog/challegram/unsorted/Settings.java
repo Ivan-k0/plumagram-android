@@ -3369,6 +3369,29 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_MESSAGE_MENU, use);
   }
 
+  private static final String KEY_TGX101_MESSAGE_MENU_BLOCKS = "tgx101_message_menu_blocks";
+
+  /** TGx101 (user 2026-11-23, recorded in the reference: «это будет отдельным видом выпадающего меню»): the message menu
+   *  as two blocks — a short list, and under it a row of icons for reply, delete, edit and forward */
+  public boolean tgx101MessageMenuBlocks () {
+    return pmc.getBoolean(KEY_TGX101_MESSAGE_MENU_BLOCKS, false);
+  }
+
+  public void setTgx101MessageMenuBlocks (boolean blocks) {
+    pmc.putBoolean(KEY_TGX101_MESSAGE_MENU_BLOCKS, blocks);
+  }
+
+  private static final String KEY_TGX101_MESSAGE_MENU_BLOCK_ICONS = "tgx101_message_menu_block_icons";
+
+  /** The «blocks» view's icons, as places in Tgx101MessageMenu.ORDERABLE_IDS ("0,21,3,4"); null — the default */
+  public @Nullable String tgx101MessageMenuBlockIcons () {
+    return pmc.getString(KEY_TGX101_MESSAGE_MENU_BLOCK_ICONS, null);
+  }
+
+  public void setTgx101MessageMenuBlockIcons (String places) {
+    pmc.putString(KEY_TGX101_MESSAGE_MENU_BLOCK_ICONS, places);
+  }
+
   public boolean isTgx101MessageMenuLeftHand () {
     return pmc.getBoolean(KEY_TGX101_MESSAGE_MENU_LEFT, false);
   }

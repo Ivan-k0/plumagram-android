@@ -1097,6 +1097,8 @@
   <item type="id" name="btn_tgx101FormatToggle" />
   <item type="id" name="btn_tgx101MessageMenu" />
   <item type="id" name="btn_tgx101MessageMenuHand" />
+  <item type="id" name="btn_tgx101MessageMenuBlocks" />
+  <item type="id" name="btn_tgx101MessageMenuBlockIcons" />
   <item type="id" name="btn_tgx101MessageMenuHandLeft" />
   <item type="id" name="btn_tgx101MessageMenuHandRight" />
   <item type="id" name="btn_tgx101MessageMenuOrder" />

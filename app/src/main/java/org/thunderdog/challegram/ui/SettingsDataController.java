@@ -47,6 +47,7 @@ import org.thunderdog.challegram.unsorted.Settings;
 import org.thunderdog.challegram.v.CustomRecyclerView;
 import org.thunderdog.challegram.voip.annotation.DataSavingOption;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import me.vkryl.core.ArrayUtils;
@@ -533,6 +534,19 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().useTgx101TextEditor(), isUpdate);
         } else if (itemId == R.id.btn_tgx101CallBar) {
           view.getToggler().setRadioEnabled(Settings.instance().showTgx101CallBar(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101MessageMenuBlockIcons) {
+          StringBuilder names = new StringBuilder();
+          for (int iconId : Tgx101MessageMenu.blockIconIds()) {
+            for (int k = 0; k < Tgx101MessageMenu.ORDERABLE_IDS.length; k++) {
+              if (Tgx101MessageMenu.ORDERABLE_IDS[k] == iconId) {
+                if (names.length() > 0) names.append(", ");
+                names.append(Lang.getString(Tgx101MessageMenu.ORDERABLE_NAMES[k]));
+              }
+            }
+          }
+          view.setData(names.toString());
+        } else if (itemId == R.id.btn_tgx101MessageMenuBlocks) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101MessageMenuBlocks(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MessageMenuHand) {
           view.setData(Settings.instance().isTgx101MessageMenuLeftHand() ? R.string.Tgx101MessageMenuHandLeft : R.string.Tgx101MessageMenuHandRight);
         } else if (itemId == R.id.btn_tgx101ChatListTextSize) {
@@ -621,6 +635,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101CallBar, 0, R.string.Tgx101CallBarSetting),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101MessageMenuHand, 0, R.string.Tgx101MessageMenuHand),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MessageMenuBlocks, 0, R.string.Tgx101MessageMenuBlocks),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MessageMenuBlockIcons, 0, R.string.Tgx101MessageMenuBlockIcons),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         // TGx101 (user 2026-10-11): long press, swipe and double tap are on the «Message gestures» screen
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Gestures, 0, R.string.Tgx101Gestures),
@@ -1247,7 +1265,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_pullToSearch) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
     if (id == R.id.btn_tgx101ChatMenuOrder) return 2;
-    if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuBlur || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuOrder
+    if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuBlur || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuBlocks || id == R.id.btn_tgx101MessageMenuBlockIcons || id == R.id.btn_tgx101MessageMenuOrder
       || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101Gestures) return 2;
     // quick replies to a call by message — with the calls (user 2026-10-22 «быстрые ответы на звонок перенести в «Звонки»»)
     if (id == R.id.btn_tgx101QuickReply1 || id == R.id.btn_tgx101QuickReply2 || id == R.id.btn_tgx101QuickReply3
@@ -1897,6 +1915,22 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setUseTgx101TextEditor(toggleResult);
     } else if (id == R.id.btn_tgx101CallBar) {
       Settings.instance().setShowTgx101CallBar(toggleResult);
+    } else if (id == R.id.btn_tgx101MessageMenuBlockIcons) {
+      int[] chosen = Tgx101MessageMenu.blockIconIds();
+      List<ListItem> rows = new ArrayList<>();
+      for (int k = 0; k < Tgx101MessageMenu.ORDERABLE_IDS.length; k++) {
+        int itemId = Tgx101MessageMenu.ORDERABLE_IDS[k];
+        if (itemId == R.id.btn_messageMore || itemId == R.id.btn_tgx101SelectInPlace) continue; // «More…» stays a row
+        boolean on = false;
+        for (int c : chosen) if (c == itemId) on = true;
+        rows.add(new ListItem(ListItem.TYPE_CHECKBOX_OPTION, itemId, Tgx101MessageMenu.ORDERABLE_ICONS[k], Tgx101MessageMenu.ORDERABLE_NAMES[k], on));
+      }
+      showSettings(new SettingsWrapBuilder(id)
+        .addHeaderItem(new ListItem(ListItem.TYPE_INFO, 0, 0, R.string.Tgx101MessageMenuBlockIconsHint))
+        .setRawItems(rows.toArray(new ListItem[0]))
+        .setIntDelegate(this));
+    } else if (id == R.id.btn_tgx101MessageMenuBlocks) {
+      Settings.instance().setTgx101MessageMenuBlocks(toggleResult); // already toggled above
     } else if (id == R.id.btn_tgx101MessageMenuHand) {
       boolean left = Settings.instance().isTgx101MessageMenuLeftHand();
       showSettings(new SettingsWrapBuilder(id).setRawItems(new ListItem[] {
@@ -2220,6 +2254,25 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       }
       Settings.instance().setRoundStabilizationMode(mode);
       adapter.updateValuedSettingById(R.id.btn_roundStabilization);
+    } else if (id == R.id.btn_tgx101MessageMenuBlockIcons) {
+      // the ticked ones, in the default row's order first (reply, delete, edit, forward), then the menu's order; 5 at most
+      StringBuilder places = new StringBuilder();
+      int count = 0;
+      List<Integer> wanted = new ArrayList<>();
+      for (int d : Tgx101MessageMenu.defaultBlockIconIds()) wanted.add(d);
+      for (int o : Tgx101MessageMenu.ORDERABLE_IDS) if (!wanted.contains(o)) wanted.add(o);
+      for (int itemId : wanted) {
+        if (count >= Tgx101MessageMenu.MAX_BLOCK_ICONS || result.get(itemId) == 0) continue;
+        for (int k = 0; k < Tgx101MessageMenu.ORDERABLE_IDS.length; k++) {
+          if (Tgx101MessageMenu.ORDERABLE_IDS[k] == itemId) {
+            if (places.length() > 0) places.append(',');
+            places.append(k);
+            count++;
+          }
+        }
+      }
+      Settings.instance().setTgx101MessageMenuBlockIcons(places.toString());
+      adapter.updateValuedSettingById(R.id.btn_tgx101MessageMenuBlockIcons);
     } else if (id == R.id.btn_tgx101MessageMenuHand) {
       Settings.instance().setTgx101MessageMenuLeftHand(result.get(R.id.btn_tgx101MessageMenuHand) == R.id.btn_tgx101MessageMenuHandLeft);
       adapter.updateValuedSettingById(R.id.btn_tgx101MessageMenuHand);

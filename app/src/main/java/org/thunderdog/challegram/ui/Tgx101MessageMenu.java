@@ -512,6 +512,13 @@ public final class Tgx101MessageMenu {
     // The reactions stick out of the card by REACTIONS_OVERHANG on both sides
     int maxCardWidth = Math.min(Screen.dp(268f), Screen.currentWidth() - Screen.dp(24f));
     int cardWidth = Math.max(Math.min(Screen.dp(200f), maxCardWidth), maxCardWidth - Screen.dp(52f));
+    // TGx101 (user 2026-11-23, the reference recorded on the phone): the «blocks» view is as wide as the reference's —
+    // about 68 % of the screen — so its row of icons has room for the thumb
+    final boolean blocks = Settings.instance().tgx101MessageMenuBlocks();
+    if (blocks) {
+      cardWidth = Math.min(Screen.dp(296f), Math.round(Screen.currentWidth() * .68f));
+      maxCardWidth = Math.max(maxCardWidth, cardWidth + Screen.dp(24f));
+    }
     // The card keeps its width (user 2026-09-30); long items use short names in this menu, see shortName()
     // The reactions pill fits whole reactions and sticks out of the card by ~16–20 dp on each side
     int overhangMin = Screen.dp(REACTIONS_OVERHANG);
@@ -784,7 +791,30 @@ public final class Tgx101MessageMenu {
       }
       if (bottomItem != null) sorted.remove(bottomItem);
     }
+    // «blocks»: reply, delete, edit and forward leave the list for a row of icons under it (as in the reference)
+    final List<ViewController.OptionItem> iconItems = new ArrayList<>();
+    if (blocks) {
+      for (int id : blockIconIds()) {
+        ViewController.OptionItem found = null;
+        for (ViewController.OptionItem item : sorted) if (item.id == id) found = item;
+        if (found == null && bottomItem != null && bottomItem.id == id) found = bottomItem;
+        if (found == null) continue;
+        iconItems.add(found);
+        if (found == bottomItem) {
+          bottomItem = null;
+          for (ViewController.OptionItem item : sorted) if (item.id == R.id.btn_messageMore) bottomItem = item;
+          if (bottomItem != null) sorted.remove(bottomItem);
+        } else {
+          sorted.remove(found);
+        }
+      }
+      if (iconItems.size() < 2) { // one icon alone is no row: it goes back to the list
+        sorted.addAll(0, iconItems);
+        iconItems.clear();
+      }
+    }
     shownIds.clear();
+    for (ViewController.OptionItem item : iconItems) shownIds.add(item.id);
     if (bottomItem != null) shownIds.add(bottomItem.id);
     for (ViewController.OptionItem item : sorted) shownIds.add(item.id);
 
@@ -835,6 +865,21 @@ public final class Tgx101MessageMenu {
     scroll.setVerticalScrollBarEnabled(false);
     scroll.addView(list);
     cardMain.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    if (!iconItems.isEmpty()) {
+      // the row of icons: a card of its own under the list, as wide, icons only (a hold shows the name)
+      LinearLayout iconCard = new LinearLayout(context);
+      iconCard.setOrientation(LinearLayout.HORIZONTAL);
+      iconCard.setBackground(rounded(Theme.getColor(ColorId.filling), Screen.dp(16f)));
+      elevate(iconCard, Screen.dp(16f));
+      iconCard.setClickable(true);
+      for (ViewController.OptionItem item : iconItems) {
+        iconCard.addView(iconButton(context, host, item, delegate), new LinearLayout.LayoutParams(0, Screen.dp(54f), 1f));
+      }
+      LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(cardWidth, ViewGroup.LayoutParams.WRAP_CONTENT);
+      iconParams.topMargin = Screen.dp(8f);
+      if (leftHand) iconParams.leftMargin = cardEdgeGap; else iconParams.rightMargin = cardEdgeGap;
+      column.addView(iconCard, iconParams);
+    }
     // A short scale-in from the corner
     column.setPivotX(leftHand ? 0 : pillWidth + cardEdgeGap - overhang);
     column.setAlpha(0f);
@@ -1847,6 +1892,67 @@ public final class Tgx101MessageMenu {
       });
     });
     return row;
+  }
+
+  /** The «blocks» view's row: reply, delete, edit, forward (in this order, those the message has) */
+  private static final int[] BLOCK_ICON_IDS = {R.id.btn_messageReply, R.id.btn_messageDelete, R.id.btn_messageEdit, R.id.btn_messageShare};
+  public static final int MAX_BLOCK_ICONS = 5;
+
+  /** (user 2026-11-23 «кнопки в этом меню тоже нужно ставить самим»): the icons chosen in the settings, or the default */
+  public static int[] blockIconIds () {
+    String saved = Settings.instance().tgx101MessageMenuBlockIcons();
+    if (saved == null) return BLOCK_ICON_IDS;
+    List<Integer> ids = new ArrayList<>();
+    for (String part : saved.split(",")) {
+      try {
+        int place = Integer.parseInt(part.trim());
+        if (place >= 0 && place < ORDERABLE_IDS.length && ids.size() < MAX_BLOCK_ICONS) ids.add(ORDERABLE_IDS[place]);
+      } catch (NumberFormatException ignored) { }
+    }
+    int[] out = new int[ids.size()];
+    for (int i = 0; i < out.length; i++) out[i] = ids.get(i);
+    return out;
+  }
+
+  public static int[] defaultBlockIconIds () {
+    return BLOCK_ICON_IDS;
+  }
+
+  private static View iconButton (Context context, Host host, ViewController.OptionItem item, OptionDelegate delegate) {
+    ImageView button = new ImageView(context);
+    button.setId(item.id);
+    button.setScaleType(ImageView.ScaleType.CENTER);
+    boolean isDelete = item.id == R.id.btn_messageDelete;
+    Drawable icon = item.icon != 0 ? Drawables.get(context.getResources(), item.icon) : null;
+    if (icon != null) {
+      icon = icon.mutate();
+      icon.setColorFilter(Paints.getColorFilter(isDelete ? Theme.getColor(ColorId.iconNegative) : Theme.getColor(ColorId.icon)));
+      button.setImageDrawable(icon);
+    }
+    button.setContentDescription(item.name);
+    Views.setClickable(button);
+    RippleSupport.setTransparentSelector(button);
+    button.setOnLongClickListener(v -> { // a hold says what the icon does
+      UI.showToast(item.name != null ? item.name.toString() : "", android.widget.Toast.LENGTH_SHORT);
+      return true;
+    });
+    button.setOnClickListener(v -> runItem(host, delegate, v));
+    return button;
+  }
+
+  /** As a row of the list does: the menu's card goes at once, its dim waits for a window the action opens */
+  private static void runItem (Host host, OptionDelegate delegate, View v) {
+    if (host.dismissing) return;
+    host.dismissing = true;
+    if (host.content != null) {
+      host.content.animate().cancel();
+      host.content.setVisibility(View.INVISIBLE);
+    }
+    PopupLayout.tgx101HandOff(host.popup);
+    UI.post(() -> {
+      delegate.onOptionItemPressed(v, v.getId());
+      PopupLayout.tgx101ReleaseDim();
+    });
   }
 
   /** «More…»: the card's actions are swapped for the extra ones (with «Back»), in the same window */

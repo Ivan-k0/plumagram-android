@@ -6044,6 +6044,9 @@
   <string name="Tgx101TextWeightRestart">Restart the app to apply the text weight</string>
   <string name="Tgx101MessageMenuSection">Message menu</string>
   <string name="Tgx101MessageMenu">Compact message menu</string>
+  <string name="Tgx101MessageMenuBlockIcons">Icons below</string>
+  <string name="Tgx101MessageMenuBlockIconsHint">Up to 5 actions shown as icons under the menu. Hold an icon to see its name.</string>
+  <string name="Tgx101MessageMenuBlocks">Menu in blocks</string>
   <string name="Tgx101MessageMenuHand">Menu for</string>
   <string name="Tgx101MessageMenuHandRight">Right hand</string>
   <string name="Tgx101MessageMenuHandLeft">Left hand</string>
