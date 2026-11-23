@@ -884,7 +884,8 @@ public final class Tgx101MessageMenu {
       need = Math.max(need, iconItems.size() * Screen.dp(52f));
       // (screenshot 2026-11-23 at a big font: the card ran past the left edge) the column's 12 dp margins and the card's
       // own gap at its side are kept
-      int widest = Screen.currentWidth() - Screen.dp(24f) - cardEdgeGap - Screen.dp(8f);
+      // (user 2026-11-23 «почему меню лезет на левый край? по центру или ближе к правому») at most 80 % of the screen
+      int widest = Math.min(Screen.currentWidth() - Screen.dp(24f) - cardEdgeGap - Screen.dp(8f), Math.round(Screen.currentWidth() * .8f));
       int fitted = blocks ? Math.max(Screen.dp(180f), Math.min(widest, need)) : Math.max(cardWidth, Math.min(widest, need));
       if (fitted != cardWidth) {
         int diff = cardWidth - fitted;
@@ -892,6 +893,13 @@ public final class Tgx101MessageMenu {
         cardParams.width = cardWidth;
         card.setLayoutParams(cardParams);
         org.thunderdog.challegram.Tgx101Diag.mark("menu: card fitted to " + cardWidth + " px (" + diff + " narrower)");
+        // the reactions stand over the card's middle (user 2026-11-23 «смайлы по середине меню»)
+        if (host.pill != null && host.pill.getLayoutParams() instanceof LinearLayout.LayoutParams) {
+          LinearLayout.LayoutParams pp = (LinearLayout.LayoutParams) host.pill.getLayoutParams();
+          int shift = cardEdgeGap + (cardWidth - pp.width) / 2;
+          if (leftHand) pp.leftMargin = Math.max(0, shift); else pp.rightMargin = Math.max(0, shift);
+          host.pill.setLayoutParams(pp);
+        }
       }
     }
     if (!iconItems.isEmpty()) {
@@ -1870,7 +1878,8 @@ public final class Tgx101MessageMenu {
     row.setCompoundDrawablePadding(Screen.dp(14f));
     // TGx101 (user 2026-10-05): «Delete» — red icon, the word in the normal text colour; «Select» — icon in the brand blue
     int textColorId = isDelete ? ColorId.text : OptionsLayoutColor.text(item);
-    row.setTextColor(Theme.getColor(textColorId));
+    // (user 2026-11-23 «у нас сильно белое всё, чуть приглушить», as the reference) the words a little softer than full text
+    row.setTextColor(textColorId == ColorId.text ? me.vkryl.core.ColorUtils.alphaColor(.9f, Theme.getColor(ColorId.text)) : Theme.getColor(textColorId));
     row.setText(shortName(item));
     Settings.tgx101StyleRow(row, 15f);
     if (item.icon != 0) {
@@ -1879,7 +1888,7 @@ public final class Tgx101MessageMenu {
         icon = icon.mutate();
         // (user 2026-11-23 «значки внизу не должны отличаться по контрасту — сделай везде одинаковые»): every icon of the
         // menu in the text's colour, «Delete» too
-        icon.setColorFilter(Paints.getColorFilter(item.id == R.id.btn_messageSelect ? Theme.chatSendButtonColor() : Theme.getColor(ColorId.text)));
+        icon.setColorFilter(Paints.getColorFilter(item.id == R.id.btn_messageSelect ? Theme.chatSendButtonColor() : tgx101IconColor()));
         int size = Math.round(Screen.dp(21f) * Math.max(1f, Settings.tgx101UiScale())); // grows with the text (user 2026-11-23)
         icon.setBounds(0, 0, size, size);
         if (Lang.rtl()) {
@@ -1927,6 +1936,11 @@ public final class Tgx101MessageMenu {
 
   /** TGx101 (user 2026-11-23 «меньше значков с заливкой — бросается в глаза; значки везде одинаковые по контрасту»):
    *  the menu draws outlined icons in place of the filled ones, all in the text's colour */
+  /** The menu's icons: the text's colour, softened (80 %) — between the old grey and full white */
+  static int tgx101IconColor () {
+    return me.vkryl.core.ColorUtils.alphaColor(.8f, Theme.getColor(ColorId.text));
+  }
+
   static int outlined (int icon) {
     if (!Settings.instance().tgx101MenuOutlinedIcons()) return icon; // (user 2026-11-23 «два варианта иконок на выбор»)
     if (icon == R.drawable.baseline_reply_24) return R.drawable.tgx101_o_reply_24;
@@ -1977,7 +1991,7 @@ public final class Tgx101MessageMenu {
     Drawable icon = item.icon != 0 ? Drawables.get(context.getResources(), outlined(item.icon)) : null;
     if (icon != null) {
       icon = icon.mutate();
-      icon.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.text))); // (user 2026-11-23) «Delete» not red; as bright as the words, as the reference
+      icon.setColorFilter(Paints.getColorFilter(tgx101IconColor())); // (user 2026-11-23) «Delete» not red; as the words' icons
       button.setImageDrawable(icon);
     }
     button.setContentDescription(item.name);

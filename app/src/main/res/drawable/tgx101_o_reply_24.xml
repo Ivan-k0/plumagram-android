@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- TGx101 (user 2026-11-23 «кнопка „Ответить“ до сих пор с заливкой»): outlined reply for the message menu -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-  <path android:fillColor="#FF000000" android:pathData="M10,9V5L3,12L10,19V14.9C15,14.9 18.5,16.5 21,20C20,15 17,10 10,9M8,9.83L5.83,12L8,14.17V13H10C12.86,13 15.08,13.69 16.79,14.93C15.65,12.75 13.66,11.5 10.18,11L8,10.7V9.83Z"/>
+  <path android:fillColor="#FF000000" android:fillType="evenOdd" android:pathData="M10,9V5L3,12L10,19V14.9C15,14.9 18.5,16.5 21,20C20,15 17,10 10,9M8,9.83L5.83,12L8,14.17V13H10C12.86,13 15.08,13.69 16.79,14.93C15.65,12.75 13.66,11.5 10.18,11L8,10.7V9.83Z"/>
 </vector>
