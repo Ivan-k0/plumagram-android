@@ -1944,6 +1944,9 @@ public final class Tgx101MessageMenu {
   static int outlined (int icon) {
     if (!Settings.instance().tgx101MenuOutlinedIcons()) return icon; // (user 2026-11-23 «два варианта иконок на выбор»)
     if (icon == R.drawable.baseline_reply_24) return R.drawable.tgx101_o_reply_24;
+    if (icon == R.drawable.baseline_content_copy_24) return R.drawable.tgx101_o_copy_24;
+    if (icon == R.drawable.baseline_link_24) return R.drawable.tgx101_o_link_24;
+    if (icon == R.drawable.baseline_translate_24) return R.drawable.tgx101_o_translate_24;
     if (icon == R.drawable.baseline_delete_24 || icon == R.drawable.baseline_delete_forever_24) return R.drawable.tgx101_o_delete_24;
     if (icon == R.drawable.baseline_edit_24) return R.drawable.tgx101_o_edit_24;
     if (icon == R.drawable.baseline_bookmark_24) return R.drawable.tgx101_o_bookmark_24;
