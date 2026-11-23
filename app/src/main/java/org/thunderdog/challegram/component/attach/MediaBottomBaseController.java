@@ -778,7 +778,11 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       }
     });
     heightAnimator.setInterpolator(curve);
-    heightAnimator.setDuration(duration);
+    // (user 2026-11-23, recording: under the finger 8 px a frame, let go 16–20 — «выезжает с ускорением»): the duration is
+    // worked out for the finger's speed, but the phone plays animators at its animation scale (0.5 here, kept on purpose)
+    // while the finger and the grid's scroll keep real time. The duration is set so it plays as worked out
+    float scale = android.os.Build.VERSION.SDK_INT >= 26 ? ValueAnimator.getDurationScale() : 1f;
+    heightAnimator.setDuration(scale > 0f && scale != 1f ? Math.round(duration / scale) : duration);
     heightAnimator.start();
   }
 
