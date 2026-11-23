@@ -318,7 +318,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
             tgx101GridStep = v;
             // measured on the phone (recording 2026-11-22, 120 fps): the grid's own figures ran ~1.7× what is seen on the
             // screen (24–26 px a frame seen, 5556 px/s counted) while the sheet moves exactly as told — so ×0.6
-            tgx101Speed = -use * .45f; // (second recording: ×0.6 still left at 30–34 after 24–26)
+            tgx101Speed = -use; // (the user's own flick 2026-11-23: ×0.45 left the sheet at 44 after the grid's 72–96 — «медленный тормоз»)
             tgx101SpeedAt = now;
           } else {
             tgx101GridStep = 0f;
@@ -634,9 +634,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       // (user 2026-11-23 «наверху ускорение»: a quick flick — the sheet, held to 160 ms at least and its animator run at the
       // phone's animation scale, came to the top at another speed than the one the grid then set off with) the grid goes
       // on at the speed the sheet really arrives with — its end slope over the duration as the phone plays it
-      float scale = android.os.Build.VERSION.SDK_INT >= 26 ? ValueAnimator.getDurationScale() : 1f;
-      if (scale <= 0f) scale = 1f;
-      tgx101ArrivalSpeed = endSlope * distance / (duration * scale) * 1000f;
+      tgx101ArrivalSpeed = endSlope * distance / duration * 1000f; // the sheet plays at its own duration here (recorded)
     } else {
       tgx101ArrivalSpeed = 0f;
     }
@@ -727,9 +725,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     long now = SystemClock.uptimeMillis();
     if (tgx101SpeedHeight >= 0 && now - tgx101SpeedAt < 8) return; // over a frame at least, not two events at once
     if (tgx101SpeedHeight >= 0 && now - tgx101SpeedAt < 100) {
-      // ×0.5: the sheet's own animations play at the phone's animation scale (0.5, kept on purpose — user 2026-11-22), the
-      // finger does not; untouched, a sheet let go after a stop flew off at twice the finger (recording 2026-11-23: −24 → −56)
-      float v = .5f * Math.max(-12f, Math.min(12f, (height - tgx101SpeedHeight) / (float) (now - tgx101SpeedAt)));
+      float v = Math.max(-12f, Math.min(12f, (height - tgx101SpeedHeight) / (float) (now - tgx101SpeedAt)));
       tgx101Speed = tgx101Speed == 0f ? v : tgx101Speed * .4f + v * .6f;
     } else {
       tgx101Speed = 0f;
@@ -893,7 +889,10 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
           // 20–42 px a frame. Half the flick for both, start and end alike, so the sheet goes up evenly
           // (recording 2026-11-22, a slow flick: 6 → 14 px a frame — the way at the finger's speed took longer than allowed,
           // so the sheet sped up) the sheet goes evenly at the finger's speed, or faster when that would take over 0.7 s
-          float cruise = velocityY < 0 ? Math.max(-velocityY * .5f, Math.max(0, getMaxHeight() - currentHeight) / .7f) : 0f;
+          // (user's own flicks recorded next to the reference 2026-11-23: with half the flick the sheet sagged to 28–40 px a
+          // frame after a 68 px finger, then the grid sped off at 64 — «ускорение вверху». The halves were fitted to adb
+          // swipes and are wrong for a real finger) the sheet goes on at the flick's own speed
+          float cruise = velocityY < 0 ? Math.max(-velocityY, Math.max(0, getMaxHeight() - currentHeight) / .7f) : 0f;
           final int fling = Math.round(cruise);
           animateCurrentHeight(getMaxHeight(), false, -cruise, fling > 0 && recyclerView != null ? () -> tgx101GlideGrid(fling) : null, fling);
         } else {
@@ -913,8 +912,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
         // the end, evenly — the hide now does the same
         float fingerSpeed = SystemClock.uptimeMillis() - tgx101SpeedAt < 120 ? Math.abs(tgx101Speed) : 0f;
         // ×0.55: set by recording (the full figure went 52–58 px a frame after the finger's 28; the reference keeps 28)
-        // (the finger's speed under the sheet is halved where it is measured since 2026-11-23 — doubled back here)
-        tgx101DismissSpeed = Math.max(fingerSpeed * 2f, Math.abs(velocityY) / 1000f * .5f) * .55f;
+        tgx101DismissSpeed = Math.max(fingerSpeed, Math.abs(velocityY) / 1000f * .5f) * .55f;
         mediaLayout.hideBottomBarAndDismiss();
       }
 
