@@ -610,6 +610,38 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     ((BaseActivity) getContext()).showPopupWindow(this);
   }
 
+  /** TGx101 (user 2026-11-23 «экран мигает, когда переходишь дальше — закрепить сообщение»): a window opened from the
+   *  message menu in its own way (the centred cards) takes over the menu's dim too — it melts into its own (see
+   *  tgx101UpdateHandoff) instead of the menu fading out while the window dims the screen again from zero */
+  private void tgx101ClaimHandoff () {
+    PopupLayout from = tgx101HandoffFrom != null ? tgx101HandoffFrom.get() : null;
+    if (org.thunderdog.challegram.BuildConfig.TGX101_DIAG && (from == null || tgx101HandoffClaimed || from.isDismissed)) {
+      org.thunderdog.challegram.Tgx101Diag.mark("popup: no menu dim to take over — menu " + (from == null ? "none" : from.isDismissed ? "dismissed" : "there") + ", claimed " + tgx101HandoffClaimed);
+    }
+    if (from != null && !tgx101HandoffClaimed && !from.isDismissed) {
+      tgx101HandoffClaimed = true;
+      tgx101From = from;
+      if (backgroundView != null && from.tgx101Background instanceof org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) {
+        backgroundView.tgx101Blur = ((org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable) from.tgx101Background).copy();
+      }
+      tgx101SystemBlur = from.tgx101SystemBlur && !needRootInsets;
+      tgx101BlurFromMenu = tgx101SystemBlur;
+      org.thunderdog.challegram.Tgx101Diag.mark("popup: took the menu's dim over (" + getClass().getSimpleName() + ")");
+    }
+  }
+
+  /** The centred cards: blurred / dimmed behind as the sheets and the message menu are (MagiX «Blur») */
+  public void tgx101UseSheetBlur () {
+    boolean blurOn = org.thunderdog.challegram.unsorted.Settings.instance().tgx101MenuBlur();
+    if (!blurOn) return;
+    if (!needRootInsets && tgx101SystemBlurAvailable(getContext())) {
+      tgx101SystemBlur = true;
+    } else if (getContext() instanceof android.app.Activity && backgroundView != null) {
+      android.graphics.Bitmap blur = org.thunderdog.challegram.ui.Tgx101MessageMenu.blurredScreen((android.app.Activity) getContext(), 0x26000000);
+      backgroundView.tgx101Blur = blur != null ? new org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable(blur, org.thunderdog.challegram.ui.Tgx101MessageMenu.imeHeight((android.app.Activity) getContext()), 0x26000000) : null;
+    }
+  }
+
   public View getBoundView () {
     return boundView;
   }
@@ -638,6 +670,17 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
 
   /** After the menu action ran: no sheet took over — the menu's dim fades out and the menu goes */
   public static void tgx101ReleaseDim () {
+    // (user 2026-11-23 «экран мигает, когда переходишь дальше — закрепить сообщение», recording: the menu's dim went
+    // 42 → 36, then the pin window dimmed 36 → 25 — it opens after Telegram answers, a moment after the action ran) the
+    // menu waits a quarter of a second for a window that comes a little late before it lets its dim go
+    PopupLayout waiting = tgx101HandoffFrom != null ? tgx101HandoffFrom.get() : null;
+    if (waiting == null || tgx101HandoffClaimed) {
+      return;
+    }
+    UI.post(PopupLayout::tgx101ReleaseDimNow, 400); // 0.4 s: room for a slower phone or network; the window then still takes the dim over
+  }
+
+  private static void tgx101ReleaseDimNow () {
     PopupLayout menu = tgx101HandoffFrom != null ? tgx101HandoffFrom.get() : null;
     if (menu == null || tgx101HandoffClaimed) {
       return;
@@ -674,8 +717,12 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
       if (tgx101HandoffFrom != null && tgx101HandoffFrom.get() == from) tgx101HandoffFrom = null;
       from.hideWindow(false);
     } else if (backgroundView != null && backgroundView.tgx101Blur == null) {
-      // the menu's dim melts into the sheet's — the darkness only goes down, never through zero
-      if (from().tgx101Background != null) from().tgx101Background.setAlpha(Math.round(255 * (1f - factor)));
+      // the menu's dim melts into the sheet's — the darkness only goes down, never through zero.
+      // (recording 2026-11-23: 25 → 34 → 25 — two half-faded dims over each other darken less than one full one) the
+      // menu's share is set so that both together always make one full dim: m = (1 − f) / (1 − f·a)
+      float a = android.graphics.Color.alpha(tgx101Dim()) / 255f;
+      float m = (1f - factor) / Math.max(.001f, 1f - factor * a);
+      if (from().tgx101Background != null) from().tgx101Background.setAlpha(Math.round(255 * Math.max(0f, Math.min(1f, m))));
       if (!tgx101BlurFromMenu) from().tgx101SetBlurFactor(1f - factor);
     } // the same blurred picture: the sheet fades it in over the menu's, the menu goes once it is fully covered
   }
@@ -822,6 +869,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
   public void showAnimatedPopupView (View view, AnimatedPopupProvider provider) {
     this.animationType = ANIMATION_TYPE_CUSTOM;
     this.customAnimatorProvider = provider;
+    tgx101ClaimHandoff();
     provider.prepareShowAnimation();
     addView(boundView = view);
     ((BaseActivity) getContext()).showPopupWindow(this);
@@ -1091,6 +1139,13 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     this.tgx101StrongDim = strong;
   }
 
+  /** TGx101 (user 2026-11-23 «зачем на одинаковых окнах разное затемнение?»): one dim for every window — the message
+   *  menu, the sheets, the ⋮ menus and the cards in the middle — 55 % black on a dark theme, 35 % on a light one; going
+   *  from one to the next, the screen keeps the same darkness */
+  public static int tgx101Dim () {
+    return ColorUtils.color(Theme.isDark() ? 140 : 90, 0);
+  }
+
   private class BackgroundView extends View {
     @Nullable org.thunderdog.challegram.ui.Tgx101MessageMenu.BlurDrawable tgx101Blur;
 
@@ -1110,7 +1165,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
 
     @Override
     protected void onDraw (Canvas c) {
-      if (tgx101Blur != null && animationType == ANIMATION_TYPE_SIMPLE) {
+      if (tgx101Blur != null && (animationType == ANIMATION_TYPE_SIMPLE || tgx101StrongDim)) {
         tgx101Blur.setBounds(0, 0, getMeasuredWidth(), getMeasuredHeight());
         tgx101Blur.draw(c);
         return; // the dim is already in the picture
@@ -1118,7 +1173,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
       // TGx101: sheets dim like the official app's — 20 % black in any theme; other popups keep the theme's dim
       // (approved mockup «Окна выбора» А, user 2026-10-31 «всё сливается»): 20 % was not seen on a dark theme — 55 % there,
       // 35 % on a light one, so the sheet stands apart from the screen
-      final int color = ColorUtils.color(animationType == ANIMATION_TYPE_SIMPLE || tgx101StrongDim ? (Theme.isDark() ? 140 : 90) : (int) (255f * (Theme.getPopupOverlayAlpha())), 0);
+      final int color = animationType == ANIMATION_TYPE_SIMPLE || tgx101StrongDim ? tgx101Dim() : ColorUtils.color((int) (255f * (Theme.getPopupOverlayAlpha())), 0);
       int offset = HeaderView.getTopOffset();
       if (useStatusBar && offset != 0) {
         c.drawRect(0, offset, getMeasuredWidth(), getMeasuredHeight(), Paints.fillingPaint(color));
@@ -1145,7 +1200,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
         }
       }
       backgroundView.setAlpha(factor);
-      if (animationType == ANIMATION_TYPE_SIMPLE) {
+      if (animationType == ANIMATION_TYPE_SIMPLE || (animationType == ANIMATION_TYPE_CUSTOM && tgx101SystemBlur)) {
         tgx101SetBlurFactor(tgx101BlurFromMenu && tgx101From != null ? 1f : factor);
       }
       tgx101UpdateHandoff(factor);

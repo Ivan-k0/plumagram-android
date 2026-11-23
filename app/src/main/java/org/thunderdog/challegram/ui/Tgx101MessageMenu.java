@@ -527,7 +527,7 @@ public final class Tgx101MessageMenu {
     // Over the keyboard (a window of its own) the system blurs what's behind, the keyboard too (user 2026-10-13)
     final boolean systemBlur = tgx101OverKeyboard && Settings.instance().tgx101MenuBlur() && PopupLayout.tgx101SystemBlurAvailable(context);
     popup.tgx101SetSystemBlur(systemBlur);
-    final Drawable background = systemBlur ? new android.graphics.drawable.ColorDrawable(0x33000000) : blurredBackground(c);
+    final Drawable background = systemBlur ? new android.graphics.drawable.ColorDrawable(0x33000000) : blurredBackground(c); // (the system blur keeps its light tint over the blur)
     popup.tgx101Background = background;
     background.setAlpha(0);
     root.setBackground(background);
@@ -1673,7 +1673,7 @@ public final class Tgx101MessageMenu {
     // TGx101 (user 2026-10-12 20:56, variant 3): no blur by default — the same plain dim as the sheets that open from
     // the menu (the blur then turning into a dim was what jarred); with MagiX «Blur» on, both blur
     if (!org.thunderdog.challegram.unsorted.Settings.instance().tgx101MenuBlur()) {
-      return new android.graphics.drawable.ColorDrawable(MENU_DIM);
+      return new android.graphics.drawable.ColorDrawable(PopupLayout.tgx101Dim()); // the same dim as the windows it opens
     }
     android.graphics.Bitmap bitmap = blurredScreen(c.context(), 0x40000000);
     if (bitmap != null) {

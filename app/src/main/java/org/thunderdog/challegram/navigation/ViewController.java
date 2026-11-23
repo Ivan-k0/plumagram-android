@@ -2498,6 +2498,8 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     }
     popupLayout.addThemeListeners(this);
     if (tgx101Center && footerView != null) {
+      popupLayout.tgx101SetStrongDim(true); // the same dim as the menu and the sheets
+      popupLayout.tgx101UseSheetBlur(); // and the same blur, when it is on (a menu's own blur is taken over in place of it)
       // a long list keeps to the screen (with room above and below) and scrolls inside the card
       settingsLayout.tgx101CenterHeight = () -> Math.min(settings.adapter.measureHeight(-1) + tgx101FooterHeight(), Screen.currentHeight() - Screen.dp(140f));
       popupLayout.showAnimatedPopupView(settingsLayout, new PopupLayout.AnimatedPopupProvider() {
