@@ -101,7 +101,9 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
       @Override
       protected void setValuedSetting (ListItem item, SettingView view, boolean isUpdate) {
         int id = item.getId();
-        if (id == R.id.btn_tgx101SwipeToStorage) {
+        if (id == R.id.btn_tgx101TapSelects) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101TapSelects(), isUpdate);
+        } else if (id == R.id.btn_tgx101SwipeToStorage) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101SwipeToStorage(), isUpdate);
         } else if (id == R.id.btn_tgx101Bird) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101Bird(), isUpdate);
@@ -191,6 +193,10 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
     items.add(new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101LongPressSelect, 0, R.string.Tgx101LongPressSelect, R.id.btn_tgx101LongPressGroup, !menu));
     items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
     items.add(new ListItem(ListItem.TYPE_RADIO_OPTION, R.id.btn_tgx101LongPressMenuOpen, 0, R.string.Tgx101LongPressOpenMenu, R.id.btn_tgx101LongPressGroup, menu));
+    if (menu) {
+      items.add(new ListItem(ListItem.TYPE_SEPARATOR_FULL));
+      items.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101TapSelects, 0, R.string.Tgx101TapSelects));
+    }
     items.add(new ListItem(ListItem.TYPE_SHADOW_BOTTOM));
     items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, lines(
       R.string.Tgx101LongPressSelect, R.string.Tgx101LongPressSelectHint,
@@ -297,9 +303,13 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
       Tgx101MenuOrderController c = new Tgx101MenuOrderController(context, tdlib);
       c.setArguments(new Tgx101MenuOrderController.Args(Tgx101MenuOrderController.MODE_SWIPE));
       navigateTo(c);
+    } else if (id == R.id.btn_tgx101TapSelects) {
+      Settings.instance().setTgx101TapSelects(adapter.toggleView(v));
     } else if (id == R.id.btn_tgx101LongPressSelect || id == R.id.btn_tgx101LongPressMenuOpen) {
       adapter.processToggle(v);
+      boolean wasMenu = Settings.instance().tgx101LongPressMenu();
       Settings.instance().setTgx101LongPressMenu(id == R.id.btn_tgx101LongPressMenuOpen);
+      if (wasMenu != Settings.instance().tgx101LongPressMenu()) adapter.setItems(buildItems(), false); // the tap switch shows only with the menu
     }
   }
 }

@@ -4243,6 +4243,17 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_LONG_PRESS_MENU, v);
   }
 
+  // (user 2026-11-24 «когда удержание вызывает меню — галочка, где одиночное нажатие выбирает сообщение»): the two swap
+  private static final String KEY_TGX101_TAP_SELECTS = "tgx101_tap_selects";
+
+  public boolean tgx101TapSelects () {
+    return tgx101LongPressMenu() && pmc.getBoolean(KEY_TGX101_TAP_SELECTS, false);
+  }
+
+  public void setTgx101TapSelects (boolean v) {
+    pmc.putBoolean(KEY_TGX101_TAP_SELECTS, v);
+  }
+
   // TGx101 (user 2026-10-06): the vibrations of the mod's own features can be turned off
   private static final String KEY_TGX101_HAPTICS = "tgx101_haptics";
 

@@ -823,7 +823,7 @@ public final class Tgx101MessageMenu {
     // user 2026-10-06 19:58: in the normal mode a long press already selects — no «Select» in the menu there
     // user 2026-10-06 19:58 «должна быть только на iOS стиле», 2026-10-07: in the iOS mode «Select» is the required last row
     // (a long press opens the menu there, so it's the only way to select messages); the normal mode selects by long press
-    boolean addSelect = message.canBeSelected() && !c.inSelectMode() && Settings.instance().tgx101LongPressMenu();
+    boolean addSelect = message.canBeSelected() && !c.inSelectMode() && Settings.instance().tgx101LongPressMenu() && !Settings.instance().tgx101TapSelects(); // a tap selects: no «Select» needed
     // user 2026-10-06 18:20: in the iOS mode «Select» is not in the menu — its bottom place goes to «Delete»
     // (unless the user hid it), otherwise to «More…»
     ViewController.OptionItem bottomItem = null;

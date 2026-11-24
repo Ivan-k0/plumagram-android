@@ -1242,6 +1242,7 @@
   <item type="id" name="btn_messageUnpin" />
   <item type="id" name="btn_messageShare" />
   <item type="id" name="btn_messageSelect" />
+  <item type="id" name="btn_tgx101TapSelects" />
   <item type="id" name="btn_messageViewList" />
   <item type="id" name="btn_messageFavoriteContent" />
   <item type="id" name="btn_messageUnfavoriteContent" />

@@ -652,8 +652,8 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
         public void act () {
           pendingMenuTap = null;
           pendingMenuMessage = null;
-          if (tapMenu && msg == tappedMessage && !msg.isDestroyed()) {
-            onMessageClickImpl(x, y, null);
+          if (msg == tappedMessage && !msg.isDestroyed()) {
+            tgx101Tap(x, y, tapMenu);
           }
         }
       };
@@ -661,6 +661,16 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       // ~360 ms after the tap — the whole 300 ms system double-tap window was waited first). Real double taps on the
       // user's phone come 130–165 ms apart (diagnostics log): 200 ms is enough and the menu is ~100 ms sooner
       postDelayed(pendingMenuTap, Math.min(TGX101_DOUBLE_TAP_WINDOW, android.view.ViewConfiguration.getDoubleTapTimeout()));
+      return true;
+    }
+    return tgx101Tap(x, y, tapMenu);
+  }
+
+  /** A single tap: the menu, or — with «Tap selects the message» (the long press opens the menu) — the selection */
+  private boolean tgx101Tap (float x, float y, boolean tapMenu) {
+    MessagesController mc = msg.messagesController();
+    if (Settings.instance().tgx101TapSelects() && mc != null && !mc.inSelectMode() && !msg.isNotSent() && !msg.isEventLog() && msg.canBeSelected()) {
+      selectMessage(mc, msg, x, y);
       return true;
     }
     return tapMenu && onMessageClickImpl(x, y, null);
@@ -1029,14 +1039,8 @@ public class MessageView extends SparseDrawableView implements Destroyable, Draw
       strings.append(R.string.Tgx101QuoteShare);
       icons.append(R.drawable.baseline_format_quote_close_24);
 
-      // TGx101 (user 2026-10-06): «Select» text — the in-bubble selection from the point the finger first touched.
-      // Only with «Long press: menu» (iOS mode): otherwise a second long press selects text, the item isn't needed
-      if (Settings.instance().tgx101LongPressMenu() && !msg.isTranslated() && msg.tgx101SelectableText() != null) {
-        ids.append(R.id.btn_tgx101SelectInPlace);
-        strings.append(R.string.Tgx101SelectInPlace);
-        icons.append(R.drawable.tgx101_select_all_24);
-      }
-
+      // (user 2026-11-24 «убери вообще из кода кнопку „Выделить“ — путается и не нужна»): no «Select» text item in the menu;
+      // a long press on a selected message selects its text
       // TGx101: «Select text» left the menu: a second long press on the selected message opens it
       // TGx101: «Цитировать» on others' messages opens the quote window (select a part, copy, reply with it)
       // (user 2026-11-10 «зачем он нужен, если есть другой функционал»): with the new text selection the quote window isn't

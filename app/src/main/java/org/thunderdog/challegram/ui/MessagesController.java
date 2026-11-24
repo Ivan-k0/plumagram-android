@@ -9688,7 +9688,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     org.thunderdog.challegram.Tgx101Diag.mark("edit: start, message " + m.message.id);
     tgx101TraceMotion("edit start");
     if (TGX101_MOTION_TRACE) org.thunderdog.challegram.Tgx101FrameTrace.start(context(), "edit-start");
-    if (isEditingMessage()) {
+    if (isEditingMessage() || tgx101PendingEdit != null) {
       return;
     }
 
@@ -9704,6 +9704,33 @@ public class MessagesController extends ViewController<MessagesController.Argume
       closeSearchMode(null);
     }
 
+    // TGx101 (user 2026-11-24 «сделай плавнее, как в эталоне», recorded side by side): the field grew under the message's
+    // text at once (76 px in a frame), 50 ms without frames, then the keyboard pushed the chat again. As the reference:
+    // the keyboard first, the text and the «Editing» bar when it is up — the field then grows on its own soft glide
+    if (floatingInput && inputView != null && !context().isKeyboardVisible() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+      tgx101PendingEdit = () -> tgx101FillEdit(m);
+      Keyboard.show(inputView);
+      messagesView.postDelayed(tgx101PendingEditFallback, 450);
+      org.thunderdog.challegram.Tgx101Diag.mark("edit: keyboard first, the text after it");
+      return;
+    }
+    tgx101FillEdit(m);
+    Keyboard.show(inputView);
+  }
+
+  private @Nullable Runnable tgx101PendingEdit;
+  private final Runnable tgx101PendingEditFallback = this::tgx101RunPendingEdit;
+
+  private void tgx101RunPendingEdit () {
+    Runnable r = tgx101PendingEdit;
+    tgx101PendingEdit = null;
+    if (messagesView != null) messagesView.removeCallbacks(tgx101PendingEditFallback);
+    if (r != null && !isDestroyed() && !isEditingMessage()) r.run();
+  }
+
+  private void tgx101FillEdit (@NonNull MessageWithProperties m) {
+    TdApi.Message msg = m.message;
+    TdApi.MessageProperties properties = m.properties;
     this.editContext = new MessageInputContext(this, tdlib, msg, properties);
     tgx101UpdateAttachForEdit();
     TdApi.FormattedText text = Td.textOrCaption(msg.content);
@@ -9718,7 +9745,6 @@ public class MessagesController extends ViewController<MessagesController.Argume
       }
       inputView.setInput(Settings.instance().getNewSetting(Settings.SETTING_FLAG_EDIT_MARKDOWN) ? TD.toMarkdown(text) : TD.toCharSequence(text), true, false);
     }
-    Keyboard.show(inputView);
   }
 
   private void closeEdit (boolean isSaved) {
@@ -12282,6 +12308,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
       @Override
       public void onEnd (@NonNull android.view.WindowInsetsAnimation animation) {
+        if (animation == ime && tgx101PendingEdit != null) {
+          view.post(MessagesController.this::tgx101RunPendingEdit); // «Edit»: the text goes in once the keyboard is up
+        }
         if (animation == ime) {
           ime = null;
           tgx101ImeRiding = false;

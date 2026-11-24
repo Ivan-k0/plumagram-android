@@ -217,6 +217,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         if (sectionOf(order[i]) != section) continue;
         if ((order[i] == R.id.btn_tgx101EditorWindow || order[i] == R.id.btn_messageSelectText) && !Tgx101TextEditor.EDIT_WINDOW) continue; // the editor / quote window is off for now
         if (blocks && Tgx101MessageMenu.isBlockIcon(order[i])) continue; // it is in the row of icons
+        if (order[i] == R.id.btn_tgx101SelectInPlace) continue; // «Выделить» is gone from the menu (user 2026-11-24)
         int known = indexOf(Tgx101MessageMenu.ORDERABLE_IDS, order[i]);
         rows.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MenuAction, Tgx101MessageMenu.outlined(Tgx101MessageMenu.ORDERABLE_ICONS[known]), Tgx101MessageMenu.ORDERABLE_NAMES[known]).setLongId(i).setData(order[i]));
       }
