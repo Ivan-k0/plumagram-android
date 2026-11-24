@@ -79,10 +79,20 @@ public class TGMessageCall extends TGMessage {
       maxWidth -= Screen.dp(40f) + Screen.dp(11f);
     }
     this.needFakeTitle = Text.needFakeBold(title);
-    this.trimmedTitle = TextUtils.ellipsize(title, Paints.getMediumTextPaint(15f, needFakeTitle), maxWidth, TextUtils.TruncateAt.END).toString();
-    this.trimmedSubtitle = TextUtils.ellipsize(subtitle, Paints.getSubtitlePaint(), maxWidth - Screen.dp(20f), TextUtils.TruncateAt.END).toString();
-    this.titleWidth = U.measureText(trimmedTitle, Paints.getMediumTextPaint(13f, needFakeTitle));
-    this.subtitleWidth = U.measureText(trimmedSubtitle, Paints.getSubtitlePaint());
+    this.trimmedTitle = TextUtils.ellipsize(title, Paints.getMediumTextPaint(15f * tgx101Scale(), needFakeTitle), maxWidth, TextUtils.TruncateAt.END).toString();
+    this.trimmedSubtitle = TextUtils.ellipsize(subtitle, tgx101SubtitlePaint(0), maxWidth - Screen.dp(20f), TextUtils.TruncateAt.END).toString();
+    this.titleWidth = U.measureText(trimmedTitle, Paints.getMediumTextPaint(15f * tgx101Scale(), needFakeTitle));
+    this.subtitleWidth = U.measureText(trimmedSubtitle, tgx101SubtitlePaint(0));
+  }
+
+  // TGx101 (user 2026-11-24, screenshot at a big chat text: «Исходящий звонок» stayed small): the call grows with the
+  // chat's text size, as messages do (only up, never smaller than before)
+  private static float tgx101Scale () {
+    return Math.max(1f, Math.min(2f, org.thunderdog.challegram.unsorted.Settings.instance().getChatFontSize() / org.thunderdog.challegram.unsorted.Settings.CHAT_FONT_SIZE_DEFAULT));
+  }
+
+  private static android.text.TextPaint tgx101SubtitlePaint (int color) {
+    return Paints.getRegularTextPaint(13f * tgx101Scale(), color);
   }
 
   @Override
@@ -106,9 +116,11 @@ public class TGMessageCall extends TGMessage {
     if (useBubbles()) {
       startY -= Screen.dp(4f);
     }
-    c.drawText(trimmedTitle, startX, startY + Screen.dp(21f), Paints.getMediumTextPaint(15f, getTextColor(), needFakeTitle));
-    Drawables.draw(c, callIcon, startX, startY + Screen.dp(callIconId == R.drawable.baseline_call_missed_18 ? 27.5f : callIconId == R.drawable.baseline_call_made_18 ? 26.5f : 27f), PorterDuffPaint.get(callIconColorId));
-    c.drawText(trimmedSubtitle, startX + Screen.dp(20f), startY + Screen.dp(41f), Paints.getRegularTextPaint(13f, getDecentColor()));
+    final float k = tgx101Scale();
+    c.drawText(trimmedTitle, startX, startY + Screen.dp(21f * k), Paints.getMediumTextPaint(15f * k, getTextColor(), needFakeTitle));
+    float iconY = startY + Screen.dp((callIconId == R.drawable.baseline_call_missed_18 ? 27.5f : callIconId == R.drawable.baseline_call_made_18 ? 26.5f : 27f) + 14f * (k - 1f));
+    Drawables.draw(c, callIcon, startX, iconY, PorterDuffPaint.get(callIconColorId));
+    c.drawText(trimmedSubtitle, startX + Screen.dp(20f), startY + Screen.dp(41f * k), tgx101SubtitlePaint(getDecentColor()));
   }
 
   private boolean caught;
@@ -178,6 +190,6 @@ public class TGMessageCall extends TGMessage {
 
   @Override
   protected int getContentHeight () {
-    return useBubbles() ? Screen.dp(46f) : Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) * 2;
+    return useBubbles() ? Math.round(Screen.dp(46f) * tgx101Scale()) : Math.max(Screen.dp(FileProgressComponent.DEFAULT_FILE_RADIUS) * 2, Math.round(Screen.dp(46f) * tgx101Scale()) - Screen.dp(4f));
   }
 }

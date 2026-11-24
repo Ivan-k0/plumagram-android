@@ -446,6 +446,7 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
   }
 
   public void draw (Canvas c, int startX, int startY, int endX, int width, Receiver receiver, ComplexReceiver textMediaReceiver, boolean rtl) {
+    if (isMessageComponent()) tgx101Refresh();
     boolean isWhite = parent != null && parent.separateReplyFromContent();
 
     lastX = startX;
@@ -553,7 +554,8 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
 
       if (trimmedContent != null) {
         // (user 2026-11-24, the reference's quote): the second line a little closer to the name
-        int contentY = startY + Screen.dp(20f);
+        tgx101Refresh();
+        int contentY = startY + tgx101ContentY;
         int contentX = startX + textLeft;
         int icon = tgx101ContentIcon();
         if (icon != 0) {
@@ -1261,7 +1263,22 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
   private static int mHeight;
 
   public static int height () {
+    tgx101Refresh();
     return mHeight + Screen.dp(10f);
+  }
+
+  // TGx101 (user 2026-11-24, screenshot at a big chat text: the quote's text ran past its wash): in a message the quote
+  // is as tall as its two lines at the chosen size — 41 dp at the default, more with a bigger text
+  private static int tgx101ContentY = -1;
+  private static float tgx101SizesFor = -1;
+
+  private static void tgx101Refresh () {
+    float title = getTitleStyleProvider(true).getTextSizeInPixels(), quote = getQuoteTextStyleProvider().getTextSizeInPixels();
+    float key = title * 1000f + quote;
+    if (key == tgx101SizesFor && tgx101ContentY > 0) return;
+    tgx101SizesFor = key;
+    tgx101ContentY = Math.max(Screen.dp(20f), Math.round(Screen.dp(1f) + title * 1.36f));
+    mHeight = Math.max(Screen.dp(41f), Math.round(tgx101ContentY + quote * 1.3f + Screen.dp(4f)));
   }
 
   public static void reset () {
@@ -1274,6 +1291,7 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
 
     height = Screen.dp(34f);
     mHeight = Screen.dp(41f);
+    tgx101SizesFor = -1; // worked out again at the next use
   }
 
   private volatile boolean isDestroyed;

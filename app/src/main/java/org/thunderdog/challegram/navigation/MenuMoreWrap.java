@@ -469,7 +469,18 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
         maxWidth = Math.max(maxWidth, (Integer) v.getTag());
       }
     }
-    return Math.max(getMinimumWidth(), maxWidth + padding + padding);
+    // TGx101 (user 2026-11-24, screenshot at the largest text: the words ran off the left edge, their start and icons
+    // gone): never wider than the screen with a margin — a row that doesn't fit runs (tgx101StyleRow's marquee)
+    int screenCap = org.thunderdog.challegram.tool.Screen.currentWidth() - org.thunderdog.challegram.tool.Screen.dp(16f);
+    int width = Math.max(getMinimumWidth(), maxWidth + padding + padding);
+    if (width > screenCap) {
+      width = screenCap;
+      for (int i = 0; i < childCount; i++) {
+        View v = getChildAt(i);
+        if (v instanceof TextView) ((TextView) v).setMaxWidth(screenCap - padding - padding);
+      }
+    }
+    return width;
   }
 
   private boolean shouldPivotBottom;
