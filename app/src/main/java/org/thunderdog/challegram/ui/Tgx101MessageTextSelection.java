@@ -260,9 +260,9 @@ public final class Tgx101MessageTextSelection {
         int accent = Theme.getColor(ColorId.textLink);
         return me.vkryl.core.ColorUtils.alphaColor(.5f, me.vkryl.core.ColorUtils.fromToArgb(accent, 0xffffffff, .33f));
       }
-      int themed = Theme.getColor(ColorId.textSelectionHighlight);
-      int alpha = Math.min(255, Math.round(android.graphics.Color.alpha(themed) * 1.5f));
-      return (themed & 0x00ffffff) | (alpha << 24);
+      // (user 2026-11-24 «сделать контрастнее фон выделения», mockup «Выделение текста»): the theme's colour at 28 % —
+      // the light theme's own highlight lay almost in the bubble's tone (#c9d9ea on #d7e5f5)
+      return me.vkryl.core.ColorUtils.alphaColor(.28f, Theme.getColor(ColorId.textLink));
     }
 
     void close (String reason) {

@@ -306,8 +306,27 @@ public final class Tgx101SelectionBar {
 
   // Colours: the editor window's panel and its white buttons
 
+  // (user 2026-11-24, mockup «Выделение текста», variant В): a white card as the message menu's, the words in the theme's
+  // colour, thin lines between them, a thin line of the theme's colour round it instead of a shadow (the shadow of a
+  // square window came out as a grey box past the rounded corners)
   private static int panelColor () {
-    return ColorUtils.compositeColor(Theme.fillingColor(), ColorUtils.alphaColor(.07f, Theme.textAccentColor()));
+    return Theme.fillingColor();
+  }
+
+  private static int wordColor () {
+    return Theme.getColor(org.thunderdog.challegram.theme.ColorId.textLink);
+  }
+
+  private static Drawable card (int color) {
+    GradientDrawable drawable = rounded(color, 16f);
+    drawable.setStroke(Math.max(1, Screen.dp(1f)), ColorUtils.alphaColor(.18f, wordColor()));
+    return drawable;
+  }
+
+  private static View wordDivider (Context context) {
+    View divider = new View(context);
+    divider.setBackgroundColor(Theme.separatorColor());
+    return divider;
   }
 
   private void build (List<MenuItem> systemItems) {
@@ -317,8 +336,7 @@ public final class Tgx101SelectionBar {
     card.setOrientation(LinearLayout.VERTICAL);
     int pad = Screen.dp(5f);
     card.setPadding(pad, pad, pad, pad);
-    card.setBackground(rounded(panel, 14f));
-    androidx.core.view.ViewCompat.setElevation(card, Screen.dp(6f));
+    card.setBackground(card(panel));
 
     HorizontalScrollView scroll = new HorizontalScrollView(context);
     scroll.setHorizontalScrollBarEnabled(false);
@@ -331,10 +349,12 @@ public final class Tgx101SelectionBar {
     List<Action> actions = view instanceof InputView ? leadingActions :
       org.thunderdog.challegram.ui.Tgx101BarOrder.apply(org.thunderdog.challegram.ui.Tgx101BarOrder.BAR_MESSAGE, leadingActions, a -> a.key);
     for (Action action : actions) {
+      if (row.getChildCount() > 0) row.addView(wordDivider(context), dividerParams());
       row.addView(chip(context, action.title, v -> action.onClick.run()), chipParams());
     }
     for (MenuItem item : systemItems) {
       CharSequence title = item.getItemId() == android.R.id.selectAll ? Lang.getString(R.string.Tgx101SelectAllFull) : item.getTitle();
+      if (row.getChildCount() > 0) row.addView(wordDivider(context), dividerParams());
       row.addView(chip(context, title != null ? title.toString() : "", v -> invoke(item)), chipParams());
     }
     scroll.addView(row);
@@ -349,7 +369,7 @@ public final class Tgx101SelectionBar {
         final int id = entry;
         ImageView icon = new ImageView(context);
         icon.setImageResource(Tgx101FormatMenuController.iconOf(id));
-        icon.setColorFilter(Theme.textAccentColor());
+        icon.setColorFilter(wordColor());
         icon.setScaleType(ImageView.ScaleType.CENTER);
         icon.setBackground(pressable(0, 9f));
         icon.setContentDescription(Lang.getString(Tgx101FormatMenuController.nameOf(id)));
@@ -377,7 +397,7 @@ public final class Tgx101SelectionBar {
       icons.addView(divider, dividerParams);
       ImageView undo = new ImageView(context);
       undo.setImageResource(R.drawable.baseline_undo_24);
-      undo.setColorFilter(Theme.textAccentColor());
+      undo.setColorFilter(wordColor());
       undo.setScaleType(ImageView.ScaleType.CENTER);
       undo.setBackground(pressable(0, 9f));
       undo.setContentDescription(Lang.getString(R.string.Tgx101Undo));
@@ -414,16 +434,20 @@ public final class Tgx101SelectionBar {
     button.setGravity(Gravity.CENTER);
     button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
     button.setTypeface(Fonts.getRobotoRegular());
-    button.setTextColor(Theme.textAccentColor());
+    button.setTextColor(wordColor());
     button.setPadding(Screen.dp(11f), 0, Screen.dp(11f), 0);
-    button.setBackground(pressable(Theme.fillingColor(), 9f));
+    button.setBackground(pressable(0, 9f));
     button.setOnClickListener(onClick);
     return button;
   }
 
   private static LinearLayout.LayoutParams chipParams () {
-    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(30f));
-    params.rightMargin = Screen.dp(4f);
+    return new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(30f));
+  }
+
+  private static LinearLayout.LayoutParams dividerParams () {
+    LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(Math.max(1, Screen.dp(1f) / 2), Screen.dp(16f));
+    params.gravity = Gravity.CENTER_VERTICAL;
     return params;
   }
 
@@ -560,8 +584,7 @@ public final class Tgx101SelectionBar {
     field.setGravity(Gravity.CENTER_VERTICAL);
     int pad = Screen.dp(5f);
     field.setPadding(pad, pad, pad, pad);
-    field.setBackground(rounded(panelColor(), 14f));
-    androidx.core.view.ViewCompat.setElevation(field, Screen.dp(6f));
+    field.setBackground(card(panelColor()));
     field.setClickable(true);
     android.widget.EditText url = new android.widget.EditText(activity);
     url.setSingleLine(true);
@@ -658,6 +681,9 @@ public final class Tgx101SelectionBar {
     window.setOutsideTouchable(false);
     window.setInputMethodMode(PopupWindow.INPUT_METHOD_NOT_NEEDED);
     window.setClippingEnabled(false);
+    // no window of the system's own under the card: its square shadow showed past the rounded corners
+    window.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+    if (android.os.Build.VERSION.SDK_INT >= 21) window.setElevation(0f);
     try {
       window.showAtLocation(view, Gravity.TOP | Gravity.LEFT, x, y);
     } catch (Throwable t) {
