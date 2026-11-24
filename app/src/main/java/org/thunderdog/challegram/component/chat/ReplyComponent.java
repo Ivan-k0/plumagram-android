@@ -182,7 +182,7 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
   }
 
   public int width (boolean isWhite) {
-    int contentWidth = Math.max(getTextWidth(), getTitleWidth() + (cornerDrawable != null ? cornerDrawable.getMinimumWidth() + Screen.dp(CORNER_PADDING) : 0)) + paddingLeft + paddingLeft + lineWidth;
+    int contentWidth = Math.max(getTextWidth() + (tgx101ContentIcon() != 0 ? Screen.dp(TGX101_ICON_SPACE) : 0), getTitleWidth() + (cornerDrawable != null ? cornerDrawable.getMinimumWidth() + Screen.dp(CORNER_PADDING) : 0)) + paddingLeft + paddingLeft + lineWidth;
     if (hasPreview()) {
       contentWidth += lineWidth + (isMessageComponent() ? mHeight : height);
     }
@@ -241,6 +241,7 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
 
   private Text buildTitleText (String titleText, int width) {
     return new Text.Builder(titleText, width, getTitleStyleProvider(isMessageComponent()), getTitleColorSet())
+      .tgx101SmallEmoji()
       .singleLine()
       .clipTextArea()
       .allBold(sender != null || StringUtils.isEmpty(senderName))
@@ -249,11 +250,25 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
       .build();
   }
 
+  // TGx101 (user 2026-11-24, the reference's quote): a media message is named with its small icon before it — a mic, a
+  // picture… — and in the quote's own tone, not as message text
+  private int tgx101ContentIcon () {
+    if (!isMessageComponent() || content == null || content.emoji == null || content.emoji.iconRepresentation == 0) return 0;
+    return content.emoji.iconRepresentation;
+  }
+
+  private boolean tgx101MediaLine () {
+    return tgx101ContentIcon() != 0 && content != null && Td.isEmpty(content.formattedText);
+  }
+
+  private static final float TGX101_ICON_SPACE = 20f;
+
   private void buildContent () {
     int width = getContentWidth(false);
+    if (tgx101ContentIcon() != 0) width -= Screen.dp(TGX101_ICON_SPACE);
 
     //noinspection UnsafeOptInUsageError
-    Text trimmedContent = new Text.Builder(content != null ? content.buildText(true) : Lang.getString(R.string.LoadingMessage), width, isMessageComponent() ? getQuoteTextStyleProvider() : getTextStyleProvider(), getContentColorSet())
+    Text trimmedContent = new Text.Builder(content != null ? content.buildText(true) : Lang.getString(R.string.LoadingMessage), width, isMessageComponent() ? getQuoteTextStyleProvider() : getTextStyleProvider(), tgx101MediaLine() ? getTitleColorSet() : getContentColorSet())
       .singleLine()
       .textFlags(Text.FLAG_CUSTOM_LONG_PRESS)
       .ignoreNewLines().ignoreContinuousNewLines()
@@ -537,7 +552,20 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
       }
 
       if (trimmedContent != null) {
-        trimmedContent.draw(c, startX + textLeft, startX + textLeft + trimmedContent.getWidth(), 0, startY + Screen.dp(22f), null, 1f, textMediaReceiver);
+        // (user 2026-11-24, the reference's quote): the second line a little closer to the name
+        int contentY = startY + Screen.dp(20f);
+        int contentX = startX + textLeft;
+        int icon = tgx101ContentIcon();
+        if (icon != 0) {
+          android.graphics.drawable.Drawable d = Drawables.get(icon);
+          if (d != null) {
+            int color = tgx101MediaLine() ? getTitleColorSet().defaultTextColor() : me.vkryl.core.ColorUtils.alphaColor(.7f, getTitleColorSet().defaultTextColor());
+            float cy = contentY + trimmedContent.getHeight() / 2f;
+            Drawables.draw(c, d, contentX - Screen.dp(1f), cy - d.getMinimumHeight() / 2f, Paints.getPorterDuffPaint(color));
+          }
+          contentX += Screen.dp(TGX101_ICON_SPACE);
+        }
+        trimmedContent.draw(c, contentX, contentX + trimmedContent.getWidth(), 0, contentY, null, 1f, textMediaReceiver);
       }
 
       // (user 2026-10-25, mockup «Ц»): a 1.5 dp line on the wash's edge, running 3 dp past its top and bottom
@@ -1090,7 +1118,9 @@ public class ReplyComponent implements Client.ResultHandler, Destroyable {
     MediaPreview mediaPreview = tgx101PlainName ? null : newMediaPreview(msg.chatId, msg.content);
     ContentPreview contentPreview = ContentPreview.getChatListPreview(tdlib, msg.chatId, msg, true);
     if (tgx101PlainName) {
-      contentPreview = new ContentPreview(null, msg.content.getConstructor() == TdApi.MessageVoiceNote.CONSTRUCTOR ? R.string.ChatContentVoice : R.string.ChatContentRoundVideo);
+      boolean voice = msg.content.getConstructor() == TdApi.MessageVoiceNote.CONSTRUCTOR;
+      // (user 2026-11-24, the reference's quote): the name with its small icon — a mic, a round camera
+      contentPreview = new ContentPreview(voice ? ContentPreview.EMOJI_VOICE : ContentPreview.EMOJI_ROUND_VIDEO, voice ? R.string.ChatContentVoice : R.string.ChatContentRoundVideo);
     } else if (!Td.isEmpty(quote)) {
       contentPreview = new ContentPreview(contentPreview, quote.text);
     } else if (!StringUtils.isEmpty(pollOptionId) && msg.content.getConstructor() == TdApi.MessagePoll.CONSTRUCTOR) {

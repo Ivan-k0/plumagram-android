@@ -548,12 +548,26 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
       return this;
     }
 
+    private float tgx101EmojiScale = 1f;
+
+    /** TGx101 (user 2026-11-24, the quote's name as the reference's): emoji the letters' height, a little apart from the word */
+    public Builder tgx101SmallEmoji () {
+      this.tgx101EmojiScale = .82f;
+      return this;
+    }
+
     public Text build () {
       TextEntity[] entities = this.entities;
       if (this.highlight != null) {
         entities = new FormattedText(in, entities).highlight(this.highlight).entities;
       }
-      Text text = new Text(in, maxWidth, provider, theme, maxLineCount, lineWidthProvider, lineMarginProvider, textFlags, entities, suffix, clickListener, textMediaListener);
+      Text text;
+      TGX101_PENDING_EMOJI_SCALE.set(tgx101EmojiScale);
+      try {
+        text = new Text(in, maxWidth, provider, theme, maxLineCount, lineWidthProvider, lineMarginProvider, textFlags, entities, suffix, clickListener, textMediaListener);
+      } finally {
+        TGX101_PENDING_EMOJI_SCALE.set(1f);
+      }
       if (viewProvider != null)
         text.setViewProvider(viewProvider);
       return text;
@@ -1242,6 +1256,15 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
 
   private int emojiStart;
   private int emojiSize;
+  private static final ThreadLocal<Float> TGX101_PENDING_EMOJI_SCALE = new ThreadLocal<Float>() { // (withInitial is Android 8+)
+    @Override
+    protected Float initialValue () {
+      return 1f;
+    }
+  };
+  /** below 1: emoji drawn smaller than the line, centred on it, with a small gap before them (Builder.tgx101SmallEmoji) */
+  final float tgx101EmojiScale = TGX101_PENDING_EMOJI_SCALE.get();
+  int tgx101EmojiGap, tgx101EmojiShift;
   private TextEntity emojiEntity;
 
   private TextPaint layoutPaint;
@@ -1265,6 +1288,12 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
       layoutPaintEntity = entity;
       Paint.FontMetricsInt fontMetricsInt = Paints.getFontMetricsInt(layoutPaint);
       emojiSize = Math.abs(tgx101LineHeight(fontMetricsInt, layoutPaint.getTextSize())) + Screen.dp(2f); // TGx101: as the line, brought to Roboto's
+      if (tgx101EmojiScale < 1f) {
+        int full = emojiSize;
+        emojiSize = Math.round(full * tgx101EmojiScale);
+        tgx101EmojiGap = Screen.dp(3f);
+        tgx101EmojiShift = (full - emojiSize) / 2;
+      }
     }
     return layoutPaint;
   }
@@ -1360,6 +1389,8 @@ public class Text implements Runnable, Emoji.CountLimiter, CounterTextPart, List
     TextPart part;
 
     part = new TextPart(this, in, start, end, getLineCount(), paragraphCount);
+    int gap = tgx101EmojiGap > 0 && start > 0 && in.charAt(start - 1) != ' ' ? tgx101EmojiGap : 0; // apart from a word it follows
+    currentX += gap;
     part.setXY(currentX, currentY);
     part.setWidth(emojiSize);
     part.setEntity(entity);

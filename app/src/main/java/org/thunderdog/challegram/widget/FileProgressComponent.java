@@ -1355,6 +1355,12 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
     if (hideFactor == 1f) {
       return;
     }
+    // (user 2026-11-24 «зачем облако, если в кнопке и так бежит бегунок с крестиком»): a voice note or track being sent
+    // shows its progress in the button itself — the cloud only for a file coming down (a sent one whose copy is gone
+    // is downloaded again: there the cloud alone says so, it stays)
+    if (isSendingMessage || isUploading() || (tgx101Uploaded && currentState != TdlibFilesManager.STATE_PAUSED)) {
+      return;
+    }
 
     // alpha *= (1f - hideFactor);
 

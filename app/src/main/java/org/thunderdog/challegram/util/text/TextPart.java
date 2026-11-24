@@ -302,7 +302,7 @@ public class TextPart {
   private void drawEmoji (Canvas c, final int x, final int y, TextPaint textPaint, float alpha) {
     Rect rect = Paints.getRect();
     int reduce = Emoji.instance().getReduceSize();
-    final int emojiY = y + textPaint.baselineShift - Screen.dp(1.5f);
+    final int emojiY = y + textPaint.baselineShift - Screen.dp(1.5f) + source.tgx101EmojiShift; // centred when drawn smaller
     rect.set(x + reduce / 2, emojiY + reduce / 2, x + (int) width - reduce / 2 - reduce % 2, emojiY + (int) width - reduce / 2 - reduce % 2);
     Emoji.instance().draw(c, emojiInfo, rect, (int) (alpha * textPaint.getAlpha()));
   }
