@@ -310,7 +310,8 @@ public class FileProgressComponent implements TdlibFilesManager.FileListener, Fa
   }
 
   public boolean isUploading () {
-    return file != null && !file.remote.isUploadingCompleted;
+    // TGx101 (crash 2026-11-24 17:35, «remote» null while drawing the voice note's cloud): a file without its remote part
+    return file != null && file.remote != null && !file.remote.isUploadingCompleted;
   }
 
   public void setIsLocal () {
