@@ -1,5 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- TGx101 (user 2026-11-23, mockup «Значки меню», style Б): thin outline, 1.5 dp, round ends and joins -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-  <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M3.5,5.5 H12.5 M8,3.5 V5.5 M10.5,5.5 C9.5,9.5 7,12.5 4,14 M6,9 C7,11 8.8,12.6 10.5,13.5 M13,20.5 L16.5,11.5 L20,20.5 M14.3,17.5 H18.7"/>
+  <!-- (user 2026-11-24 «всё подгонять под размер корзины»): drawn at 90 % so it looks as big as the trash can -->
+  <group android:pivotX="12" android:pivotY="12" android:scaleX="0.9" android:scaleY="0.9">
+  <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.67" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M3.5,5.5 H12.5 M8,3.5 V5.5 M10.5,5.5 C9.5,9.5 7,12.5 4,14 M6,9 C7,11 8.8,12.6 10.5,13.5 M13,20.5 L16.5,11.5 L20,20.5 M14.3,17.5 H18.7"/>
+  </group>
 </vector>
