@@ -3385,6 +3385,17 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_MESSAGE_MENU_BLOCKS, blocks);
   }
 
+  // TGx101 (user 2026-11-24): a tap on a big animated emoji plays its effect around it, the other side sees it too
+  private static final String KEY_TGX101_EMOJI_EFFECTS = "tgx101_emoji_effects";
+
+  public boolean tgx101EmojiEffects () {
+    return pmc.getBoolean(KEY_TGX101_EMOJI_EFFECTS, true);
+  }
+
+  public void setTgx101EmojiEffects (boolean on) {
+    pmc.putBoolean(KEY_TGX101_EMOJI_EFFECTS, on);
+  }
+
   private static final String KEY_TGX101_MENU_OUTLINED = "tgx101_menu_outlined_icons";
 
   /** The message menu's icons: outlined (default) or the filled ones as before */

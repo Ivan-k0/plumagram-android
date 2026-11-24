@@ -374,6 +374,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MessageMenuHandRight, "Правую");
     RU.put(R.string.Tgx101MessageMenuHandLeft, "Левую");
     RU.put(R.string.Tgx101MessageMenuOrder, "Пункты меню сообщения");
+    RU.put(R.string.Tgx101EmojiEffects, "Эффекты больших смайлов");
     RU.put(R.string.Tgx101TapSelects, "Нажатие выбирает сообщение");
     RU.put(R.string.Tgx101MenuLockedHint, "«Ответить», «Копировать», «Сохранить» и «Удалить» всегда в меню — их можно только переставить");
     RU.put(R.string.Tgx101MessageMenuOrderHint, "Нажмите на пункт, чтобы передвинуть его внутри раздела, перенести в меню, в «Ещё» или скрыть. Пункты, которых нет у сообщения, пропускаются. «Ещё» тоже можно передвинуть, «Выбрать» всегда в самом низу.");

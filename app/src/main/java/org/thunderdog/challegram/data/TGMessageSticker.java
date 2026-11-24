@@ -851,6 +851,7 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
             case SPECIAL_TYPE_ANIMATED_EMOJI:
             default: {
               tapProcessed = openOrLoopSticker(view, sticker, Settings.instance().getNewSetting(Settings.SETTING_FLAG_NO_ANIMATED_STICKERS_LOOP));
+              if (specialType == SPECIAL_TYPE_ANIMATED_EMOJI && tgx101RequestEffect()) tapProcessed = true;
               break;
             }
           }
@@ -864,6 +865,53 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
     }
 
     return isCaught;
+  }
+
+  // TGx101 (user 2026-11-24, the reference recorded): a tap on a big animated emoji asks Telegram for its effect and
+  // plays it around the emoji; Telegram tells the other side, who sees it too (UpdateAnimatedEmojiMessageClicked)
+  private boolean tgx101RequestEffect () {
+    if (!Settings.instance().tgx101EmojiEffects() || msg.content.getConstructor() != TdApi.MessageAnimatedEmoji.CONSTRUCTOR || isSending()) {
+      return false;
+    }
+    final long chatId = msg.chatId, messageId = msg.id;
+    tdlib.client().send(new TdApi.ClickAnimatedEmojiMessage(chatId, messageId), result -> {
+      if (result.getConstructor() == TdApi.Sticker.CONSTRUCTOR) {
+        executeOnUiThreadOptional(() -> tgx101PlayEffect((TdApi.Sticker) result, false));
+      } else {
+        org.thunderdog.challegram.Tgx101Diag.mark("emoji effect: none for this emoji (" + result.getClass().getSimpleName() + ")");
+      }
+    });
+    return true;
+  }
+
+  private long tgx101LastEffectAt;
+
+  /** The effect around this emoji; {@code byOther} — the other side tapped it, the emoji plays again too */
+  public void tgx101PlayEffect (TdApi.Sticker effect, boolean byOther) {
+    if (!Settings.instance().tgx101EmojiEffects() || effect == null) return;
+    long now = android.os.SystemClock.uptimeMillis();
+    if (now - tgx101LastEffectAt < 300) return; // a burst of taps: one effect at a time starts
+    tgx101LastEffectAt = now;
+    View view = findCurrentView();
+    if (!(view instanceof MessageView) || stickerWidth == 0) return;
+    if (byOther) {
+      GifFile file = ((MessageView) view).getComplexReceiver().getGifReceiver(0).getCurrentFile();
+      if (file != null && file.setLooped(false)) invalidate();
+    }
+    int[] loc = new int[2];
+    view.getLocationOnScreen(loc);
+    int size = Math.max(stickerWidth, stickerHeight);
+    int cx = loc[0] + findStickerLeft() + stickerWidth / 2, cy = loc[1] + getContentY() + stickerHeight / 2;
+    // the effect is drawn wider than the emoji and leans away from the bubble's edge, into the chat
+    int effectSize = Math.round(size * 2.6f);
+    cx += (isOutgoing() ? -1 : 1) * Math.round(size * .6f);
+    org.thunderdog.challegram.component.sticker.TGStickerObj effectSticker = new org.thunderdog.challegram.component.sticker.TGStickerObj(tdlib, effect, null, effect.fullType);
+    context().reactionsOverlayManager().addOverlay(
+      new org.thunderdog.challegram.navigation.ReactionsOverlayView.ReactionInfo(context().reactionsOverlayManager())
+        .setSticker(effectSticker, true)
+        .setPosition(new android.graphics.Point(cx, cy), effectSize)
+    );
+    org.thunderdog.challegram.Tgx101Diag.mark("emoji effect: played" + (byOther ? " (the other side tapped)" : ""));
   }
 
   private boolean openOrLoopSticker (MessageView view, TdApi.Sticker sticker, boolean noLoopSettingEnabled) {

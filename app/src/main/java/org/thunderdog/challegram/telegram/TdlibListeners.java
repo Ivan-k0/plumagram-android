@@ -745,7 +745,7 @@ public class TdlibListeners {
   // updateAnimatedEmojiMessageClicked
 
   void updateAnimatedEmojiMessageClicked (TdApi.UpdateAnimatedEmojiMessageClicked update) {
-    runMessageUpdate(update.messageId, listener ->
+    runMessageUpdate(update.chatId, listener -> // TGx101: the chat's listeners (the message id was passed for the chat's — they never came)
       listener.onAnimatedEmojiMessageClicked(update.chatId, update.messageId, update.sticker)
     );
   }

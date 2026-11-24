@@ -4652,6 +4652,20 @@ public class MessagesManager implements Client.ResultHandler, MessagesSearchMana
     });
   }
 
+  // TGx101 (user 2026-11-24): the other side tapped a big animated emoji — its effect plays here too
+  @Override
+  public void onAnimatedEmojiMessageClicked (long chatId, long messageId, TdApi.Sticker sticker) {
+    tdlib.ui().post(() -> {
+      if (loader.getChatId() != chatId) return;
+      int index = adapter.indexOfMessageContainer(messageId);
+      if (index == -1) return;
+      TGMessage item = adapter.getItem(index);
+      if (item instanceof org.thunderdog.challegram.data.TGMessageSticker) {
+        ((org.thunderdog.challegram.data.TGMessageSticker) item).tgx101PlayEffect(sticker, true);
+      }
+    });
+  }
+
   @Override
   public void onMessageUnreadReactionsChanged (long chatId, long messageId, @Nullable TdApi.UnreadReaction[] unreadReactions, int unreadReactionCount) {
     int sentMessageIndex = indexOfSentMessage(chatId, messageId);
