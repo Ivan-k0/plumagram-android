@@ -10646,6 +10646,34 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     scheduleSetReactionAnimation(new NextReactionAnimation(reaction, NextReactionAnimation.TYPE_CLICK));
   }
 
+  /** TGx101 (user 2026-11-24, the reference recorded: a reaction held in the menu) a big reaction: the emoji plays large
+   *  over the message with its effect around it, then stays on the message as the reaction (switch «Эффекты больших смайлов») */
+  public void tgx101PlayBigReaction (TGReaction reaction) {
+    if (!Settings.instance().tgx101EmojiEffects() || reaction == null) return;
+    View view = findCurrentView();
+    if (view == null) return;
+    int[] loc = new int[2];
+    view.getLocationOnScreen(loc);
+    final Point center = new Point(Math.round(Screen.currentWidth() * .42f), loc[1] + Math.min(view.getHeight(), Screen.dp(180f)) / 2);
+    TGStickerObj big = reaction.newCenterAnimationSicker();
+    if (big != null) {
+      context().reactionsOverlayManager().addOverlay(
+        new ReactionsOverlayView.ReactionInfo(context().reactionsOverlayManager())
+          .setSticker(big, true)
+          .setPosition(center, Screen.dp(150f))
+      );
+    }
+    reaction.withEffectAnimation(effect -> {
+      if (effect == null || isDestroyed()) return;
+      context().reactionsOverlayManager().addOverlay(
+        new ReactionsOverlayView.ReactionInfo(context().reactionsOverlayManager())
+          .setSticker(effect, true)
+          .setPosition(center, Screen.dp(330f))
+      );
+    });
+    org.thunderdog.challegram.Tgx101Diag.mark("reaction: big, played over the message");
+  }
+
   public void scheduleSetReactionAnimationFromBottomSheet (TGReaction reaction, Point startPos) {
     NextReactionAnimation animation = new NextReactionAnimation(reaction, NextReactionAnimation.TYPE_BOTTOM_SHEET);
     animation.setStartPosition(startPos);

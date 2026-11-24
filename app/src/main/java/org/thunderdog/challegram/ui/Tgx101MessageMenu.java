@@ -2444,15 +2444,15 @@ public final class Tgx101MessageMenu {
     int[] position = new int[2];
     v.getLocationOnScreen(position);
     Point start = new Point(position[0] + v.getMeasuredWidth() / 2, position[1] + v.getMeasuredHeight() / 2);
+    // (user 2026-11-24 «уберём пока долгое удержание — ненужная функция»): a held reaction is set as a tapped one
+    isLongClick = false;
     boolean hasReaction = message.getMessageReactions().hasReaction(reaction.type);
     if (message.getMessageReactions().toggleReaction(reaction.type, isLongClick, true, result -> {
       if (result.getConstructor() == TdApi.Error.CONSTRUCTOR) {
         UI.showError(result);
       }
     })) {
-      if (isLongClick) {
-        message.scheduleSetReactionAnimationFullscreenFromBottomSheet(reaction, start);
-      } else if (!hasReaction) {
+      if (!hasReaction) {
         message.tgx101ScheduleReactionInPlace(reaction); // no flight from the finger (user 2026-11-24)
       }
     }

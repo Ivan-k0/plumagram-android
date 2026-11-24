@@ -523,7 +523,9 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
       max *= tdlib.emojiesAnimatedZoom();
     }
     // TGx101: the big emoji size setting applies to stickers too (dice keep their size)
-    if (specialType == SPECIAL_TYPE_NONE || specialType == SPECIAL_TYPE_ANIMATED_EMOJI) {
+    if (specialType == SPECIAL_TYPE_ANIMATED_EMOJI) {
+      max = Math.min(max * tgx101EmojiScale(), origMaxWidth);
+    } else if (specialType == SPECIAL_TYPE_NONE) {
       max = Math.min(max * Settings.instance().getBigEmojiScale(), origMaxWidth);
     }
     if (sticker != null) {
@@ -543,7 +545,7 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
         throw new IllegalArgumentException();
       }
 
-      final int minEmojiSize = (int) (Screen.dp(30) * Math.min(1f, Settings.instance().getBigEmojiScale()));
+      final int minEmojiSize = (int) (Screen.dp(30) * Math.min(1f, tgx101EmojiScale() / .68f));
       final int maxRowSize = origMaxWidth / minEmojiSize;
       NonBubbleEmojiLayout.LayoutBuildResult layout = multiEmojiLayout.layout(maxRowSize, 0.2f);
 
@@ -563,7 +565,7 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
       stickerWidth = stickerHeight = (int) Math.min(realMaxWidth / stickersMaxRowSize, Math.max(max / stickerRowsCount, minEmojiSize));
       if (layout.hasClassicEmoji) {
         // TGx101: non-animated emoji — about half the size of animated ones, as in the official app (was 40 dp, a third)
-        stickerWidth = stickerHeight = Math.min(stickerWidth, (int) (Screen.dp(60) * Settings.instance().getBigEmojiScale()));
+        stickerWidth = stickerHeight = Math.min(stickerWidth, (int) (Screen.dp(60) * tgx101EmojiScale() / .68f));
       }
     } else {
       stickersMaxRowSize = stickerRowsCount = 1;
@@ -585,11 +587,23 @@ public class TGMessageSticker extends TGMessage implements AnimatedEmojiListener
     return Screen.dp(4f);
   }
 
+  /** TGx101 (user 2026-11-24, measured next to the reference: our «Standard» 😁 was 443 px, the reference's 302): a big
+   *  animated emoji's size by the setting — «Standard» the reference's, «Large» what «Standard» was, the rest smaller */
+  private static float tgx101EmojiScale () {
+    switch (Settings.instance().getBigEmojiSize()) {
+      case 60: return .5f;
+      case 80: return .58f;
+      case 125: return 1f;
+      default: return .68f;
+    }
+  }
+
   @Override
   protected int getContentHeight () {
     final boolean isInMultiEmojiMode = stickersMaxRowSize > 1 || stickerRowsCount > 1;
+    // (user 2026-11-24 «время наезжает на смайл — как в эталоне лучше»): a big emoji keeps its time under it, as dice do
     return Math.max(isInMultiEmojiMode ? 0 : Screen.dp(56f), stickerHeight * stickerRowsCount)
-      + ((specialType == SPECIAL_TYPE_DICE || isInMultiEmojiMode) && useBubbles() && !useForward() ?
+      + ((specialType == SPECIAL_TYPE_DICE || specialType == SPECIAL_TYPE_ANIMATED_EMOJI || isInMultiEmojiMode) && useBubbles() && !useForward() ?
       getBubbleTimePartOffsetY() + getBubbleTimePartHeight() + Screen.dp(2f) : 0);
   }
 
