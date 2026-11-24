@@ -384,13 +384,13 @@ public final class Tgx101M3Sheets {
     if (checkLabel != null) {
       final CheckBox box = new CheckBox(context, checked, accent, Theme.getColor(ColorId.iconLight), surface(null));
       LinearLayout row = row(context, ColorUtils.alphaColor(.14f, accent));
-      row.addView(box, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
+      row.addView(box, new LinearLayout.LayoutParams(kd(24f), kd(24f)));
       row.addView(label(context, checkLabel, text, false));
       row.setOnClickListener(v -> {
         state[0] = !state[0];
         box.setChecked(state[0]);
       });
-      card.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(52f)));
+      card.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.round(Screen.dp(52f) * Math.max(1f, k() * .85f))));
     }
     for (int i = 0; i < labels.length; i++) {
       final int index = i;
@@ -402,15 +402,15 @@ public final class Tgx101M3Sheets {
         icon.setColorFilter(Paints.getColorFilter(red[i] ? negative : Theme.getColor(ColorId.icon)));
         ImageView iconView = new ImageView(context);
         iconView.setImageDrawable(icon);
-        iconView.setScaleType(ImageView.ScaleType.CENTER);
-        row.addView(iconView, new LinearLayout.LayoutParams(Screen.dp(24f), Screen.dp(24f)));
+        iconView.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        row.addView(iconView, new LinearLayout.LayoutParams(kd(24f), kd(24f)));
       }
       row.addView(label(context, labels[i], color, red[i]));
       row.setOnClickListener(v -> {
         popup.hideWindow(true);
         callback.onItem(index, state[0]);
       });
-      card.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(52f)));
+      card.addView(row, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.round(Screen.dp(52f) * Math.max(1f, k() * .85f))));
     }
 
     // under the header, with a gap — it no longer runs into the header
@@ -478,15 +478,25 @@ public final class Tgx101M3Sheets {
     return row;
   }
 
+  // TGx101 (user 2026-11-24, screenshot: the delete confirmation under the header stayed small at a big text): its rows,
+  // words and icons follow the menus' text scale
+  private static float k () {
+    return org.thunderdog.challegram.unsorted.Settings.tgx101UiScale();
+  }
+
+  private static int kd (float dp) {
+    return Math.round(Screen.dp(dp) * k());
+  }
+
   private static TextView label (Context context, CharSequence text, int color, boolean medium) {
     TextView label = new TextView(context);
     label.setText(text);
     label.setTextColor(color);
-    label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+    label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f * k());
     if (medium) label.setTypeface(Fonts.getRobotoMedium());
     label.setSingleLine(true);
     label.setEllipsize(TextUtils.TruncateAt.END);
-    label.setMaxWidth(Screen.dp(240f));
+    label.setMaxWidth(Math.min(kd(240f), Screen.currentWidth() - Screen.dp(96f)));
     LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
     if (Lang.rtl()) params.rightMargin = Screen.dp(16f); else params.leftMargin = Screen.dp(16f);
     label.setLayoutParams(params);
