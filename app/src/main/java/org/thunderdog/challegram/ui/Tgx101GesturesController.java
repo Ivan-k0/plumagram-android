@@ -309,7 +309,15 @@ public class Tgx101GesturesController extends RecyclerViewController<Void> imple
       adapter.processToggle(v);
       boolean wasMenu = Settings.instance().tgx101LongPressMenu();
       Settings.instance().setTgx101LongPressMenu(id == R.id.btn_tgx101LongPressMenuOpen);
-      if (wasMenu != Settings.instance().tgx101LongPressMenu()) adapter.setItems(buildItems(), false); // the tap switch shows only with the menu
+      if (wasMenu != Settings.instance().tgx101LongPressMenu()) {
+        // the tap switch shows only with the menu; the list stays where it is (user video 2026-11-24: rebuilt, it jumped to the top)
+        androidx.recyclerview.widget.LinearLayoutManager lm = (androidx.recyclerview.widget.LinearLayoutManager) getRecyclerView().getLayoutManager();
+        int first = lm != null ? lm.findFirstVisibleItemPosition() : -1;
+        android.view.View firstView = lm != null ? lm.findViewByPosition(first) : null;
+        int offset = firstView != null ? firstView.getTop() : 0;
+        adapter.setItems(buildItems(), false);
+        if (lm != null && first >= 0) lm.scrollToPositionWithOffset(first, offset);
+      }
     }
   }
 }
