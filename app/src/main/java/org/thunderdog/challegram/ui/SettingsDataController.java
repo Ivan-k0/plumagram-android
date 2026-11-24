@@ -1255,10 +1255,30 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     body.removeAllViews();
     body.addView(Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101MessageMenuView)));
     final boolean blocksOn = Settings.instance().tgx101MessageMenuBlocks();
-    body.addView(Tgx101Sheet.row(context, 0, 0, Lang.getString(R.string.Tgx101MessageMenuBlocks), null, blocksOn, v -> {
-      Settings.instance().setTgx101MessageMenuBlocks(!Settings.instance().tgx101MessageMenuBlocks());
-      tgx101FillBlockIcons(body);
-    }));
+    // (user 2026-11-23 «галочка не очевидна — поставь в нашем стиле, как везде»): the row with our switch, as in the settings
+    android.widget.FrameLayout switchRow = new android.widget.FrameLayout(context);
+    switchRow.setMinimumHeight(Screen.dp(56f));
+    org.thunderdog.challegram.tool.Views.setClickable(switchRow);
+    org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(switchRow);
+    android.widget.TextView switchLabel = new android.widget.TextView(context);
+    switchLabel.setText(Lang.getString(R.string.Tgx101MessageMenuBlocks));
+    switchLabel.setTextColor(Theme.textAccentColor());
+    switchLabel.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);
+    android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.LEFT);
+    lp.leftMargin = Screen.dp(20f);
+    switchRow.addView(switchLabel, lp);
+    final org.thunderdog.challegram.component.base.TogglerView toggler = new org.thunderdog.challegram.component.base.TogglerView(context);
+    toggler.init(blocksOn);
+    android.widget.FrameLayout.LayoutParams tp = new android.widget.FrameLayout.LayoutParams(Screen.dp(74f), ViewGroup.LayoutParams.MATCH_PARENT, android.view.Gravity.CENTER_VERTICAL | android.view.Gravity.RIGHT);
+    tp.rightMargin = Screen.dp(6f);
+    switchRow.addView(toggler, tp);
+    switchRow.setOnClickListener(v -> {
+      boolean on = !Settings.instance().tgx101MessageMenuBlocks();
+      Settings.instance().setTgx101MessageMenuBlocks(on);
+      toggler.setRadioEnabled(on, true);
+      v.postDelayed(() -> tgx101FillBlockIcons(body), 180); // the switch moves first
+    });
+    body.addView(switchRow, new android.widget.LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(56f)));
     android.widget.TextView iconsHeader = Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101MessageMenuBlockIcons));
     iconsHeader.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
     body.addView(iconsHeader);

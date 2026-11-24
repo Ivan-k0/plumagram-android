@@ -89,6 +89,13 @@ public final class Tgx101Gazeta {
     Settings.instance().pmc().putInt("tgx101_gazeta_profile", profile);
   }
 
+  /** TGx101 (user 2026-11-23 «тема для газеты: авто — сменяется в зависимости от темы приложения»): -1 follows the app */
+  public static final int PROFILE_AUTO = -1;
+
+  public static boolean isProfileAuto () {
+    return Settings.instance().pmc().getInt("tgx101_gazeta_profile", -1) == -1;
+  }
+
   private static String pkey (String name) {
     return "tgx101_gazeta_" + name + "_p" + profile();
   }

@@ -792,12 +792,17 @@ public final class Tgx101MessageMenu {
     // «blocks»: reply, delete, edit and forward leave the list for a row of icons under it (as in the reference)
     final List<ViewController.OptionItem> iconItems = new ArrayList<>();
     if (blocks) {
-      for (int id : blockIconIds()) {
+      // (user 2026-11-23 «замена происходит неверно и смещает кнопки со своих мест, даже "удалить"»): every icon keeps
+      // its own place; what this message can't do (edit someone else's message…) leaves its place empty for a moment
+      final int[] wanted = blockIconIds();
+      final ViewController.OptionItem[] slots = new ViewController.OptionItem[wanted.length];
+      for (int slot = 0; slot < wanted.length; slot++) {
+        int id = wanted[slot];
         ViewController.OptionItem found = null;
         for (ViewController.OptionItem item : sorted) if (item.id == id) found = item;
         if (found == null && bottomItem != null && bottomItem.id == id) found = bottomItem;
         if (found == null) continue;
-        iconItems.add(found);
+        slots[slot] = found;
         if (found == bottomItem) {
           bottomItem = null;
           for (ViewController.OptionItem item : sorted) if (item.id == R.id.btn_messageMore) bottomItem = item;
@@ -806,17 +811,20 @@ public final class Tgx101MessageMenu {
           sorted.remove(found);
         }
       }
-      // (user 2026-11-23 «всегда должно быть минимум 4 значка»): what this message can't do (edit someone else's message…)
-      // leaves a place that the next item of the list takes, «More…» never
-      for (int i = 0; iconItems.size() < MIN_BLOCK_ICONS && i < sorted.size(); ) {
-        ViewController.OptionItem next = sorted.get(i);
-        if (next.id == R.id.btn_messageMore || next.id == R.id.btn_tgx101SelectInPlace) {
-          i++;
-          continue;
+      // … and the empty place is taken, right there, by the first item of the list («More…» never), so the row keeps
+      // its length and nothing else moves
+      for (int slot = 0; slot < slots.length; slot++) {
+        if (slots[slot] != null) continue;
+        for (int i = 0; i < sorted.size(); i++) {
+          ViewController.OptionItem next = sorted.get(i);
+          if (next.id == R.id.btn_messageMore || next.id == R.id.btn_tgx101SelectInPlace) continue;
+          slots[slot] = next;
+          sorted.remove(i);
+          break;
         }
-        iconItems.add(next);
-        sorted.remove(i);
       }
+      for (ViewController.OptionItem item : slots) if (item != null) iconItems.add(item);
+      org.thunderdog.challegram.Tgx101Diag.mark("menu: icon row " + iconItems.size() + " of " + wanted.length);
     }
     shownIds.clear();
     for (ViewController.OptionItem item : iconItems) shownIds.add(item.id);
@@ -1991,12 +1999,20 @@ public final class Tgx101MessageMenu {
     if (icon == R.drawable.baseline_label_24) return R.drawable.tgx101_o_label_24;
     if (icon == R.drawable.baseline_stars_24) return R.drawable.tgx101_o_stars_24;
     if (icon == R.drawable.baseline_forum_24) return R.drawable.tgx101_o_forum_24;
+    if (icon == R.drawable.baseline_unsubscribe_24) return R.drawable.tgx101_o_unread_24;
+    if (icon == R.drawable.baseline_mark_chat_unread_24) return R.drawable.tgx101_o_unread_24;
+    if (icon == R.drawable.baseline_done_all_24) return R.drawable.tgx101_o_done_all_24;
+    if (icon == R.drawable.baseline_unarchive_24) return R.drawable.tgx101_o_unarchive_24;
+    if (icon == R.drawable.baseline_share_arrow_24) return R.drawable.tgx101_o_forward_24;
+    if (icon == R.drawable.baseline_share_24) return R.drawable.tgx101_o_share_24;
+    if (icon == R.drawable.baseline_more_vert_24) return R.drawable.tgx101_o_more_vert_24;
+    if (icon == R.drawable.baseline_more_horiz_24) return R.drawable.tgx101_o_more_horiz_24;
     return icon;
   }
 
   /** The «blocks» view's row: reply, delete, edit, forward (in this order, those the message has) */
   private static final int[] BLOCK_ICON_IDS = {R.id.btn_messageReply, R.id.btn_messageDelete, R.id.btn_messageEdit, R.id.btn_messageShare};
-  public static final int MAX_BLOCK_ICONS = 5, MIN_BLOCK_ICONS = 4;
+  public static final int MAX_BLOCK_ICONS = 4, MIN_BLOCK_ICONS = 4; // (user 2026-11-24 «оставь только 4, с пятью слишком широкие»)
 
   /** (user 2026-11-23 «кнопки в этом меню тоже нужно ставить самим»): the icons chosen in the settings, or the default */
   public static int[] blockIconIds () {

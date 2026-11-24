@@ -202,8 +202,31 @@ public class Tgx101BirdView extends View {
   private float shown = IDLE_ALPHA;
 
   private final Runnable holdRunnable = () -> {
-    if (pressed && !moving && !ringOpen) openRing(false, true);
+    if (pressed && !moving && !ringOpen) {
+      tgx101TakeOver();
+      openRing(false, true);
+    }
   };
+
+  // (user 2026-11-23 «птичку активной только по короткому удержанию, обычный клик вообще не должен на неё реагировать;
+  // затупы при скролле или открытии меню — приложение ждёт, будет ли долгое нажатие»): the finger goes to what lies under
+  // the bird at once — a tap, a scroll, a hold of the list — and the bird takes it only after a short hold
+  private static final long PASS_HOLD_MS = 300;
+  private @Nullable View passTarget;
+
+  /** the hold came: what lay under the bird lets the finger go, the bird takes it */
+  private void tgx101TakeOver () {
+    View target = passTarget;
+    passTarget = null;
+    if (target == null) return;
+    if (downEvent == null) return;
+    MotionEvent cancel = MotionEvent.obtain(downEvent);
+    cancel.setAction(MotionEvent.ACTION_CANCEL);
+    forward(target, cancel);
+    cancel.recycle();
+    animatePress();
+    if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+  }
   private final Runnable moveRunnable = () -> {
     if (pressed && !moved) startMove();
   };
@@ -363,6 +386,25 @@ public class Tgx101BirdView extends View {
       if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) forwardTarget = null;
       return true;
     }
+    if (passTarget != null) {
+      int action = e.getActionMasked();
+      if (action == MotionEvent.ACTION_MOVE && !moved && Math.hypot(e.getX() - downX, e.getY() - downY) > touchSlop) {
+        // moved before the hold: a scroll of what lies under — the bird stays out of it
+        moved = true;
+        pressed = false;
+        removeCallbacks(holdRunnable);
+        removeCallbacks(moveRunnable);
+      }
+      View target = passTarget;
+      if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+        pressed = false;
+        removeCallbacks(holdRunnable);
+        removeCallbacks(moveRunnable);
+        passTarget = null;
+      }
+      forward(target, e);
+      return true;
+    }
     float x = e.getX(), y = e.getY();
     switch (e.getActionMasked()) {
       case MotionEvent.ACTION_DOWN: {
@@ -374,6 +416,23 @@ public class Tgx101BirdView extends View {
           return true;
         }
         if (ringOpen || !hitsTab(x, y)) return false;
+        if (callback == null || !callback.birdHasDoubleTap()) {
+          // pass-through: no waiting, no press look — the bird only starts counting the short hold
+          pressed = true;
+          moved = moving = false;
+          downX = fingerX = x; downY = fingerY = y;
+          if (downEvent != null) downEvent.recycle();
+          downEvent = MotionEvent.obtain(e);
+          forwardTarget = null;
+          passTarget = findUnder(downEvent);
+          postDelayed(holdRunnable, PASS_HOLD_MS);
+          postDelayed(moveRunnable, MOVE_MS);
+          if (passTarget == null) {
+            animatePress();
+            getParent().requestDisallowInterceptTouchEvent(true);
+          }
+          return true;
+        }
         pressed = true;
         moved = moving = false;
         downX = fingerX = x; downY = fingerY = y;

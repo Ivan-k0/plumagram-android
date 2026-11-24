@@ -324,6 +324,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   private static int profileIcon () {
+    if (Tgx101Gazeta.isProfileAuto()) return R.drawable.baseline_brightness_5_24;
     return Tgx101Gazeta.profile() == Tgx101Gazeta.PROFILE_DARK ? R.drawable.tgx101_sun_24 : R.drawable.baseline_brightness_2_24;
   }
 
@@ -412,11 +413,21 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     } else if (id == R.id.menu_btn_tgx101GazetaAuto) {
       setAutoScroll(!autoScroll);
     } else if (id == R.id.menu_btn_tgx101GazetaProfile) {
-      Tgx101Gazeta.setProfile(Tgx101Gazeta.profile() == Tgx101Gazeta.PROFILE_DARK ? Tgx101Gazeta.PROFILE_LIGHT : Tgx101Gazeta.PROFILE_DARK);
-      if (profileButton != null) profileButton.setImageResource(profileIcon());
-      applyPalette();
-      repaintHeader();
-      adapter.notifyDataSetChanged();
+      // (user 2026-11-23): light, dark, or «Авто» — as the app's theme, changing with it
+      int current = Tgx101Gazeta.isProfileAuto() ? Tgx101Gazeta.PROFILE_AUTO : Tgx101Gazeta.profile();
+      showOptions(null, new int[] {R.id.btn_tgx101GazetaThemeAuto, R.id.btn_tgx101GazetaThemeLight, R.id.btn_tgx101GazetaThemeDark},
+        new String[] {
+          Lang.getString(R.string.Tgx101GazetaThemeAuto) + (current == Tgx101Gazeta.PROFILE_AUTO ? "  ✓" : ""),
+          Lang.getString(R.string.Tgx101GazetaThemeLight) + (current == Tgx101Gazeta.PROFILE_LIGHT ? "  ✓" : ""),
+          Lang.getString(R.string.Tgx101GazetaThemeDark) + (current == Tgx101Gazeta.PROFILE_DARK ? "  ✓" : "")},
+        null, new int[] {R.drawable.baseline_brightness_5_24, R.drawable.tgx101_sun_24, R.drawable.baseline_brightness_2_24}, (v, picked) -> {
+          Tgx101Gazeta.setProfile(picked == R.id.btn_tgx101GazetaThemeLight ? Tgx101Gazeta.PROFILE_LIGHT : picked == R.id.btn_tgx101GazetaThemeDark ? Tgx101Gazeta.PROFILE_DARK : Tgx101Gazeta.PROFILE_AUTO);
+          if (profileButton != null) profileButton.setImageResource(profileIcon());
+          applyPalette();
+          repaintHeader();
+          adapter.notifyDataSetChanged();
+          return true;
+        });
     } else if (id == R.id.menu_btn_settings) {
       needReload = true;
       navigateTo(new Tgx101GazetaSettingsController(context, tdlib).setFeed(this));
@@ -2031,9 +2042,12 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
         }
         openPostMenu(post);
       });
+      // (user 2026-11-23 «двойной вибромотор при выделении поста — должен быть одинарный»): the system's own long-press buzz
+      // came on top of this one — it is off, the app's single one (its strength from the settings) stays
+      setHapticFeedbackEnabled(false);
       setOnLongClickListener(v -> {
         if (post == null || sample) return false;
-        performHapticFeedback(android.view.HapticFeedbackConstants.LONG_PRESS);
+        UI.forceVibrate(v, false);
         toggleSelected(post);
         return true;
       });

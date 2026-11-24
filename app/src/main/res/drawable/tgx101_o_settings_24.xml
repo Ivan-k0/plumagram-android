@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- TGx101 (user 2026-11-23, mockup «Значки меню», style Б, «переноси везде»): thin outline, 1.5 dp, round ends -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-  <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M9,12 A3,3 0 1 0 15,12 A3,3 0 1 0 9,12 M12,3.5 V5.5 M12,18.5 V20.5 M3.5,12 H5.5 M18.5,12 H20.5 M6,6 L7.4,7.4 M16.6,16.6 L18,18 M6,18 L7.4,16.6 M16.6,7.4 L18,6"/>
+  <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M18.51,9.42 L20.99,10.05 L20.99,13.95 L18.51,14.58 L18.42,14.78 L19.74,16.98 L16.98,19.74 L14.78,18.42 L14.58,18.51 L13.95,20.99 L10.05,20.99 L9.42,18.51 L9.22,18.42 L7.02,19.74 L4.26,16.98 L5.58,14.78 L5.49,14.58 L3.01,13.95 L3.01,10.05 L5.49,9.42 L5.58,9.22 L4.26,7.02 L7.02,4.26 L9.22,5.58 L9.42,5.49 L10.05,3.01 L13.95,3.01 L14.58,5.49 L14.78,5.58 L16.98,4.26 L19.74,7.02 L18.42,9.22 Z M9,12 A3,3 0 1 0 15,12 A3,3 0 1 0 9,12"/>
 </vector>

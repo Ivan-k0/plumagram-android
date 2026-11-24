@@ -6048,10 +6048,13 @@
   <string name="Tgx101MessageMenuView">Message menu view</string>
   <string name="Tgx101MessageMenuViewBlocks">Blocks</string>
   <string name="Tgx101MessageMenuViewList">List</string>
+  <string name="Tgx101GazetaThemeAuto">Auto (as the app)</string>
+  <string name="Tgx101GazetaThemeLight">Light</string>
+  <string name="Tgx101GazetaThemeDark">Dark</string>
   <string name="Tgx101InRow">already in the row</string>
   <string name="Tgx101Empty">Empty</string>
   <string name="Tgx101MessageMenuBlockIcons">Icons below</string>
-  <string name="Tgx101MessageMenuBlockIconsHint">Up to 5 actions shown as icons under the menu. Hold an icon to see its name.</string>
+  <string name="Tgx101MessageMenuBlockIconsHint">Four actions shown as icons under the menu. Hold an icon to see its name.</string>
   <string name="Tgx101MessageMenuBlocks">Menu in blocks</string>
   <string name="Tgx101MessageMenuHand">Menu for</string>
   <string name="Tgx101MessageMenuHandRight">Right hand</string>

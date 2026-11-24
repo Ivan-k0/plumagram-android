@@ -523,7 +523,7 @@ public class ForceTouchView extends FrameLayoutFix implements
         view.setScaleType(ImageView.ScaleType.CENTER);
         themeListenerList.addThemeFilterListener(view, ColorId.icon);
         if (actionItem.iconRes != 0) {
-          view.setImageResource(actionItem.iconRes);
+          view.setImageResource(org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(actionItem.iconRes));
           view.setColorFilter(Theme.iconColor());
         }
         view.setLayoutParams(new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 2f));

@@ -105,7 +105,7 @@ public class HeaderButton extends View {
     if (currentResource != resource) {
       currentResource = resource;
       boolean invalidate = drawable != null;
-      drawable = resource != 0 ? Drawables.get(getResources(), resource) : null;
+      drawable = resource != 0 ? Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(resource)) : null; // TGx101: thin icons everywhere (user 2026-11-23)
       drawableRes = resource;
       if (invalidate) {
         invalidate();
