@@ -184,7 +184,14 @@ public final class Tgx101MessageMenu {
 
   /** Can't be hidden (they can still be moved, and «Select text» can go under «More…») */
   public static boolean canHide (int id) {
-    return id != R.id.btn_tgx101SelectInPlace && id != R.id.btn_messageMore;
+    return id != R.id.btn_tgx101SelectInPlace && id != R.id.btn_messageMore && !isLocked(id);
+  }
+
+  /** (user 2026-11-24 «всегда активны: сохранить, ответить», + delete and copy): always in the menu — they can be moved,
+   *  not hidden or put under «More…» */
+  public static boolean isLocked (int id) {
+    int key = orderKey(id);
+    return key == R.id.btn_messageReply || key == R.id.btn_saveFile || key == R.id.btn_messageDelete || key == R.id.btn_messageCopy;
   }
 
   /** user 2026-10-06: the menu keeps 5–9 items (with «Select»), the user decides; the rest under «More…» or hidden.
@@ -253,6 +260,7 @@ public final class Tgx101MessageMenu {
 
   /** Moved under «More…» in Settings → MagiX → message menu */
   public static boolean isInMore (int id) {
+    if (isLocked(id)) return false;
     int key = orderKey(id);
     for (int more : moreIds()) {
       if (more == key) return true;
@@ -764,7 +772,9 @@ public final class Tgx101MessageMenu {
     if (options.items != null) {
       for (ViewController.OptionItem item : options.items) {
         if (item == null || item.id == 0) continue;
-        if (item.id == R.id.btn_messageDelete && isHidden(item.id)) {
+        if (blocks && item.id != R.id.btn_messageMore && isBlockIcon(item.id)) {
+          items.add(item); // an icon of the row: taken into the row even when its list place is «More…» or hidden
+        } else if (item.id == R.id.btn_messageDelete && isHidden(item.id)) {
           // TGx101: «Delete» removed from the menu by the user (still in «More…» of the select mode)
         } else if (item.id == R.id.btn_messageMore) {
           moreItem = item;
@@ -820,7 +830,7 @@ public final class Tgx101MessageMenu {
       for (int slot = 0; slot < wanted.length; slot++) {
         int id = wanted[slot];
         ViewController.OptionItem found = null;
-        for (ViewController.OptionItem item : sorted) if (item.id == id) found = item;
+        for (ViewController.OptionItem item : sorted) if (orderKey(item.id) == id) found = item;
         if (found == null && bottomItem != null && bottomItem.id == id) found = bottomItem;
         if (found == null) continue;
         slots[slot] = found;
@@ -2049,6 +2059,12 @@ public final class Tgx101MessageMenu {
     int[] out = new int[ids.size()];
     for (int i = 0; i < out.length; i++) out[i] = ids.get(i);
     return out;
+  }
+
+  public static boolean isBlockIcon (int id) {
+    int key = orderKey(id);
+    for (int x : blockIconIds()) if (x == key) return true;
+    return false;
   }
 
   public static int[] defaultBlockIconIds () {

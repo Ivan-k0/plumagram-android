@@ -50,7 +50,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     }
   }
 
-  private static final int CUSTOM_PREVIEW = 0, CUSTOM_TABS = 1, CUSTOM_GAP = 2, CUSTOM_LINE = 3;
+  private static final int CUSTOM_PREVIEW = 0, CUSTOM_TABS = 1, CUSTOM_GAP = 2, CUSTOM_LINE = 3, CUSTOM_ICONS = 4;
 
   private SettingsAdapter adapter;
   private Tgx101OrderPreviewView preview;
@@ -101,6 +101,10 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         View view;
         if (customViewType == CUSTOM_TABS) {
           view = new ProfileTabs(context);
+        } else if (customViewType == CUSTOM_ICONS) {
+          android.widget.FrameLayout box = new android.widget.FrameLayout(context);
+          box.setPadding(Screen.dp(16f), Screen.dp(4f), Screen.dp(16f), Screen.dp(8f));
+          view = box;
         } else if (customViewType == CUSTOM_GAP || customViewType == CUSTOM_LINE) {
           view = new SpacerRow(context, customViewType == CUSTOM_GAP);
           view.setId(R.id.btn_tgx101DrawerSpacer);
@@ -119,6 +123,11 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         if (customViewType == CUSTOM_PREVIEW) {
           preview = (Tgx101OrderPreviewView) view;
           updatePreview();
+        } else if (customViewType == CUSTOM_ICONS) {
+          android.widget.FrameLayout box = (android.widget.FrameLayout) view;
+          box.removeAllViews();
+          box.addView(Tgx101BlockIcons.row(Tgx101MenuOrderController.this, Tgx101MenuOrderController.this::rebuild),
+            new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         } else if (customViewType == CUSTOM_GAP || customViewType == CUSTOM_LINE) {
           view.setTag(item);
           view.invalidate();
@@ -152,7 +161,8 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
   /** Items in the menu itself, «Select» included */
   private static int menuCount (int[] order) {
     int n = 1;
-    for (int id : order) if (sectionOf(id) == SECTION_MENU) n++;
+    boolean blocks = Tgx101MessageMenu.blocksView();
+    for (int id : order) if (sectionOf(id) == SECTION_MENU && !(blocks && Tgx101MessageMenu.isBlockIcon(id))) n++; // the row's icons are not in the list
     return n;
   }
 
@@ -191,16 +201,24 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     int[] order = Tgx101MessageMenu.getOrder();
     List<ListItem> items = new ArrayList<>();
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
-    items.add(new ListItem(ListItem.TYPE_CUSTOM - CUSTOM_TABS));
+    // (user 2026-11-24): one setup for text, media and voice — no tabs
     items.add(new ListItem(ListItem.TYPE_CUSTOM - CUSTOM_PREVIEW));
+    final boolean blocks = Tgx101MessageMenu.blocksView();
+    if (blocks) {
+      // «blocks»: the row of icons under the list, set here too (user 2026-11-24 «по макету»)
+      items.add(new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101MessageMenuBlockIcons));
+      items.add(new ListItem(ListItem.TYPE_CUSTOM - CUSTOM_ICONS));
+      items.add(new ListItem(ListItem.TYPE_DESCRIPTION, 0, 0, R.string.Tgx101MessageMenuBlockIconsHint));
+    }
     int[] headers = {R.string.Tgx101MenuSectionMenu, R.string.Tgx101MenuSectionMore, R.string.Tgx101MenuSectionHidden};
     for (int section = SECTION_MENU; section <= SECTION_HIDDEN; section++) {
       List<ListItem> rows = new ArrayList<>();
       for (int i = 0; i < order.length; i++) {
         if (sectionOf(order[i]) != section) continue;
         if ((order[i] == R.id.btn_tgx101EditorWindow || order[i] == R.id.btn_messageSelectText) && !Tgx101TextEditor.EDIT_WINDOW) continue; // the editor / quote window is off for now
+        if (blocks && Tgx101MessageMenu.isBlockIcon(order[i])) continue; // it is in the row of icons
         int known = indexOf(Tgx101MessageMenu.ORDERABLE_IDS, order[i]);
-        rows.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MenuAction, Tgx101MessageMenu.ORDERABLE_ICONS[known], Tgx101MessageMenu.ORDERABLE_NAMES[known]).setLongId(i).setData(order[i]));
+        rows.add(new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MenuAction, Tgx101MessageMenu.outlined(Tgx101MessageMenu.ORDERABLE_ICONS[known]), Tgx101MessageMenu.ORDERABLE_NAMES[known]).setLongId(i).setData(order[i]));
       }
       CharSequence title = Lang.getString(headers[section]);
       if (section == SECTION_MENU) {
@@ -429,7 +447,14 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
           entries.add(new Tgx101OrderPreviewView.Entry(Tgx101MessageMenu.ORDERABLE_ICONS[known], Lang.getString(Tgx101MessageMenu.ORDERABLE_NAMES[known]), id == R.id.btn_messageDelete, false));
         }
       }
-      preview.setMenu(entries, new Tgx101OrderPreviewView.Entry(R.drawable.baseline_playlist_add_check_24, Lang.getString(R.string.Select), false, false));
+      List<Tgx101OrderPreviewView.Entry> icons = new ArrayList<>();
+      if (Tgx101MessageMenu.blocksView()) {
+        for (int id : Tgx101MessageMenu.blockIconIds()) {
+          int known = indexOf(Tgx101MessageMenu.ORDERABLE_IDS, id);
+          if (known >= 0) icons.add(new Tgx101OrderPreviewView.Entry(Tgx101MessageMenu.ORDERABLE_ICONS[known], null, false, false));
+        }
+      }
+      preview.setMenu(entries, new Tgx101OrderPreviewView.Entry(R.drawable.baseline_playlist_add_check_24, Lang.getString(R.string.Select), false, false), icons);
     }
   }
 
@@ -484,6 +509,12 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       UI.showToast(Lang.getString(R.string.Tgx101MenuTooFew, Tgx101MessageMenu.minMenuItems()), android.widget.Toast.LENGTH_SHORT);
       rebuild();
       return;
+    }
+    for (int id : more) {
+      if (Tgx101MessageMenu.isLocked(id)) { tgx101LockedToast(); rebuild(); return; }
+    }
+    for (int id : hidden) {
+      if (Tgx101MessageMenu.isLocked(id)) { tgx101LockedToast(); rebuild(); return; }
     }
     if (hidden.contains(R.id.btn_tgx101SelectInPlace)) {
       UI.showToast(R.string.Tgx101SelectCantHide, android.widget.Toast.LENGTH_SHORT);
@@ -704,8 +735,8 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         });
       return;
     }
-    if (order[position] == R.id.btn_messageMore) {
-      // «More…» itself can only be moved (it shows up only when something is moved into it)
+    if (order[position] == R.id.btn_messageMore || Tgx101MessageMenu.isLocked(order[position])) {
+      // «More…» itself can only be moved; so can the actions always in the menu (reply, copy, save, delete) (it shows up only when something is moved into it)
       showOptions(item.getString(),
         new int[] {R.id.btn_moveToTop, R.id.btn_moveUp, R.id.btn_moveDown, R.id.btn_moveToBottom},
         new String[] {Lang.getString(R.string.Tgx101MoveToTop), Lang.getString(R.string.Tgx101MoveUp), Lang.getString(R.string.Tgx101MoveDown), Lang.getString(R.string.Tgx101MoveToBottom)},
@@ -744,6 +775,10 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         moveTo(order, position, optionId);
         return true;
       });
+  }
+
+  private static void tgx101LockedToast () {
+    UI.showToast(R.string.Tgx101MenuLockedHint, android.widget.Toast.LENGTH_SHORT);
   }
 
   private void moveTo (int[] order, int position, int optionId) {

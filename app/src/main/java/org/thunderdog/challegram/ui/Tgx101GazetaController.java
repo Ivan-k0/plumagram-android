@@ -222,7 +222,29 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     return lum > .6f;
   }
 
+  // (user 2026-11-24 «шапка газеты по-прежнему тусклая», reproduced: leave, come back — the header showed the buttons of
+  // the last visit, coloured for its look, while this feed's fields pointed at none): take this header's own buttons
+  private void tgx101FindHeaderButtons () {
+    if (profileButton != null && profileButton.isAttachedToWindow()) return;
+    if (context().navigation() == null || context().navigation().getHeaderView() == null) return;
+    View found = context().navigation().getHeaderView().findViewById(R.id.menu_btn_tgx101GazetaProfile);
+    if (!(found instanceof org.thunderdog.challegram.navigation.HeaderButton) || !(found.getParent() instanceof ViewGroup)) return;
+    ViewGroup menu = (ViewGroup) found.getParent();
+    profileButton = (org.thunderdog.challegram.navigation.HeaderButton) found;
+    View v = menu.findViewById(R.id.menu_btn_tgx101GazetaAuto);
+    if (v instanceof org.thunderdog.challegram.navigation.HeaderButton) autoButton = (org.thunderdog.challegram.navigation.HeaderButton) v;
+    v = menu.findViewById(R.id.menu_btn_tgx101GazetaTranslate);
+    if (v instanceof org.thunderdog.challegram.navigation.HeaderButton) translateButton = (org.thunderdog.challegram.navigation.HeaderButton) v;
+    v = menu.findViewById(R.id.menu_btn_settings);
+    if (v instanceof org.thunderdog.challegram.navigation.HeaderButton) settingsButton = (org.thunderdog.challegram.navigation.HeaderButton) v;
+    // the buttons show this feed's state, not the last one's
+    if (autoButton != null) autoButton.setImageResource(autoIcon(autoScroll));
+    if (translateButton != null) translateButton.setImageResource(translateFeed ? R.drawable.baseline_translate_24 : R.drawable.baseline_translate_off_24);
+  }
+
   private void tintHeaderButtons () {
+    tgx101FindHeaderButtons();
+    if (profileButton != null) profileButton.setImageResource(profileIcon());
     tintArrow();
     int color = Tgx101Gazeta.palette()[2];
     if (profileButton != null) profileButton.tgx101SetForcedColor(color);
@@ -547,7 +569,8 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   @Override
   public void destroy () {
-    Tgx101Gazeta.resetSessionProfile(); // leaving the feed
+    // no reset of the ☀/☾ switch here: an old copy of the feed destroyed after a new one had painted its header turned the
+    // feed back to «Авто» under a header still in the other look (user 2026-11-24 «шапка по-прежнему тусклая»)
     tgx101KeepScreen(false);
     Tgx101Gazeta.removeNewPostListener(newPosts);
     headerHide = 0;

@@ -68,10 +68,19 @@ public class Tgx101OrderPreviewView extends View {
 
   /** Menu items top to bottom; {@code fixedBottom} — «Select» under a line */
   public void setMenu (List<Entry> items, Entry fixedBottom) {
+    setMenu(items, fixedBottom, null);
+  }
+
+  /** (user 2026-11-24) the «blocks» menu: the list, and the row of icons under it */
+  private final List<Entry> iconRow = new ArrayList<>();
+
+  public void setMenu (List<Entry> items, Entry fixedBottom, List<Entry> icons) {
     this.mode = MODE_MENU;
     this.entries.clear();
     this.entries.addAll(items);
     this.fixedBottom = fixedBottom;
+    this.iconRow.clear();
+    if (icons != null) this.iconRow.addAll(icons);
     changed();
   }
 
@@ -109,7 +118,7 @@ public class Tgx101OrderPreviewView extends View {
         return Screen.dp(36f) + bars.size() * Screen.dp(64f);
       case MODE_MENU:
       default:
-        return Screen.dp(44f) + entries.size() * Screen.dp(34f) + (fixedBottom != null ? Screen.dp(43f) : 0) + Screen.dp(20f);
+        return Screen.dp(44f) + entries.size() * Screen.dp(34f) + (fixedBottom != null ? Screen.dp(43f) : 0) + Screen.dp(20f) + (iconRow.isEmpty() ? 0 : Screen.dp(52f));
     }
   }
 
@@ -120,7 +129,7 @@ public class Tgx101OrderPreviewView extends View {
 
   private void drawIcon (Canvas c, int res, float cx, float cy, int color) {
     if (res == 0) return;
-    Drawable d = Drawables.get(getResources(), res);
+    Drawable d = Drawables.get(getResources(), Tgx101MessageMenu.outlined(res)); // the same icons as the menu
     if (d != null) {
       Drawables.drawCentered(c, d, cx, cy, Paints.getPorterDuffPaint(color));
     }
@@ -172,6 +181,17 @@ public class Tgx101OrderPreviewView extends View {
       c.drawRect(left, y, right, y + Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(Theme.separatorColor()));
       y += Screen.dp(5f);
       drawMenuRow(c, fixedBottom, left, right, y, rowHeight);
+    }
+    if (!iconRow.isEmpty()) {
+      // the row of icons: a card of its own under the list, as wide
+      float rowTop = bottom + Screen.dp(8f), rowBottom = rowTop + Screen.dp(40f);
+      rect.set(left, rowTop, right, rowBottom);
+      c.drawRoundRect(rect, Screen.dp(14f), Screen.dp(14f), Paints.fillingPaint(Theme.fillingColor()));
+      c.drawRoundRect(rect, Screen.dp(14f), Screen.dp(14f), stroke);
+      float cell = (right - left) / iconRow.size();
+      for (int i = 0; i < iconRow.size(); i++) {
+        drawIcon(c, iconRow.get(i).icon, left + cell * i + cell / 2, (rowTop + rowBottom) / 2, ColorUtils.alphaColor(.8f, Theme.getColor(ColorId.text)));
+      }
     }
   }
 

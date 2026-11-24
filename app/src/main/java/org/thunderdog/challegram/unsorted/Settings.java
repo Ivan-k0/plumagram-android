@@ -3325,7 +3325,9 @@ public class Settings {
   }
 
   private String tgx101MenuKey (String key) {
-    String k = tgx101MenuProfile == TGX101_MENU_MEDIA ? key + "_media" : tgx101MenuProfile == TGX101_MENU_VOICE ? key + "_voice" : key;
+    // (user 2026-11-24 «настройки для медиа и голосовых убрать, оставить одно окно»): one setup for every kind of message —
+    // what a message can't do is skipped anyway
+    String k = key;
     // (user 2026-11-24 «вернём пункт „Ещё“ в блоки, выбор — свой»): the «blocks» view keeps its own order, «More…» and hidden
     return tgx101MessageMenuBlocks() ? k + "_blocks" : k;
   }
