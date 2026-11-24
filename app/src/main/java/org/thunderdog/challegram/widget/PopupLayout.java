@@ -669,6 +669,14 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
   public boolean tgx101AllowWhileBusy;
 
   /** After the menu action ran: no sheet took over — the menu's dim fades out and the menu goes */
+  /** (user video 2026-11-24: after «Reply» the dim hung half a second over the keyboard coming up) an action that opens no
+   *  window lets the dim go at once, with the card */
+  public static void tgx101ReleaseDimAtOnce () {
+    PopupLayout waiting = tgx101HandoffFrom != null ? tgx101HandoffFrom.get() : null;
+    if (waiting == null || tgx101HandoffClaimed) return;
+    tgx101ReleaseDimNow();
+  }
+
   public static void tgx101ReleaseDim () {
     // (user 2026-11-23 «экран мигает, когда переходишь дальше — закрепить сообщение», recording: the menu's dim went
     // 42 → 36, then the pin window dimmed 36 → 25 — it opens after Telegram answers, a moment after the action ran) the
@@ -687,8 +695,8 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     }
     tgx101HandoffFrom = null;
     android.animation.ValueAnimator fade = android.animation.ValueAnimator.ofFloat(1f, 0f);
-    fade.setDuration(180);
-    fade.setInterpolator(new android.view.animation.AccelerateInterpolator());
+    fade.setDuration(200);
+    fade.setInterpolator(new android.view.animation.DecelerateInterpolator(1.4f)); // as the menu's own fade: no dark pause, then a jump
     fade.addUpdateListener(a -> menu.tgx101SetDimFactor((float) a.getAnimatedValue()));
     fade.addListener(new AnimatorListenerAdapter() {
       @Override

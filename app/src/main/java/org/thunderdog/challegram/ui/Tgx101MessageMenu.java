@@ -313,7 +313,7 @@ public final class Tgx101MessageMenu {
     @Nullable ViewGroup reactions; // the reactions pill: sliding the finger there picks a reaction too (user 2026-10-06)
     // all reactions (user 2026-10-06, variants 1 + 5): ⌄ unfolds a grid of still pictures right under the pill and
     // hides the actions; ⌃ folds it back. In the iOS slide, holding the finger on ⌄ unfolds it too
-    @Nullable View card, expandView, iconCard;
+    @Nullable View card, expandView, iconCard, hoveredIcon; // the one icon of the row coloured under the finger
     @Nullable LinearLayout grid;
     @Nullable ViewGroup gridReactions;
     @Nullable LinearLayout column;
@@ -409,6 +409,18 @@ public final class Tgx101MessageMenu {
         break;
       }
     }
+    if (hit == null && host.iconCard instanceof ViewGroup && host.iconCard.isShown()) {
+      ViewGroup icons = (ViewGroup) host.iconCard;
+      for (int i = 0; i < icons.getChildCount(); i++) {
+        View child = icons.getChildAt(i);
+        int[] loc = new int[2];
+        child.getLocationOnScreen(loc);
+        if (rawX >= loc[0] && rawX <= loc[0] + child.getWidth() && rawY >= loc[1] && rawY <= loc[1] + child.getHeight()) {
+          hit = child;
+          break;
+        }
+      }
+    }
     if (hit == null && host.gridReactions != null && host.grid != null && host.grid.getVisibility() == View.VISIBLE) {
       for (int i = 0; i < host.gridReactions.getChildCount(); i++) {
         View child = host.gridReactions.getChildAt(i);
@@ -460,12 +472,13 @@ public final class Tgx101MessageMenu {
       }
     }
     if (hit != dragRow) {
+      hoverIcon(host, hit != null && hit.getParent() == host.iconCard ? hit : null, false); // the slide ticks below
       if (dragRow != null) {
         dragRow.setPressed(false);
       }
       dragRow = hit;
       if (hit != null) {
-        hit.setPressed(true);
+        if (hit.getParent() != host.iconCard) hit.setPressed(true); // an icon of the row only takes its colour
         org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
       }
     }
@@ -949,7 +962,7 @@ public final class Tgx101MessageMenu {
     }
     if (!iconItems.isEmpty()) {
       // the row of icons: a card of its own under the list, as wide, icons only (a hold shows the name)
-      LinearLayout iconCard = new LinearLayout(context);
+      LinearLayout iconCard = new IconRow(context, host);
       iconCard.setOrientation(LinearLayout.HORIZONTAL);
       iconCard.setBackground(rounded(Theme.getColor(ColorId.filling), Screen.dp(16f)));
       elevate(iconCard, Screen.dp(16f));
@@ -1193,9 +1206,12 @@ public final class Tgx101MessageMenu {
     final Drawable background = host.background;
     if (background != null) {
       // the blur melts away together with the menu instead of vanishing in one frame
+      // (user 2026-11-24 video «как отрабатывает затухание»: the card was gone in 150 ms while the dim, on an accelerating
+      // curve, still stood almost full — then the screen lit up at once): the dim and the card go together, one curve
+      final android.view.animation.Interpolator out = new android.view.animation.DecelerateInterpolator(1.4f);
       android.animation.ValueAnimator fadeOut = android.animation.ValueAnimator.ofInt(255, 0);
-      fadeOut.setDuration(180);
-      fadeOut.setInterpolator(new android.view.animation.AccelerateInterpolator());
+      fadeOut.setDuration(200);
+      fadeOut.setInterpolator(out);
       fadeOut.addUpdateListener(a -> {
         background.setAlpha((int) a.getAnimatedValue());
         host.popup.tgx101SetBlurFactor((int) a.getAnimatedValue() / 255f);
@@ -1208,7 +1224,7 @@ public final class Tgx101MessageMenu {
       });
       if (host.content != null) {
         host.content.animate().cancel();
-        host.content.animate().alpha(0f).scaleX(.96f).scaleY(.96f).setDuration(150).start();
+        host.content.animate().alpha(0f).scaleX(.96f).scaleY(.96f).setDuration(200).setInterpolator(out).start();
       }
       fadeOut.start();
     } else if (host.content != null) {
@@ -2035,9 +2051,10 @@ public final class Tgx101MessageMenu {
         host.content.setVisibility(View.INVISIBLE);
       }
       PopupLayout.tgx101HandOff(host.popup);
+      final boolean noWindow = opensNoWindow(v.getId());
       UI.post(() -> {
         delegate.onOptionItemPressed(v, v.getId());
-        PopupLayout.tgx101ReleaseDim();
+        if (noWindow) PopupLayout.tgx101ReleaseDimAtOnce(); else PopupLayout.tgx101ReleaseDim();
       });
     });
     return row;
@@ -2158,13 +2175,107 @@ public final class Tgx101MessageMenu {
     }
     button.setContentDescription(item.name);
     Views.setClickable(button);
-    RippleSupport.setTransparentSelector(button);
+    // no ripple: the icon under the finger only takes its colour (user 2026-11-24)
     button.setOnLongClickListener(v -> { // a hold says what the icon does
       UI.showToast(item.name != null ? item.name.toString() : "", android.widget.Toast.LENGTH_SHORT);
       return true;
     });
     button.setOnClickListener(v -> runItem(host, delegate, v));
     return button;
+  }
+
+  // (user 2026-11-24 «водить по кнопкам нижнего меню, не отрывая палец; кнопки красятся в цвета справа налево: красный,
+  // зелёный, синий, фиолетовый»): the button under the finger takes its colour — the icon and a soft round behind it
+  private static final int[] ICON_HOVER_COLORS = {0xffe5484d, 0xff30a46c, 0xff3e8ed0, 0xff8e4ec6};
+
+  private static int hoverColorOf (ViewGroup row, View child) {
+    int fromRight = row.getChildCount() - 1 - row.indexOfChild(child);
+    if (Lang.rtl()) fromRight = row.indexOfChild(child);
+    return ICON_HOVER_COLORS[Math.max(0, Math.min(ICON_HOVER_COLORS.length - 1, fromRight))];
+  }
+
+  // (user 2026-11-24 «серой подводки под пальцем быть не должно — только перекрашенная иконка, без изменения размера»)
+  private static void paintIcon (View icon, boolean on) {
+    if (!(icon instanceof ImageView) || !(icon.getParent() instanceof ViewGroup)) return;
+    Drawable d = ((ImageView) icon).getDrawable();
+    if (d != null) d.setColorFilter(Paints.getColorFilter(on ? hoverColorOf((ViewGroup) icon.getParent(), icon) : tgx101IconColor()));
+    icon.invalidate();
+  }
+
+  /** (user video 2026-11-24: icons stayed big and coloured — two trackers each cleared only its own) one coloured icon
+   *  per menu, whoever moves the finger */
+  static void hoverIcon (Host host, @Nullable View now, boolean tick) {
+    View old = host.hoveredIcon;
+    if (old == now) return;
+    if (old != null) paintIcon(old, false);
+    host.hoveredIcon = now;
+    if (now != null) {
+      paintIcon(now, true);
+      if (tick) org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.TICK);
+    }
+  }
+
+  /** The row of icons: a finger put on it may slide along the buttons and lets go on the one it wants */
+  private static final class IconRow extends LinearLayout {
+    private final Host host;
+    private @Nullable View hovered;
+    private final Runnable sayName = () -> {
+      if (hovered != null && hovered.getContentDescription() != null) UI.showToast(hovered.getContentDescription().toString(), android.widget.Toast.LENGTH_SHORT);
+    };
+
+    IconRow (Context context, Host host) {
+      super(context);
+      this.host = host;
+    }
+
+    @Override
+    public boolean onInterceptTouchEvent (android.view.MotionEvent e) {
+      return true; // the row handles the finger itself
+    }
+
+    private @Nullable View childAt (float x) {
+      for (int i = 0; i < getChildCount(); i++) {
+        View c = getChildAt(i);
+        if (x >= c.getLeft() && x < c.getRight()) return c;
+      }
+      return null;
+    }
+
+    @Override
+    public boolean onTouchEvent (android.view.MotionEvent e) {
+      if (host.dismissing) return false;
+      switch (e.getActionMasked()) {
+        case android.view.MotionEvent.ACTION_DOWN:
+        case android.view.MotionEvent.ACTION_MOVE: {
+          getParent().requestDisallowInterceptTouchEvent(true);
+          // off the row by more than its height — nothing is picked
+          boolean near = e.getY() > -getHeight() && e.getY() < getHeight() * 2;
+          View now = near ? childAt(e.getX()) : null;
+          if (now != hovered) {
+            hoverIcon(host, now, true);
+            hovered = now;
+            removeCallbacks(sayName);
+            if (now != null) postDelayed(sayName, 600); // resting on a button says what it does
+          }
+          return true;
+        }
+        case android.view.MotionEvent.ACTION_UP: {
+          removeCallbacks(sayName);
+          View picked = hovered;
+          if (picked != null) {
+            org.thunderdog.challegram.Tgx101Diag.mark("menu: icon picked in the row");
+            picked.performClick();
+          }
+          return true;
+        }
+        case android.view.MotionEvent.ACTION_CANCEL:
+          removeCallbacks(sayName);
+          hoverIcon(host, null, false);
+          hovered = null;
+          return true;
+      }
+      return true;
+    }
   }
 
   /** As a row of the list does: the menu's card goes at once, its dim waits for a window the action opens */
@@ -2176,10 +2287,17 @@ public final class Tgx101MessageMenu {
       host.content.setVisibility(View.INVISIBLE);
     }
     PopupLayout.tgx101HandOff(host.popup);
+    final boolean noWindow = opensNoWindow(v.getId());
     UI.post(() -> {
       delegate.onOptionItemPressed(v, v.getId());
-      PopupLayout.tgx101ReleaseDim();
+      if (noWindow) PopupLayout.tgx101ReleaseDimAtOnce(); else PopupLayout.tgx101ReleaseDim();
     });
+  }
+
+  /** Actions done in the chat itself: nothing will take the dim over, it goes with the card */
+  static boolean opensNoWindow (int id) {
+    return id == R.id.btn_messageReply || id == R.id.btn_messageCopy || id == R.id.btn_messageEdit || id == R.id.btn_messageCopyLink
+      || id == R.id.btn_tgx101SaveFavorite || id == R.id.btn_saveFile || id == R.id.btn_tgx101DownloadSave || id == R.id.btn_messageSelect;
   }
 
   /** «More…»: the card's actions are swapped for the extra ones (with «Back»), in the same window */
