@@ -191,7 +191,15 @@ public class ReactionsPickerController extends ViewController<MessageOptionsPage
   }
 
   public int getItemHeight () {
-    return Screen.dp(45);
+    return tgx101SpanCount != 0 ? Screen.dp(48) : Screen.dp(45);
+  }
+
+  // TGx101 (user 2026-11-24 «смайлы мелковатые, 8 в ряд достаточно»): the picker inside the message menu's panel
+  private int tgx101SpanCount;
+
+  public void tgx101SetSpanCount (int spanCount) {
+    tgx101SpanCount = spanCount;
+    if (reactionsController != null) reactionsController.setSpanCount(spanCount);
   }
 
   public float getTopHeaderVisibility () {

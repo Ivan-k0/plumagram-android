@@ -316,6 +316,7 @@ public final class Tgx101MessageMenu {
     @Nullable View card, expandView, iconCard, hoveredIcon; // the one icon of the row coloured under the finger
     @Nullable LinearLayout grid;
     @Nullable ViewGroup gridReactions;
+    @Nullable ReactionsPickerController picker; // (user 2026-11-24) the full picker inside the panel
     @Nullable LinearLayout column;
     @Nullable Runnable hoverExpand;
     final List<View> bottomViews = new ArrayList<>(); // «Delete» and its divider: hidden inside «More…»
@@ -1203,6 +1204,11 @@ public final class Tgx101MessageMenu {
       return;
     }
     host.dismissing = true;
+    if (host.picker != null) {
+      final ReactionsPickerController picker = host.picker;
+      host.picker = null;
+      UI.post(picker::destroy, 400); // after the menu's own fade
+    }
     final Drawable background = host.background;
     if (background != null) {
       // the blur melts away together with the menu instead of vanishing in one frame
@@ -1345,41 +1351,63 @@ public final class Tgx101MessageMenu {
     if (host.column == null || host.card == null || host.pill == null || host.animating) return;
     ViewGroup root = (ViewGroup) host.column.getParent();
     if (root == null) return;
+    // (user 2026-11-24 «в эталоне одно действие — меню превращается в расширенное»): ⌄ unfolds the whole picker in the
+    // panel at once — the packs (animated custom emoji too) and the search above, every emoji under them; «All emoji…»
+    // and its second window are gone
+    MessagesController mc = state.message.messagesController();
+    ReactionsPickerController picker = new ReactionsPickerController(context, state.message.tdlib());
+    picker.setArguments(state);
+    picker.tgx101SetSpanCount(8); // bigger emoji, 8 in a row (user 2026-11-24)
+    picker.getValue();
+    picker.tgx101SetSpanCount(8);
+    picker.prepareToShow();
+    host.picker = picker;
+    final org.thunderdog.challegram.v.CustomRecyclerView all = picker.getRecyclerView();
+    all.setVerticalScrollBarEnabled(false);
+    // the picker keeps room at its top for a full-screen header — none here: that first row is folded away
+    all.addItemDecoration(new androidx.recyclerview.widget.RecyclerView.ItemDecoration() {
+      @Override
+      public void getItemOffsets (@androidx.annotation.NonNull android.graphics.Rect outRect, @androidx.annotation.NonNull View view, @androidx.annotation.NonNull androidx.recyclerview.widget.RecyclerView parent, @androidx.annotation.NonNull androidx.recyclerview.widget.RecyclerView.State st) {
+        if (parent.getChildAdapterPosition(view) == 0) {
+          ViewGroup.LayoutParams lp = view.getLayoutParams();
+          outRect.top = -(lp != null && lp.height > 0 ? lp.height : view.getMeasuredHeight()) + Screen.dp(4f);
+        }
+      }
+    });
+    // (user 2026-11-24 «клавиатура при поиске должна скрываться, когда начинаю листать найденные смайлы — как в
+    // „Поделиться“»): the list taken by the finger (past the touch slop, not at once) lets the keyboard go
+    all.addOnScrollListener(new androidx.recyclerview.widget.RecyclerView.OnScrollListener() {
+      @Override
+      public void onScrollStateChanged (@androidx.annotation.NonNull androidx.recyclerview.widget.RecyclerView recyclerView, int newState) {
+        if (newState != androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_DRAGGING) return;
+        View focused = recyclerView.getRootView().findFocus();
+        if (focused instanceof android.widget.EditText) {
+          org.thunderdog.challegram.tool.Keyboard.hide(focused);
+          org.thunderdog.challegram.Tgx101Diag.mark("menu picker: the keyboard goes as the list is dragged");
+        }
+      }
+    });
+    host.gridReactions = null; // (the finger's slide from the menu doesn't reach into the picker)
     LinearLayout grid = new LinearLayout(context);
     grid.setOrientation(LinearLayout.VERTICAL);
-    ReactionsSelectorRecyclerView all = new ReactionsSelectorRecyclerView(context, state, 6);
-    all.setNeedDrawBorderGradient(false);
-    all.setVerticalScrollBarEnabled(false);
-    host.gridReactions = all;
-    grid.addView(all, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.min(Screen.dp(40f) * 5 + Screen.dp(14f), Math.round(Screen.currentHeight() * .4f))));
-    // the full picker (custom emoji packs) stays one tap away
-    TextView more = new TextView(context);
-    more.setText(Lang.getString(R.string.Tgx101AllEmoji));
-    more.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14f);
-    more.setTextColor(Theme.getColor(ColorId.textLink));
-    more.setGravity(Gravity.CENTER);
-    more.setPadding(0, Screen.dp(10f), 0, Screen.dp(12f));
-    Views.setClickable(more);
-    RippleSupport.setTransparentSelector(more);
-    more.setOnClickListener(v -> {
-      // TGx101 (user video 2026-10-27 19:57 / 20:38): between the compact menu and the full picker the chat and the
-      // keyboard showed for ~150 ms («ещё одно меню, которое сразу исчезает») — no fixed pause now
-      // (picker opened while the compact menu was still up never showed — it opens the moment the menu is gone instead)
-      host.expandAfterDismiss = onExpandReactions;
-      org.thunderdog.challegram.Tgx101Diag.mark("menu: «All emoji» tapped — the compact menu goes, the picker next");
-      dismiss(host);
-    });
-    grid.addView(more, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    android.widget.FrameLayout headerWrap = picker.getBottomHeaderViewGroup();
+    if (headerWrap.getParent() instanceof ViewGroup) ((ViewGroup) headerWrap.getParent()).removeView(headerWrap);
+    grid.addView(headerWrap, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, org.thunderdog.challegram.navigation.HeaderView.getSize(false)));
+    grid.addView(all, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
     host.grid = grid;
+    if (mc != null) org.thunderdog.challegram.Tgx101Diag.mark("menu: the full picker in the panel, custom " + state.needShowCustomEmojiInsidePicker);
 
     // where the pill is, in the root's coordinates
     int[] rootLoc = new int[2], pillLoc = new int[2];
     root.getLocationInWindow(rootLoc);
     host.pill.getLocationInWindow(pillLoc);
     int pillLeft = pillLoc[0] - rootLoc[0], pillTop = pillLoc[1] - rootLoc[1];
-    int width = host.pill.getWidth(), pillHeight = host.pill.getHeight();
-    grid.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-    int full = grid.getMeasuredHeight();
+    int pillHeight = host.pill.getHeight();
+    // as wide as the screen allows, as the reference's; about half the screen high
+    int sideGap = Screen.dp(10f);
+    int width = root.getWidth() - sideGap * 2;
+    pillLeft = sideGap;
+    int full = Math.min(Math.round(root.getHeight() * .55f), Screen.dp(460f));
     // its first row where the pill's row is; up only as much as the bottom edge needs
     int top = Math.max(Screen.getStatusBarHeight() + Screen.dp(12f), Math.min(pillTop, root.getHeight() - Screen.dp(12f) - full));
 
@@ -1405,11 +1433,16 @@ public final class Tgx101MessageMenu {
     if (host.expandView != null) host.expandView.animate().rotation(0f).setDuration(240).start();
     if (host.card != null) host.card.setVisibility(View.VISIBLE);
     if (host.iconCard != null) host.iconCard.setVisibility(View.VISIBLE);
+    if (host.picker != null) host.picker.closeBottomHeaderSearchMode(false);
     animatePanel(host, false, () -> {
       if (panel.getParent() instanceof ViewGroup) ((ViewGroup) panel.getParent()).removeView(panel);
       host.panel = null;
       host.grid = null;
       host.gridReactions = null;
+      if (host.picker != null) {
+        host.picker.destroy();
+        host.picker = null;
+      }
     });
     org.thunderdog.challegram.Tgx101Diag.mark("menu: all reactions folded");
   }
