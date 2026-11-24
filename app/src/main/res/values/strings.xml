@@ -6062,6 +6062,10 @@
   <string name="Tgx101MessageMenuHandRight">Right hand</string>
   <string name="Tgx101MessageMenuHandLeft">Left hand</string>
   <string name="Tgx101MessageMenuOrder">Message menu actions</string>
+  <string name="Tgx101HeaderIcons">Header icons</string>
+  <string name="Tgx101HeaderIconsStandard">Standard</string>
+  <string name="Tgx101HeaderIconsMedium">Medium</string>
+  <string name="Tgx101HeaderIconsLarge">Large</string>
   <string name="Tgx101EmojiEffects">Big emoji effects</string>
   <string name="Tgx101TapSelects">A tap selects the message</string>
   <string name="Tgx101MenuLockedHint">Reply, Copy, Save and Delete always stay in the menu — they can only be moved</string>

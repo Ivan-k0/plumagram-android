@@ -4379,6 +4379,18 @@ public class Settings {
   private static final String KEY_TGX101_UI_BOLD = "tgx101_ui_bold";
 
   /** TGx101 (user 2026-10-05, low vision): «Large interface» — text size of menus, lists, popups, 100–160 % */
+  // TGx101 (user 2026-11-24 «иконки вверху сделать крупнее — три размера: стандартный, средний, самый крупный»)
+  private static final String KEY_TGX101_HEADER_ICONS = "tgx101_header_icons";
+
+  public int tgx101HeaderIconSize () {
+    int v = pmc.getInt(KEY_TGX101_HEADER_ICONS, 100);
+    return v == 125 || v == 150 ? v : 100;
+  }
+
+  public void setTgx101HeaderIconSize (int v) {
+    pmc.putInt(KEY_TGX101_HEADER_ICONS, v);
+  }
+
   public int tgx101UiTextSize () {
     int v = pmc.getInt(KEY_TGX101_UI_TEXT, 100);
     return v >= 100 && v <= 160 ? v : 100;
@@ -4411,7 +4423,10 @@ public class Settings {
   public static float tgx101UiScale () {
     float system = 1f;
     try { system = org.thunderdog.challegram.unsorted.AppContext.get().getResources().getConfiguration().fontScale; } catch (Throwable ignored) { }
-    return Math.min(2f, instance().tgx101UiTextSize() / 100f * Math.max(1f, system));
+    // (user 2026-11-24 «такие менюшки — удалить, подтверждение с галочками — текст тоже нужно увеличивать»): the menus
+    // follow the chat's text too — the larger of the two
+    float byChat = instance().getChatFontSize() / CHAT_FONT_SIZE_DEFAULT;
+    return Math.min(2f, Math.max(instance().tgx101UiTextSize() / 100f * Math.max(1f, system), byChat));
   }
 
   /** Text of a menu / list row: scaled size, bolder if chosen, one line that scrolls (marquee) when it doesn't fit */

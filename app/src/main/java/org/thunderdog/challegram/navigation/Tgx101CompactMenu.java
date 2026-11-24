@@ -341,7 +341,7 @@ public final class Tgx101CompactMenu {
           iconColorId = OptionsLayout.getOptionColorId(item.iconColor);
         }
         icon.setColorFilter(Paints.getColorFilter(color(forcedTheme, iconColorId)));
-        int size = Screen.dp(22f);
+        int size = Math.round(Screen.dp(22f) * Settings.tgx101UiScale());
         icon.setBounds(0, 0, size, size);
         if (Lang.rtl()) {
           row.setCompoundDrawables(null, null, icon, null);
@@ -350,7 +350,7 @@ public final class Tgx101CompactMenu {
         }
       }
     }
-    row.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(48f)));
+    row.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Math.round(Screen.dp(48f) * Math.max(1f, Settings.tgx101UiScale() * .85f))));
     Views.setClickable(row);
     org.thunderdog.challegram.support.RippleSupport.setTransparentSelector(row);
     return row;

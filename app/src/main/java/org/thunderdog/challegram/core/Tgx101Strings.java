@@ -374,6 +374,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MessageMenuHandRight, "Правую");
     RU.put(R.string.Tgx101MessageMenuHandLeft, "Левую");
     RU.put(R.string.Tgx101MessageMenuOrder, "Пункты меню сообщения");
+    RU.put(R.string.Tgx101HeaderIcons, "Значки в шапке");
+    RU.put(R.string.Tgx101HeaderIconsStandard, "Стандарт");
+    RU.put(R.string.Tgx101HeaderIconsMedium, "Средние");
+    RU.put(R.string.Tgx101HeaderIconsLarge, "Крупные");
     RU.put(R.string.Tgx101EmojiEffects, "Эффекты больших смайлов");
     RU.put(R.string.Tgx101TapSelects, "Нажатие выбирает сообщение");
     RU.put(R.string.Tgx101MenuLockedHint, "«Ответить», «Копировать», «Сохранить» и «Удалить» всегда в меню — их можно только переставить");

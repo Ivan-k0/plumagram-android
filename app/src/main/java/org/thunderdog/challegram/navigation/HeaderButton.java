@@ -211,7 +211,7 @@ public class HeaderButton extends View {
         c.save();
         c.scale(-1f, 1f, getMeasuredWidth() / 2, getMeasuredHeight() / 2);
       }
-      float scale = .8f + .2f * (1f - progressFactor);
+      float scale = (.8f + .2f * (1f - progressFactor)) * org.thunderdog.challegram.unsorted.Settings.instance().tgx101HeaderIconSize() / 100f; // (user 2026-11-24): MagiX «Значки в шапке»
       if (scale != 1f) {
         c.save();
         c.scale(scale, scale, getMeasuredWidth() / 2, getMeasuredHeight() / 2);

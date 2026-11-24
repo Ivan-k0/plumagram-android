@@ -443,6 +443,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101MenuAtFinger(), isUpdate);
         } else if (itemId == R.id.btn_tgx101UiText) {
           view.setData(Settings.instance().tgx101UiTextSize() + "%");
+        } else if (itemId == R.id.btn_tgx101HeaderIcons) {
+          int hs = Settings.instance().tgx101HeaderIconSize();
+          view.setData(hs == 150 ? R.string.Tgx101HeaderIconsLarge : hs == 125 ? R.string.Tgx101HeaderIconsMedium : R.string.Tgx101HeaderIconsStandard);
         } else if (itemId == R.id.btn_tgx101UiBold) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101UiBold(), isUpdate);
         } else if (itemId == R.id.btn_tgx101InputFontScale) {
@@ -608,6 +611,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.Tgx101TextSection),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101UiText, 0, R.string.Tgx101UiText),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING, R.id.btn_tgx101HeaderIcons, 0, R.string.Tgx101HeaderIcons),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101UiBold, 0, R.string.Tgx101UiBold),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1456,7 +1461,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_roundStabilization) return 4;
     if (id == R.id.btn_tgx101Snooze || id == R.id.btn_tgx101ForegroundNotif || id == R.id.btn_tgx101KeepHighRate || id == R.id.btn_tgx101IdleCut) return 5;
     if (id == R.id.btn_tgx101AppIcon || id == R.id.btn_tgx101NotificationPlane) return 9; // user 2026-10-14: the plane icon goes with the app icon
-    if (id == R.id.btn_tgx101UiText || id == R.id.btn_tgx101UiBold || id == R.id.btn_tgx101ChatListTextSize || id == R.id.btn_tgx101Font || id == R.id.btn_tgx101InputFontScale || id == R.id.btn_tgx101TextWeight || id == R.id.btn_chatFontSize || id == R.id.btn_bigEmojiSize) return 6;
+    if (id == R.id.btn_tgx101UiText || id == R.id.btn_tgx101HeaderIcons || id == R.id.btn_tgx101UiBold || id == R.id.btn_tgx101ChatListTextSize || id == R.id.btn_tgx101Font || id == R.id.btn_tgx101InputFontScale || id == R.id.btn_tgx101TextWeight || id == R.id.btn_chatFontSize || id == R.id.btn_bigEmojiSize) return 6;
     if (id == R.id.btn_tgx101CallBar || id == R.id.btn_tgx101NewCallScreen || id == R.id.btn_tgx101CallPhoto || id == R.id.btn_tgx101CallPattern
       || id == R.id.btn_tgx101RingRamp || id == R.id.btn_tgx101RingRampTime || id == R.id.btn_tgx101RingStart || id == R.id.btn_tgx101CallBubble) return 7;
     if (id == R.id.btn_tgx101TranslateOnDevice || id == R.id.btn_tgx101TranslateModels || id == R.id.btn_tgx101SpeechModel || id == R.id.btn_tgx101SpeechEngine || id == R.id.btn_tgx101SuggestChatTranslation || id == R.id.btn_tgx101FakeNoPremium) return 8;
@@ -1927,6 +1932,22 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         }));
     } else if (id == R.id.btn_tgx101UiBold) {
       Settings.instance().setTgx101UiBold(toggleResult); // the view was already toggled above; menus opened afterwards
+    } else if (id == R.id.btn_tgx101HeaderIcons) {
+      int current = Settings.instance().tgx101HeaderIconSize();
+      int[] values = {100, 125, 150};
+      int[] names = {R.string.Tgx101HeaderIconsStandard, R.string.Tgx101HeaderIconsMedium, R.string.Tgx101HeaderIconsLarge};
+      ListItem[] items = new ListItem[values.length];
+      for (int i = 0; i < values.length; i++) {
+        items[i] = new ListItem(ListItem.TYPE_RADIO_OPTION, i + 1, 0, names[i], R.id.btn_tgx101HeaderIcons, values[i] == current);
+      }
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101HeaderIcons)
+        .setRawItems(items)
+        .setIntDelegate((resultId, result) -> {
+          int index = result.get(R.id.btn_tgx101HeaderIcons) - 1;
+          if (index >= 0 && index < values.length) Settings.instance().setTgx101HeaderIconSize(values[index]);
+          adapter.updateValuedSettingById(R.id.btn_tgx101HeaderIcons);
+          if (context.navigation() != null && context.navigation().getHeaderView() != null) context.navigation().getHeaderView().invalidate();
+        }));
     } else if (id == R.id.btn_tgx101UiText) {
       int current = Settings.instance().tgx101UiTextSize();
       int[] values = {100, 115, 130, 145, 160};
