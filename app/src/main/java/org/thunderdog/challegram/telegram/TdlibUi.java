@@ -2223,6 +2223,13 @@ public class TdlibUi extends Handler {
     }
     // TODO progress
     tdlib.client().send(createRequest, object -> {
+      if (createRequest.getConstructor() == TdApi.SearchPublicChat.CONSTRUCTOR) {
+        // TGx101: a chat by its name — found (and what it is, what we are in it) or why not
+        String found = object.getConstructor() == TdApi.Error.CONSTRUCTOR ? "error " + TD.toErrorString((TdApi.Error) object)
+          : object.getConstructor() == TdApi.Chat.CONSTRUCTOR ? "chat " + ((TdApi.Chat) object).id + " " + ((TdApi.Chat) object).type.getClass().getSimpleName()
+            + ", status " + Tdlib.tgx101StatusName(tdlib.chatStatus(((TdApi.Chat) object).id)) : object.getClass().getSimpleName();
+        org.thunderdog.challegram.Tgx101Diag.mark("tg link: public chat → " + found);
+      }
       switch (object.getConstructor()) {
         case TdApi.Chat.CONSTRUCTOR:
           openChat(context, tdlib.objectToChat(object), params);
@@ -3778,6 +3785,9 @@ public class TdlibUi extends Handler {
           tdlib.send(new TdApi.GetInternalLinkType(url.get()), this);
           return;
         }
+        // TGx101 (Android 5.1 report «t.me/… — нажимаю, ничего не происходит»): what the link turned out to be
+        org.thunderdog.challegram.Tgx101Diag.mark("tg link: " + (linkType != null ? linkType.getClass().getSimpleName() : "not recognised")
+          + (error != null ? ", parse error " + TD.toErrorString(error) : "") + ", api " + android.os.Build.VERSION.SDK_INT);
         if (linkType == null) {
           if (after != null) {
             post(() -> after.runWithBool(false));
