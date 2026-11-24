@@ -309,6 +309,18 @@ public final class Tgx101SelectionBar {
   // (user 2026-11-24, mockup «Выделение текста», variant В): a white card as the message menu's, the words in the theme's
   // colour, thin lines between them, a thin line of the theme's colour round it instead of a shadow (the shadow of a
   // square window came out as a grey box past the rounded corners)
+  // (user 2026-11-24 «для людей с плохим зрением „Копировать, Вырезать, Вставить“ плохо видно — увеличить вдвое»): the bar
+  // grows with the text: the message field's size (18 dp → as before, 27 dp → twice) or the menus' text size, the larger
+  private static float tgx101Scale () {
+    int input = org.thunderdog.challegram.unsorted.Settings.instance().tgx101InputTextSize();
+    float byInput = 1f + Math.max(0, input - 18) / 9f;
+    return Math.max(1f, Math.min(2f, Math.max(byInput, org.thunderdog.challegram.unsorted.Settings.tgx101UiScale())));
+  }
+
+  private static int row () {
+    return Math.round(Screen.dp(30f) * tgx101Scale());
+  }
+
   private static int panelColor () {
     return Theme.fillingColor();
   }
@@ -358,7 +370,7 @@ public final class Tgx101SelectionBar {
       row.addView(chip(context, title != null ? title.toString() : "", v -> invoke(item)), chipParams());
     }
     scroll.addView(row);
-    card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(30f)));
+    card.addView(scroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, row()));
 
     if (withFormatting && textView instanceof InputView) {
       InputView input = (InputView) view;
@@ -387,12 +399,14 @@ public final class Tgx101SelectionBar {
             }
           });
         });
-        icons.addView(icon, new LinearLayout.LayoutParams(0, Screen.dp(30f), 1f));
+        icon.setScaleX(tgx101Scale());
+        icon.setScaleY(tgx101Scale());
+        icons.addView(icon, new LinearLayout.LayoutParams(0, row(), 1f));
       }
       // «Undo» — the last one in the row, behind a thin line (mockup 3)
       View divider = new View(context);
       divider.setBackgroundColor(ColorUtils.alphaColor(.2f, Theme.textDecentColor()));
-      LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(Math.max(1, Screen.dp(1f) / 2), Screen.dp(20f));
+      LinearLayout.LayoutParams dividerParams = new LinearLayout.LayoutParams(Math.max(1, Screen.dp(1f) / 2), Math.round(Screen.dp(20f) * tgx101Scale()));
       dividerParams.gravity = Gravity.CENTER_VERTICAL;
       icons.addView(divider, dividerParams);
       ImageView undo = new ImageView(context);
@@ -406,8 +420,10 @@ public final class Tgx101SelectionBar {
           org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101NothingToUndo, android.widget.Toast.LENGTH_SHORT);
         }
       }));
-      icons.addView(undo, new LinearLayout.LayoutParams(0, Screen.dp(30f), 1f));
-      LinearLayout.LayoutParams iconsParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(30f));
+      undo.setScaleX(tgx101Scale());
+      undo.setScaleY(tgx101Scale());
+      icons.addView(undo, new LinearLayout.LayoutParams(0, row(), 1f));
+      LinearLayout.LayoutParams iconsParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, row());
       iconsParams.topMargin = Screen.dp(3f);
       card.addView(icons, iconsParams);
     }
@@ -432,17 +448,17 @@ public final class Tgx101SelectionBar {
     button.setText(title);
     button.setSingleLine(true);
     button.setGravity(Gravity.CENTER);
-    button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+    button.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f * tgx101Scale());
     button.setTypeface(Fonts.getRobotoRegular());
     button.setTextColor(wordColor());
-    button.setPadding(Screen.dp(11f), 0, Screen.dp(11f), 0);
+    button.setPadding(Math.round(Screen.dp(11f) * tgx101Scale()), 0, Math.round(Screen.dp(11f) * tgx101Scale()), 0);
     button.setBackground(pressable(0, 9f));
     button.setOnClickListener(onClick);
     return button;
   }
 
   private static LinearLayout.LayoutParams chipParams () {
-    return new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(30f));
+    return new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, row());
   }
 
   private static LinearLayout.LayoutParams dividerParams () {
