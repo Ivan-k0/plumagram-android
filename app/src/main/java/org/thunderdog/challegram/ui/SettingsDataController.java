@@ -1316,7 +1316,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         final float[] drag = {Float.NaN, 0f};
         b.setOnLongClickListener(v -> {
           drag[0] = drag[1];
-          v.setElevation(Screen.dp(6f));
+          if (android.os.Build.VERSION.SDK_INT >= 21) v.setElevation(Screen.dp(6f));
           v.animate().scaleX(1.15f).scaleY(1.15f).setDuration(120).start();
           org.thunderdog.challegram.tool.UI.forceVibrate(v, false);
           return true;

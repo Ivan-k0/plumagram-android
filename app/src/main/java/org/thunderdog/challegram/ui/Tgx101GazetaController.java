@@ -225,7 +225,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   // (user 2026-11-24 «шапка газеты по-прежнему тусклая», reproduced: leave, come back — the header showed the buttons of
   // the last visit, coloured for its look, while this feed's fields pointed at none): take this header's own buttons
   private void tgx101FindHeaderButtons () {
-    if (profileButton != null && profileButton.isAttachedToWindow()) return;
+    if (profileButton != null && profileButton.getWindowToken() != null) return; // attached (isAttachedToWindow is API 19)
     if (context().navigation() == null || context().navigation().getHeaderView() == null) return;
     View found = context().navigation().getHeaderView().findViewById(R.id.menu_btn_tgx101GazetaProfile);
     if (!(found instanceof org.thunderdog.challegram.navigation.HeaderButton) || !(found.getParent() instanceof ViewGroup)) return;

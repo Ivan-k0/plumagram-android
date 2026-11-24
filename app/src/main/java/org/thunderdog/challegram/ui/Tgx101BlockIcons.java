@@ -85,7 +85,7 @@ public final class Tgx101BlockIcons {
         final float[] drag = {Float.NaN, 0f};
         b.setOnLongClickListener(v -> {
           drag[0] = drag[1];
-          v.setElevation(Screen.dp(6f));
+          if (android.os.Build.VERSION.SDK_INT >= 21) v.setElevation(Screen.dp(6f));
           v.animate().scaleX(1.15f).scaleY(1.15f).setDuration(120).start();
           UI.forceVibrate(v, false);
           return true;
@@ -110,7 +110,7 @@ public final class Tgx101BlockIcons {
                 int to = Math.max(0, Math.min(ids.size() - 1, slot + Math.round(dx / Math.max(1, v.getWidth()))));
                 drag[0] = Float.NaN;
                 v.animate().scaleX(1f).scaleY(1f).translationX(0f).setDuration(120).start();
-                v.setElevation(0f);
+                if (android.os.Build.VERSION.SDK_INT >= 21) v.setElevation(0f);
                 if (to != slot) {
                   Integer moved = ids.remove(slot);
                   ids.add(to, moved);
