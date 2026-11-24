@@ -313,7 +313,7 @@ public final class Tgx101MessageMenu {
     @Nullable ViewGroup reactions; // the reactions pill: sliding the finger there picks a reaction too (user 2026-10-06)
     // all reactions (user 2026-10-06, variants 1 + 5): ⌄ unfolds a grid of still pictures right under the pill and
     // hides the actions; ⌃ folds it back. In the iOS slide, holding the finger on ⌄ unfolds it too
-    @Nullable View card, expandView;
+    @Nullable View card, expandView, iconCard;
     @Nullable LinearLayout grid;
     @Nullable ViewGroup gridReactions;
     @Nullable LinearLayout column;
@@ -961,6 +961,7 @@ public final class Tgx101MessageMenu {
       iconParams.topMargin = Screen.dp(8f);
       if (leftHand) iconParams.leftMargin = cardEdgeGap; else iconParams.rightMargin = cardEdgeGap;
       column.addView(iconCard, iconParams);
+      host.iconCard = iconCard;
     }
     // A short scale-in from the corner
     column.setPivotX(leftHand ? 0 : pillWidth + cardEdgeGap - overhang);
@@ -1352,25 +1353,7 @@ public final class Tgx101MessageMenu {
       org.thunderdog.challegram.Tgx101Diag.mark("menu: «All emoji» tapped — the compact menu goes, the picker next");
       dismiss(host);
     });
-    // «All emoji» and, at the edge, ⌃ that folds the panel back to the menu (the ⌄ that opened it lies under the panel)
-    FrameLayout bottomRow = new FrameLayout(context);
-    bottomRow.addView(more, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-    ImageView fold = new ImageView(context);
-    Drawable up = Drawables.get(context.getResources(), R.drawable.baseline_keyboard_arrow_down_24);
-    if (up != null) {
-      up = up.mutate();
-      up.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.icon)));
-      fold.setImageDrawable(up);
-    }
-    fold.setRotation(180f);
-    fold.setScaleType(ImageView.ScaleType.CENTER);
-    fold.setBackground(rounded(Theme.getColor(ColorId.background), Screen.dp(16f)));
-    fold.setContentDescription(Lang.getString(R.string.Tgx101MenuBack));
-    fold.setOnClickListener(v -> foldPanel(host));
-    FrameLayout.LayoutParams foldParams = new FrameLayout.LayoutParams(Screen.dp(32f), Screen.dp(32f), Gravity.CENTER_VERTICAL | (Lang.rtl() ? Gravity.LEFT : Gravity.RIGHT));
-    foldParams.rightMargin = foldParams.leftMargin = Screen.dp(10f);
-    bottomRow.addView(fold, foldParams);
-    grid.addView(bottomRow, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    grid.addView(more, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     host.grid = grid;
 
     // where the pill is, in the root's coordinates
@@ -1405,6 +1388,7 @@ public final class Tgx101MessageMenu {
     if (panel == null || host.animating) return;
     if (host.expandView != null) host.expandView.animate().rotation(0f).setDuration(240).start();
     if (host.card != null) host.card.setVisibility(View.VISIBLE);
+    if (host.iconCard != null) host.iconCard.setVisibility(View.VISIBLE);
     animatePanel(host, false, () -> {
       if (panel.getParent() instanceof ViewGroup) ((ViewGroup) panel.getParent()).removeView(panel);
       host.panel = null;
@@ -1438,12 +1422,22 @@ public final class Tgx101MessageMenu {
         host.card.setScaleX(.96f + .04f * c);
         host.card.setScaleY(.96f + .04f * c);
       }
+      if (host.iconCard != null) {
+        // (user 2026-11-24 «смайлы почти наезжают на нижнее меню — его нужно скрывать»): the row of icons goes with the
+        // list — a little sooner, sinking a bit, so the grid never touches it
+        float c = 1f - clamp01(f / .4f);
+        host.iconCard.setAlpha(c);
+        host.iconCard.setScaleX(.94f + .06f * c);
+        host.iconCard.setScaleY(.94f + .06f * c);
+        host.iconCard.setTranslationY(Screen.dp(8f) * (1f - c));
+      }
     });
     a.addListener(new android.animation.AnimatorListenerAdapter() {
       @Override
       public void onAnimationEnd (android.animation.Animator animation) {
         host.animating = false;
         if (open && host.card != null) host.card.setVisibility(View.INVISIBLE); // its rows don't take taps under the panel
+        if (host.iconCard != null) host.iconCard.setVisibility(open ? View.INVISIBLE : View.VISIBLE);
         if (after != null) after.run();
       }
     });
