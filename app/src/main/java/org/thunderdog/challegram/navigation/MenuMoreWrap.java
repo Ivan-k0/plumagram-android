@@ -255,7 +255,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
       receiver.requestMessageSender(tdlib, menuItem.messageSenderId, AvatarReceiver.Options.NONE);
     }
 
-    FrameLayout.LayoutParams lp = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(ITEM_HEIGHT), Gravity.LEFT);
+    FrameLayout.LayoutParams lp = FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, StringUtils.isEmpty(menuItem.subtitle) ? tgx101RowHeight() : Screen.dp(ITEM_HEIGHT), Gravity.LEFT);
     FrameLayout frameLayout = new FrameLayoutFix(getContext()) {
       @Override
       protected void onDraw (Canvas canvas) {
@@ -339,7 +339,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
 
     TextView titleTextItem = new NoScrollTextView(getContext());
     titleTextItem.setTypeface(Fonts.getRobotoRegular());
-    titleTextItem.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+    titleTextItem.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f * (StringUtils.isEmpty(menuItem.subtitle) ? org.thunderdog.challegram.unsorted.Settings.tgx101UiScale() : 1f));
     titleTextItem.setText(menuItem.title);
     titleTextItem.setSingleLine(true);
     titleTextItem.setEllipsize(TextUtils.TruncateAt.END);
@@ -352,7 +352,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
       titleTextItem.setPadding(Screen.dp(59f), 0, textRightOffset, 0);
       titleTextItem.setLayoutParams(new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER_VERTICAL | Lang.gravity()));
     }
-    titleTextItem.setMaxWidth(maxWidth);
+    titleTextItem.setMaxWidth(Math.max(maxWidth, Screen.currentWidth() - Screen.dp(32f)));
 
     TextView subtitleTextItem;
     if (!StringUtils.isEmpty(menuItem.subtitle)) {
@@ -445,12 +445,19 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
         menuItem.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
       }
     }
+    // TGx101 (user 2026-11-24 screenshot: «Удалить» stayed small at a big text): rows grow with the text
+    org.thunderdog.challegram.unsorted.Settings.tgx101StyleRow(menuItem, 16f);
+    menuItem.getLayoutParams().height = tgx101RowHeight();
     Views.setClickable(menuItem);
     RippleSupport.setTransparentSelector(menuItem);
     itemsLayout.addView(menuItem);
     menuItem.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
     menuItem.setTag(menuItem.getMeasuredWidth());
     return menuItem;
+  }
+
+  private static int tgx101RowHeight () {
+    return Math.round(Screen.dp(ITEM_HEIGHT) * Math.max(1f, org.thunderdog.challegram.unsorted.Settings.tgx101UiScale() * .85f));
   }
 
   @Override
@@ -503,7 +510,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     for (int i = 0; i < childCount; i++) {
       View v = getChildAt(i);
       if (v != null && v.getVisibility() != View.GONE) {
-        total += itemHeight;
+        total += v.getLayoutParams() != null && v.getLayoutParams().height > 0 ? v.getLayoutParams().height : itemHeight; // rows grown with the text
       }
     }
     return total + padding + padding;
@@ -536,7 +543,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     int innerX = sourceX - location[0];
     int innerY = sourceY - location[1];
 
-    int index = Math.floorDiv(innerY - Screen.dp(PADDING), Screen.dp(ITEM_HEIGHT));
+    int index = Math.floorDiv(innerY - Screen.dp(PADDING), tgx101RowHeight());
     setSelectedIndex(index == MathUtils.clamp(index, 0, getChildCount() - 1) ? index : -1);
 
     // Log.i("HAPTIC INNER", String.format("INDEX %d", index));
@@ -589,7 +596,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
       for (int i = 0; i < childCount; i++) {
         final float alpha = MathUtils.clamp(1f - Math.abs(factorAnimator.getFactor() - i));
         if (alpha > 0f) {
-          canvas.drawRect(Screen.dp(PADDING), Screen.dp(PADDING + ITEM_HEIGHT * i), getMeasuredWidth() - Screen.dp(PADDING), Screen.dp(PADDING + ITEM_HEIGHT * (i + 1)), Paints.fillingPaint(ColorUtils.alphaColor(alpha * 0.05f, Theme.getColor(ColorId.text))));
+          canvas.drawRect(Screen.dp(PADDING), Screen.dp(PADDING) + tgx101RowHeight() * i, getMeasuredWidth() - Screen.dp(PADDING), Screen.dp(PADDING) + tgx101RowHeight() * (i + 1), Paints.fillingPaint(ColorUtils.alphaColor(alpha * 0.05f, Theme.getColor(ColorId.text))));
         }
       }
     }

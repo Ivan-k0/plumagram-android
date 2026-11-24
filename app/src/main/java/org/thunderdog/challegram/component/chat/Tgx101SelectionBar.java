@@ -317,6 +317,14 @@ public final class Tgx101SelectionBar {
     return Math.max(1f, Math.min(2f, Math.max(byInput, org.thunderdog.challegram.unsorted.Settings.tgx101UiScale())));
   }
 
+  // (user 2026-11-24 screenshot: the formatting icons ran into each other) — the icons share the row's width: they grow
+  // only while ten of them still keep a gap, then stay at that
+  private static float tgx101IconScale () {
+    float cell = (Screen.currentWidth() - Screen.dp(32f)) / 10f;
+    float fit = cell / Screen.dp(24f + 12f);
+    return Math.max(1f, Math.min(tgx101Scale(), fit));
+  }
+
   private static int row () {
     return Math.round(Screen.dp(30f) * tgx101Scale());
   }
@@ -399,8 +407,8 @@ public final class Tgx101SelectionBar {
             }
           });
         });
-        icon.setScaleX(tgx101Scale());
-        icon.setScaleY(tgx101Scale());
+        icon.setScaleX(tgx101IconScale());
+        icon.setScaleY(tgx101IconScale());
         icons.addView(icon, new LinearLayout.LayoutParams(0, row(), 1f));
       }
       // «Undo» — the last one in the row, behind a thin line (mockup 3)
@@ -420,8 +428,8 @@ public final class Tgx101SelectionBar {
           org.thunderdog.challegram.tool.UI.showToast(R.string.Tgx101NothingToUndo, android.widget.Toast.LENGTH_SHORT);
         }
       }));
-      undo.setScaleX(tgx101Scale());
-      undo.setScaleY(tgx101Scale());
+      undo.setScaleX(tgx101IconScale());
+      undo.setScaleY(tgx101IconScale());
       icons.addView(undo, new LinearLayout.LayoutParams(0, row(), 1f));
       LinearLayout.LayoutParams iconsParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, row());
       iconsParams.topMargin = Screen.dp(3f);
@@ -550,7 +558,8 @@ public final class Tgx101SelectionBar {
 
   private void positionFollowing (int anchorX, int anchorTop, int anchorBottom) {
     int screenWidth = Screen.currentWidth();
-    int width = Math.min(Screen.dp(300f), screenWidth - Screen.dp(24f));
+    // (bigger text: the bar is wider as well, so «Копировать» isn't scrolled out of a 300 dp bar)
+    int width = Math.min(Math.round(Screen.dp(300f) * tgx101Scale()), screenWidth - Screen.dp(24f));
     content.measure(View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
     int cardHeight = card.getMeasuredHeight();
     int tailHeight = Screen.dp(8f);
@@ -561,6 +570,20 @@ public final class Tgx101SelectionBar {
     boolean below = y < Screen.getStatusBarHeight() + Screen.dp(4f);
     if (below) {
       y = anchorBottom + Screen.dp(26f); // under the bottom handle
+      // (user 2026-11-24 video «куда делось меню»: a long selection reaching under the field put the bar over the
+      // keyboard, half hidden) — never below what the chat shows: then it stays at the top of the screen
+      android.graphics.Rect visible = new android.graphics.Rect();
+      view.getWindowVisibleDisplayFrame(visible);
+      int limit = visible.bottom - Screen.dp(64f) * Math.round(Math.max(1f, tgx101Scale()));
+      if (y + height > limit) {
+        y = Screen.getStatusBarHeight() + Screen.dp(4f);
+        below = false; // no tail: it points at nothing on screen
+        tail.setVisibility(View.INVISIBLE);
+      } else {
+        tail.setVisibility(View.VISIBLE);
+      }
+    } else {
+      tail.setVisibility(View.VISIBLE);
     }
     // the tail points at the start of the selection
     FrameLayout.LayoutParams cardParams = (FrameLayout.LayoutParams) card.getLayoutParams();
