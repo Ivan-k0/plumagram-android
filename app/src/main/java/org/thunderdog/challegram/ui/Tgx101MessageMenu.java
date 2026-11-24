@@ -513,6 +513,12 @@ public final class Tgx101MessageMenu {
     host.moreLoader = moreLoader;
     PopupLayout popup = new PopupLayout(context);
     host.popup = popup;
+    // «back» with all the reactions open folds them back to the menu first
+    popup.setBackListener((fromTop, commit) -> {
+      if (host.panel == null) return false;
+      if (commit) foldPanel(host);
+      return true;
+    });
     dragHost = new java.lang.ref.WeakReference<>(host);
     // TGx101 (user 2026-10-06 12:09, voice message with a transcription): the menu can be opened by another long-press
     // path (text inside the bubble) that didn't arm the slide — arm it whenever the finger is still down in iOS mode
@@ -1346,7 +1352,25 @@ public final class Tgx101MessageMenu {
       org.thunderdog.challegram.Tgx101Diag.mark("menu: «All emoji» tapped — the compact menu goes, the picker next");
       dismiss(host);
     });
-    grid.addView(more, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    // «All emoji» and, at the edge, ⌃ that folds the panel back to the menu (the ⌄ that opened it lies under the panel)
+    FrameLayout bottomRow = new FrameLayout(context);
+    bottomRow.addView(more, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    ImageView fold = new ImageView(context);
+    Drawable up = Drawables.get(context.getResources(), R.drawable.baseline_keyboard_arrow_down_24);
+    if (up != null) {
+      up = up.mutate();
+      up.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.icon)));
+      fold.setImageDrawable(up);
+    }
+    fold.setRotation(180f);
+    fold.setScaleType(ImageView.ScaleType.CENTER);
+    fold.setBackground(rounded(Theme.getColor(ColorId.background), Screen.dp(16f)));
+    fold.setContentDescription(Lang.getString(R.string.Tgx101MenuBack));
+    fold.setOnClickListener(v -> foldPanel(host));
+    FrameLayout.LayoutParams foldParams = new FrameLayout.LayoutParams(Screen.dp(32f), Screen.dp(32f), Gravity.CENTER_VERTICAL | (Lang.rtl() ? Gravity.LEFT : Gravity.RIGHT));
+    foldParams.rightMargin = foldParams.leftMargin = Screen.dp(10f);
+    bottomRow.addView(fold, foldParams);
+    grid.addView(bottomRow, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     host.grid = grid;
 
     // where the pill is, in the root's coordinates
@@ -1368,6 +1392,8 @@ public final class Tgx101MessageMenu {
     params.topMargin = top;
     root.addView(panel, params);
     panel.setFrom(pillTop - top, pillTop - top + pillHeight);
+    panel.swipedDown = () -> foldPanel(host);
+    panel.scrollable = all;
     host.panel = panel;
     animatePanel(host, true, null);
     if (host.expandView != null) host.expandView.animate().rotation(180f).setDuration(260).start();
@@ -1493,6 +1519,56 @@ public final class Tgx101MessageMenu {
         return false; // outside the visible part: a tap there folds it (the root takes it)
       }
       return super.dispatchTouchEvent(e);
+    }
+
+    // (user 2026-11-24 «как прятать окно со смайлами? нужно мудрое решение»): a swipe down folds it back to the menu —
+    // from anywhere on it while its list is at the top
+    @Nullable Runnable swipedDown;
+    @Nullable View scrollable;
+    private float downX, downY;
+    private boolean dragging;
+
+    @Override
+    public boolean onInterceptTouchEvent (android.view.MotionEvent e) {
+      switch (e.getActionMasked()) {
+        case android.view.MotionEvent.ACTION_DOWN:
+          downX = e.getX();
+          downY = e.getY();
+          dragging = false;
+          break;
+        case android.view.MotionEvent.ACTION_MOVE: {
+          float dy = e.getY() - downY, dx = e.getX() - downX;
+          int slop = android.view.ViewConfiguration.get(getContext()).getScaledTouchSlop();
+          if (swipedDown != null && dy > slop && dy > Math.abs(dx) * 1.5f && (scrollable == null || !scrollable.canScrollVertically(-1))) {
+            dragging = true;
+            return true;
+          }
+          break;
+        }
+      }
+      return false;
+    }
+
+    @Override
+    public boolean onTouchEvent (android.view.MotionEvent e) {
+      if (!dragging) return super.onTouchEvent(e);
+      float dy = Math.max(0f, e.getY() + getTranslationY() - downY);
+      switch (e.getActionMasked()) {
+        case android.view.MotionEvent.ACTION_MOVE:
+          setTranslationY(dy * .5f); // it follows the finger, held back
+          return true;
+        case android.view.MotionEvent.ACTION_UP:
+        case android.view.MotionEvent.ACTION_CANCEL:
+          dragging = false;
+          if (e.getActionMasked() == android.view.MotionEvent.ACTION_UP && dy > Screen.dp(56f) && swipedDown != null) {
+            animate().translationY(0f).setDuration(200).start();
+            swipedDown.run();
+          } else {
+            animate().translationY(0f).setDuration(180).start();
+          }
+          return true;
+      }
+      return true;
     }
   }
 
