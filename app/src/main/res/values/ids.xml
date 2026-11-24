@@ -1100,9 +1100,6 @@
   <item type="id" name="btn_tgx101MessageMenuBlocks" />
   <item type="id" name="btn_tgx101MessageMenuBlockIcons" />
   <item type="id" name="btn_tgx101MenuOutlinedIcons" />
-  <item type="id" name="btn_tgx101GazetaThemeAuto" />
-  <item type="id" name="btn_tgx101GazetaThemeLight" />
-  <item type="id" name="btn_tgx101GazetaThemeDark" />
   <item type="id" name="btn_tgx101MessageMenuHandLeft" />
   <item type="id" name="btn_tgx101MessageMenuHandRight" />
   <item type="id" name="btn_tgx101MessageMenuOrder" />

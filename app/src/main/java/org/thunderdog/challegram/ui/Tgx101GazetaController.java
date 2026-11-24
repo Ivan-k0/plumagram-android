@@ -68,6 +68,9 @@ import tgx.td.MessageId;
 public class Tgx101GazetaController extends ViewController<Void> implements Menu, org.thunderdog.challegram.mediaview.MediaViewDelegate {
   public Tgx101GazetaController (Context context, Tdlib tdlib) {
     super(context, tdlib);
+    // entering the feed: back on «Авто» if it is kept — before the header is painted (user 2026-11-24 screen: the header
+    // took the ☀ look of the last visit, pale icons over the dark feed)
+    Tgx101Gazeta.resetSessionProfile();
   }
 
   @Override
@@ -324,7 +327,6 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
   }
 
   private static int profileIcon () {
-    if (Tgx101Gazeta.isProfileAuto()) return R.drawable.baseline_brightness_5_24;
     return Tgx101Gazeta.profile() == Tgx101Gazeta.PROFILE_DARK ? R.drawable.tgx101_sun_24 : R.drawable.baseline_brightness_2_24;
   }
 
@@ -413,21 +415,12 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
     } else if (id == R.id.menu_btn_tgx101GazetaAuto) {
       setAutoScroll(!autoScroll);
     } else if (id == R.id.menu_btn_tgx101GazetaProfile) {
-      // (user 2026-11-23): light, dark, or «Авто» — as the app's theme, changing with it
-      int current = Tgx101Gazeta.isProfileAuto() ? Tgx101Gazeta.PROFILE_AUTO : Tgx101Gazeta.profile();
-      showOptions(null, new int[] {R.id.btn_tgx101GazetaThemeAuto, R.id.btn_tgx101GazetaThemeLight, R.id.btn_tgx101GazetaThemeDark},
-        new String[] {
-          Lang.getString(R.string.Tgx101GazetaThemeAuto) + (current == Tgx101Gazeta.PROFILE_AUTO ? "  ✓" : ""),
-          Lang.getString(R.string.Tgx101GazetaThemeLight) + (current == Tgx101Gazeta.PROFILE_LIGHT ? "  ✓" : ""),
-          Lang.getString(R.string.Tgx101GazetaThemeDark) + (current == Tgx101Gazeta.PROFILE_DARK ? "  ✓" : "")},
-        null, new int[] {R.drawable.baseline_brightness_5_24, R.drawable.tgx101_sun_24, R.drawable.baseline_brightness_2_24}, (v, picked) -> {
-          Tgx101Gazeta.setProfile(picked == R.id.btn_tgx101GazetaThemeLight ? Tgx101Gazeta.PROFILE_LIGHT : picked == R.id.btn_tgx101GazetaThemeDark ? Tgx101Gazeta.PROFILE_DARK : Tgx101Gazeta.PROFILE_AUTO);
-          if (profileButton != null) profileButton.setImageResource(profileIcon());
-          applyPalette();
-          repaintHeader();
-          adapter.notifyDataSetChanged();
-          return true;
-        });
+      // ☀/☾: one tap, as before (user 2026-11-24 «в шапке ничего не меняется»); «Авто» is in «Вид „Газеты“»
+      Tgx101Gazeta.switchProfile(Tgx101Gazeta.profile() == Tgx101Gazeta.PROFILE_DARK ? Tgx101Gazeta.PROFILE_LIGHT : Tgx101Gazeta.PROFILE_DARK);
+      if (profileButton != null) profileButton.setImageResource(profileIcon());
+      applyPalette();
+      repaintHeader();
+      adapter.notifyDataSetChanged();
     } else if (id == R.id.menu_btn_settings) {
       needReload = true;
       navigateTo(new Tgx101GazetaSettingsController(context, tdlib).setFeed(this));
@@ -554,6 +547,7 @@ public class Tgx101GazetaController extends ViewController<Void> implements Menu
 
   @Override
   public void destroy () {
+    Tgx101Gazeta.resetSessionProfile(); // leaving the feed
     tgx101KeepScreen(false);
     Tgx101Gazeta.removeNewPostListener(newPosts);
     headerHide = 0;

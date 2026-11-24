@@ -140,7 +140,28 @@ public final class Tgx101MessageMenu {
     return menuProfileOf(message) != Settings.TGX101_MENU_TEXT;
   }
 
+  /** (user 2026-11-24): «blocks» shows by default what the official app's menu has; the rest, «Report» and «To the
+   *  original» start under «More…» */
+  public static final int[] DEFAULT_SHOWN_BLOCKS = {
+    R.id.btn_messageReply, R.id.btn_messageCopy, R.id.btn_messageCopyLink, R.id.btn_chatTranslate, R.id.btn_messageEdit,
+    R.id.btn_messagePin, R.id.btn_messageShare, R.id.btn_saveFile, R.id.btn_tgx101SelectInPlace, R.id.btn_messageMore, R.id.btn_messageDelete
+  };
+
+  public static boolean blocksView () {
+    return Settings.instance().tgx101MessageMenuBlocks();
+  }
+
+  /** the list's limits: 5–10 items as a list; none in «blocks» (its icons take items out of the list) */
+  public static int maxMenuItems () {
+    return blocksView() ? ORDERABLE_IDS.length + 1 : MAX_MENU_ITEMS;
+  }
+
+  public static int minMenuItems () {
+    return blocksView() ? 1 : MIN_MENU_ITEMS;
+  }
+
   private static int[] defaultShown () {
+    if (blocksView()) return DEFAULT_SHOWN_BLOCKS;
     switch (Settings.instance().getTgx101MenuProfile()) {
       case Settings.TGX101_MENU_MEDIA: return DEFAULT_SHOWN_MEDIA;
       case Settings.TGX101_MENU_VOICE: return DEFAULT_SHOWN_VOICE;
@@ -756,7 +777,7 @@ public final class Tgx101MessageMenu {
         }
       }
     }
-    final int[] order = getOrder();
+    final int[] order = getOrder(); // «blocks» has its own (Settings keys end in _blocks)
     ArrayList<ViewController.OptionItem> sorted = new ArrayList<>(items);
     java.util.Collections.sort(sorted, (a, b) -> Integer.compare(rank(order, a.id), rank(order, b.id))); // stable: unknown items keep their order
     java.util.Collections.sort(moreItems, (a, b) -> Integer.compare(rank(order, a.id), rank(order, b.id)));

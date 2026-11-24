@@ -536,6 +536,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().showTgx101CallBar(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MessageMenuBlockIcons) {
           view.setData(Settings.instance().tgx101MessageMenuBlocks() ? R.string.Tgx101MessageMenuViewBlocks : R.string.Tgx101MessageMenuViewList);
+        } else if (itemId == R.id.btn_tgx101MessageMenuOrder) {
+          // (user 2026-11-24): each view has its own items — the screen edits the view that is on
+          view.setData(Settings.instance().tgx101MessageMenuBlocks() ? R.string.Tgx101MessageMenuViewBlocks : R.string.Tgx101MessageMenuViewList);
         } else if (itemId == R.id.btn_tgx101MenuOutlinedIcons) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101MenuOutlinedIcons(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MessageMenuBlocks) {
@@ -640,7 +643,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101Haptics, 0, R.string.Tgx101Haptics),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         // (user 2026-11-10 «размытие под меню окнами нужно убрать вообще, всегда выключено»): no blur setting any more
-        new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101MessageMenuOrder, 0, R.string.Tgx101MessageMenuOrder),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101MessageMenuOrder, 0, R.string.Tgx101MessageMenuOrder),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_SETTING, R.id.btn_tgx101ChatMenuOrder, 0, R.string.Tgx101ChatMenuOrder),
         new ListItem(ListItem.TYPE_SHADOW_BOTTOM),
@@ -1232,7 +1235,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
   // opens the list of actions — the ones already in the row greyed out, the current one ticked; the 5th place may be empty
   private void tgx101ShowBlockIcons () {
     final Tgx101Sheet.Handle[] h = new Tgx101Sheet.Handle[1];
-    h[0] = Tgx101Sheet.show(this, () -> adapter.updateValuedSettingById(R.id.btn_tgx101MessageMenuBlockIcons), body -> tgx101FillBlockIcons(body));
+    h[0] = Tgx101Sheet.show(this, () -> {
+      adapter.updateValuedSettingById(R.id.btn_tgx101MessageMenuBlockIcons);
+      adapter.updateValuedSettingById(R.id.btn_tgx101MessageMenuOrder);
+    }, body -> tgx101FillBlockIcons(body));
   }
 
   private static int tgx101Place (int itemId) {

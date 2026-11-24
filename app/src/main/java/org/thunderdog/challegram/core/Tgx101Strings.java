@@ -363,9 +363,11 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MessageMenuViewBlocks, "Блоками");
     RU.put(R.string.Tgx101MessageMenuViewList, "Списком");
     RU.put(R.string.Tgx101InRow, "уже в ряду");
-    RU.put(R.string.Tgx101GazetaThemeAuto, "Авто (как в приложении)");
-    RU.put(R.string.Tgx101GazetaThemeLight, "Светлая");
-    RU.put(R.string.Tgx101GazetaThemeDark, "Тёмная");
+    RU.put(R.string.Tgx101GazetaThemeAuto, "Авто — как тема приложения");
+    RU.put(R.string.Tgx101GazetaAutoKeep, "Сохранять выбор");
+    RU.put(R.string.Tgx101GazetaThemeSection, "Тема");
+    RU.put(R.string.Tgx101GazetaAutoKeepHint, "☀/☾ в шапке меняют вид до выхода из «Газеты», потом снова «Авто».");
+    RU.put(R.string.Tgx101GazetaAutoNoKeepHint, "☀/☾ в шапке выключат «Авто».");
     RU.put(R.string.Tgx101MenuOutlinedIcons, "Тонкие значки в меню");
     RU.put(R.string.Tgx101Empty, "Пусто");
     RU.put(R.string.Tgx101MessageMenuBlockIconsHint, "Нажмите на значок, чтобы заменить его, удержите и ведите, чтобы переставить. В меню удержите значок, чтобы увидеть, что он делает.");

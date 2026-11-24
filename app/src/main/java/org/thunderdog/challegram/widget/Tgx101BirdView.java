@@ -416,22 +416,25 @@ public class Tgx101BirdView extends View {
           return true;
         }
         if (ringOpen || !hitsTab(x, y)) return false;
-        if (callback == null || !callback.birdHasDoubleTap()) {
-          // pass-through: no waiting, no press look — the bird only starts counting the short hold
-          pressed = true;
-          moved = moving = false;
-          downX = fingerX = x; downY = fingerY = y;
+        {
+          // pass-through: no waiting, no press look — the bird only starts counting the short hold. With the double tap
+          // on (by default) a tap waits for a second one — but not while the list under the bird still moves (user
+          // 2026-11-24 «выключим двойной тап, когда экран движется»): then the tap goes through at once and stops it
           if (downEvent != null) downEvent.recycle();
           downEvent = MotionEvent.obtain(e);
-          forwardTarget = null;
-          passTarget = findUnder(downEvent);
-          postDelayed(holdRunnable, PASS_HOLD_MS);
-          postDelayed(moveRunnable, MOVE_MS);
-          if (passTarget == null) {
-            animatePress();
-            getParent().requestDisallowInterceptTouchEvent(true);
+          boolean waitsForSecond = callback != null && callback.birdHasDoubleTap() && !tgx101ListMoving(downEvent);
+          View under = waitsForSecond ? null : findUnder(downEvent);
+          if (under != null) {
+            pressed = true;
+            moved = moving = false;
+            downX = fingerX = x; downY = fingerY = y;
+            forwardTarget = null;
+            passTarget = under;
+            tgx101LastTap = 0;
+            postDelayed(holdRunnable, PASS_HOLD_MS);
+            postDelayed(moveRunnable, MOVE_MS);
+            return true;
           }
-          return true;
         }
         pressed = true;
         moved = moving = false;
@@ -569,6 +572,37 @@ public class Tgx101BirdView extends View {
       if (forward(child, down)) return child;
     }
     return null;
+  }
+
+  /** a list under this point is scrolling or flinging */
+  private boolean tgx101ListMoving (MotionEvent down) {
+    if (!(getParent() instanceof android.view.ViewGroup)) return false;
+    android.view.ViewGroup parent = (android.view.ViewGroup) getParent();
+    float px = down.getX() + getLeft(), py = down.getY() + getTop();
+    for (int i = parent.indexOfChild(this) - 1; i >= 0; i--) {
+      View child = parent.getChildAt(i);
+      if (child.getVisibility() != VISIBLE) continue;
+      float cx = px - child.getLeft() - child.getTranslationX(), cy = py - child.getTop() - child.getTranslationY();
+      if (cx < 0 || cy < 0 || cx >= child.getWidth() || cy >= child.getHeight()) continue;
+      return tgx101Moving(child, cx, cy, 0);
+    }
+    return false;
+  }
+
+  private static boolean tgx101Moving (View view, float x, float y, int depth) {
+    if (view instanceof androidx.recyclerview.widget.RecyclerView) {
+      return ((androidx.recyclerview.widget.RecyclerView) view).getScrollState() != androidx.recyclerview.widget.RecyclerView.SCROLL_STATE_IDLE;
+    }
+    if (!(view instanceof android.view.ViewGroup) || depth > 12) return false;
+    android.view.ViewGroup group = (android.view.ViewGroup) view;
+    for (int i = group.getChildCount() - 1; i >= 0; i--) {
+      View child = group.getChildAt(i);
+      if (child.getVisibility() != VISIBLE) continue;
+      float cx = x + group.getScrollX() - child.getLeft() - child.getTranslationX(), cy = y + group.getScrollY() - child.getTop() - child.getTranslationY();
+      if (cx < 0 || cy < 0 || cx >= child.getWidth() || cy >= child.getHeight()) continue;
+      if (tgx101Moving(child, cx, cy, depth + 1)) return true;
+    }
+    return false;
   }
 
   private boolean forward (View child, MotionEvent e) {

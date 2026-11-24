@@ -161,12 +161,12 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     boolean inMenu = sectionOf(order[position]) == SECTION_MENU;
     if (toMenu == inMenu) return true;
     int count = menuCount(order);
-    if (toMenu && count >= Tgx101MessageMenu.MAX_MENU_ITEMS) {
-      UI.showToast(Lang.getString(R.string.Tgx101MenuTooMany, Tgx101MessageMenu.MAX_MENU_ITEMS), android.widget.Toast.LENGTH_SHORT);
+    if (toMenu && count >= Tgx101MessageMenu.maxMenuItems()) {
+      UI.showToast(Lang.getString(R.string.Tgx101MenuTooMany, Tgx101MessageMenu.maxMenuItems()), android.widget.Toast.LENGTH_SHORT);
       return false;
     }
-    if (!toMenu && count <= Tgx101MessageMenu.MIN_MENU_ITEMS) {
-      UI.showToast(Lang.getString(R.string.Tgx101MenuTooFew, Tgx101MessageMenu.MIN_MENU_ITEMS), android.widget.Toast.LENGTH_SHORT);
+    if (!toMenu && count <= Tgx101MessageMenu.minMenuItems()) {
+      UI.showToast(Lang.getString(R.string.Tgx101MenuTooFew, Tgx101MessageMenu.minMenuItems()), android.widget.Toast.LENGTH_SHORT);
       return false;
     }
     return true;
@@ -205,7 +205,8 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       CharSequence title = Lang.getString(headers[section]);
       if (section == SECTION_MENU) {
         // «In the menu · 9 of 9» (the long «In the menu: 5 to 9 items · 9 of 9» said it twice)
-        title = Lang.getString(R.string.Tgx101MenuSectionMenuShort) + " · " + Lang.getString(R.string.Tgx101MenuCountOf, menuCount(order), Tgx101MessageMenu.MAX_MENU_ITEMS);
+        title = Tgx101MessageMenu.blocksView() ? Lang.getString(R.string.Tgx101MenuSectionMenuShort) + " · " + menuCount(order)
+          : Lang.getString(R.string.Tgx101MenuSectionMenuShort) + " · " + Lang.getString(R.string.Tgx101MenuCountOf, menuCount(order), Tgx101MessageMenu.MAX_MENU_ITEMS);
       }
       addSection(items, title, rows);
       if (section == SECTION_MENU) {
@@ -474,13 +475,13 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       for (ListItem row : sections.get(section)) lists.get(section).add((Integer) row.getData());
     }
     int count = menu.size() + 1; // «Select»
-    if (count > Tgx101MessageMenu.MAX_MENU_ITEMS) {
-      UI.showToast(Lang.getString(R.string.Tgx101MenuTooMany, Tgx101MessageMenu.MAX_MENU_ITEMS), android.widget.Toast.LENGTH_SHORT);
+    if (count > Tgx101MessageMenu.maxMenuItems()) {
+      UI.showToast(Lang.getString(R.string.Tgx101MenuTooMany, Tgx101MessageMenu.maxMenuItems()), android.widget.Toast.LENGTH_SHORT);
       rebuild();
       return;
     }
-    if (count < Tgx101MessageMenu.MIN_MENU_ITEMS) {
-      UI.showToast(Lang.getString(R.string.Tgx101MenuTooFew, Tgx101MessageMenu.MIN_MENU_ITEMS), android.widget.Toast.LENGTH_SHORT);
+    if (count < Tgx101MessageMenu.minMenuItems()) {
+      UI.showToast(Lang.getString(R.string.Tgx101MenuTooFew, Tgx101MessageMenu.minMenuItems()), android.widget.Toast.LENGTH_SHORT);
       rebuild();
       return;
     }

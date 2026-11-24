@@ -81,19 +81,54 @@ public final class Tgx101Gazeta {
   public static final int PROFILE_LIGHT = 0, PROFILE_DARK = 1;
 
   public static int profile () {
+    if (isProfileAuto()) return sessionOverride != -1 ? sessionOverride : themeProfile();
     int p = Settings.instance().pmc().getInt("tgx101_gazeta_profile", -1);
-    return p == -1 ? (org.thunderdog.challegram.theme.Theme.isDark() ? PROFILE_DARK : PROFILE_LIGHT) : p;
+    return p == -1 ? themeProfile() : p;
   }
 
-  public static void setProfile (int profile) {
+  private static int themeProfile () {
+    return org.thunderdog.challegram.theme.Theme.isDark() ? PROFILE_DARK : PROFILE_LIGHT;
+  }
+
+  // TGx101 (user 2026-11-24): «Авто» lives in «Вид „Газеты“» — the feed's ☀/☾ follows the app's theme. ☀/☾ in the
+  // header still switch with one tap; with «Сохранять выбор» that switch lasts only till the feed is left (it comes back
+  // on «Авто» next time, as the app's own auto theme does), without it the tap turns «Авто» off
+  private static int sessionOverride = -1;
+
+  public static boolean isProfileAuto () {
+    return Settings.instance().pmc().getBoolean("tgx101_gazeta_auto", false);
+  }
+
+  public static void setProfileAuto (boolean auto) {
+    sessionOverride = -1;
+    if (!auto) Settings.instance().pmc().putInt("tgx101_gazeta_profile", profile());
+    Settings.instance().pmc().putBoolean("tgx101_gazeta_auto", auto);
+  }
+
+  public static boolean autoKeep () {
+    return Settings.instance().pmc().getBoolean("tgx101_gazeta_auto_keep", true);
+  }
+
+  public static void setAutoKeep (boolean keep) {
+    Settings.instance().pmc().putBoolean("tgx101_gazeta_auto_keep", keep);
+  }
+
+  /** ☀/☾ picked by hand — in the header or at the top of «Вид „Газеты“» */
+  public static void switchProfile (int profile) {
+    if (isProfileAuto()) {
+      if (autoKeep()) {
+        sessionOverride = profile == themeProfile() ? -1 : profile;
+        return;
+      }
+      Settings.instance().pmc().putBoolean("tgx101_gazeta_auto", false);
+    }
+    sessionOverride = -1;
     Settings.instance().pmc().putInt("tgx101_gazeta_profile", profile);
   }
 
-  /** TGx101 (user 2026-11-23 «тема для газеты: авто — сменяется в зависимости от темы приложения»): -1 follows the app */
-  public static final int PROFILE_AUTO = -1;
-
-  public static boolean isProfileAuto () {
-    return Settings.instance().pmc().getInt("tgx101_gazeta_profile", -1) == -1;
+  /** the feed is opened anew: a switch made by hand under «Авто» + «Сохранять выбор» is forgotten */
+  public static void resetSessionProfile () {
+    sessionOverride = -1;
   }
 
   private static String pkey (String name) {

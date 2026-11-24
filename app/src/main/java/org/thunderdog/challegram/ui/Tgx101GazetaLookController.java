@@ -308,14 +308,66 @@ public class Tgx101GazetaLookController extends ViewController<Void> implements 
     }
   }
 
+  // (user 2026-11-24 «вместе с примером занимают половину экрана — прятать с прокруткой»): «Авто» and «Сохранять выбор»
+  // are the first card of the settings that scroll under the sample
+  private void fillAuto (LinearLayout autoBox) {
+    Context context = autoBox.getContext();
+    int[] pal = pal();
+    autoBox.removeAllViews();
+    final boolean auto = Tgx101Gazeta.isProfileAuto(), keep = Tgx101Gazeta.autoKeep();
+    LinearLayout row = new LinearLayout(context);
+    row.setOrientation(LinearLayout.HORIZONTAL);
+    row.setGravity(Gravity.CENTER_VERTICAL);
+    // «Авто»: a pill, filled while on
+    TextView autoPill = label(context, Lang.getString(R.string.Tgx101GazetaThemeAuto), 13f, true, auto ? 0xffffffff : pal[2]);
+    autoPill.setGravity(Gravity.CENTER);
+    autoPill.setPadding(Screen.dp(14f), 0, Screen.dp(14f), 0);
+    GradientDrawable fill = new GradientDrawable();
+    fill.setCornerRadius(Screen.dp(12f));
+    fill.setColor(auto ? pal[4] : pal[0]);
+    autoPill.setBackground(fill);
+    autoPill.setOnClickListener(v -> {
+      Tgx101Gazeta.setProfileAuto(!Tgx101Gazeta.isProfileAuto());
+      rebuild();
+      refresh();
+    });
+    LinearLayout.LayoutParams pillParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(38f));
+    pillParams.topMargin = Screen.dp(8f);
+    row.addView(autoPill, pillParams);
+    // «Сохранять выбор»: a check next to it, live only with «Авто»
+    android.widget.CheckBox check = new android.widget.CheckBox(context);
+    check.setText(Lang.getString(R.string.Tgx101GazetaAutoKeep));
+    check.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13f);
+    check.setTextColor(pal[2]);
+    check.setChecked(keep);
+    check.setEnabled(auto);
+    check.setAlpha(auto ? 1f : .4f);
+    if (android.os.Build.VERSION.SDK_INT >= 21) check.setButtonTintList(android.content.res.ColorStateList.valueOf(pal[4]));
+    check.setOnCheckedChangeListener((b, on) -> {
+      Tgx101Gazeta.setAutoKeep(on);
+      fillAuto(autoBox);
+    });
+    LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+    cp.leftMargin = Screen.dp(10f);
+    row.addView(check, cp);
+    autoBox.addView(row);
+    if (auto) {
+      TextView hint = label(context, Lang.getString(keep ? R.string.Tgx101GazetaAutoKeepHint : R.string.Tgx101GazetaAutoNoKeepHint), 12f, false, me.vkryl.core.ColorUtils.alphaColor(.6f, pal[2]));
+      hint.setPadding(Screen.dp(4f), Screen.dp(4f), Screen.dp(4f), 0);
+      autoBox.addView(hint);
+    }
+  }
+
   private void rebuild () {
     Context context = context();
     settings.removeAllViews();
     segmentButtons(segment, new String[] {"☀ " + Lang.getString(R.string.Tgx101GazetaLight), "☾ " + Lang.getString(R.string.Tgx101GazetaDark)},
       Tgx101Gazeta.profile(), which -> {
-        Tgx101Gazeta.setProfile(which == 1 ? Tgx101Gazeta.PROFILE_DARK : Tgx101Gazeta.PROFILE_LIGHT);
+        Tgx101Gazeta.switchProfile(which == 1 ? Tgx101Gazeta.PROFILE_DARK : Tgx101Gazeta.PROFILE_LIGHT);
         rebuild();
       });
+
+    fillAuto(section(context, R.string.Tgx101GazetaThemeSection));
 
     // own profiles: a tap puts one on the profile now on (☀ or ☾), a long press deletes it; «+» saves the look now on
     LinearLayout own = section(context, R.string.Tgx101GazetaOwnLooks);

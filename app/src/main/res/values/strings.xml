@@ -6048,9 +6048,11 @@
   <string name="Tgx101MessageMenuView">Message menu view</string>
   <string name="Tgx101MessageMenuViewBlocks">Blocks</string>
   <string name="Tgx101MessageMenuViewList">List</string>
-  <string name="Tgx101GazetaThemeAuto">Auto (as the app)</string>
-  <string name="Tgx101GazetaThemeLight">Light</string>
-  <string name="Tgx101GazetaThemeDark">Dark</string>
+  <string name="Tgx101GazetaThemeAuto">Auto — as the app\'s theme</string>
+  <string name="Tgx101GazetaAutoKeep">Keep the choice</string>
+  <string name="Tgx101GazetaThemeSection">Theme</string>
+  <string name="Tgx101GazetaAutoKeepHint">☀/☾ in the header change the look until you leave the feed, then it is back on Auto.</string>
+  <string name="Tgx101GazetaAutoNoKeepHint">☀/☾ in the header turn Auto off.</string>
   <string name="Tgx101InRow">already in the row</string>
   <string name="Tgx101Empty">Empty</string>
   <string name="Tgx101MessageMenuBlockIcons">Icons below</string>
