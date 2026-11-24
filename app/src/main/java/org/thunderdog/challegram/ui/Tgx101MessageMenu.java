@@ -2420,7 +2420,7 @@ public final class Tgx101MessageMenu {
       if (isLongClick) {
         message.scheduleSetReactionAnimationFullscreenFromBottomSheet(reaction, start);
       } else if (!hasReaction) {
-        message.scheduleSetReactionAnimationFromBottomSheet(reaction, start);
+        message.tgx101ScheduleReactionInPlace(reaction); // no flight from the finger (user 2026-11-24)
       }
     }
     dismiss(host);

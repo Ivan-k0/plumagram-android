@@ -959,7 +959,7 @@ public class MessageOptionsPagerController extends BottomSheetViewController<Opt
       if (!Config.PROTECT_ANONYMOUS_REACTIONS || hasReaction || state.message.messagesController().callNonAnonymousProtection(state.message.getId() + reaction.getId(), tooltipManager().builder(v))) {
         if (state.message.getMessageReactions().toggleReaction(reaction.type, false, true, handler(v, () -> {
         }))) {
-          state.message.scheduleSetReactionAnimationFromBottomSheet(reaction, new Point(startX, startY));
+          state.message.tgx101ScheduleReactionInPlace(reaction); // no flight from the finger (user 2026-11-24)
         }
         hidePopupWindow(true);
       }

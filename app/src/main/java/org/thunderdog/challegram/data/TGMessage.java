@@ -10640,6 +10640,12 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private boolean setReactionAnimationNowPlaying = false;
   private boolean needHighlightUnreadReactions = false;
 
+  /** TGx101 (user 2026-11-24 «убери вообще» — the like flying from under the finger to the message): a reaction picked
+   *  in the menu shows in its place, as the double tap's */
+  public void tgx101ScheduleReactionInPlace (TGReaction reaction) {
+    scheduleSetReactionAnimation(new NextReactionAnimation(reaction, NextReactionAnimation.TYPE_CLICK));
+  }
+
   public void scheduleSetReactionAnimationFromBottomSheet (TGReaction reaction, Point startPos) {
     NextReactionAnimation animation = new NextReactionAnimation(reaction, NextReactionAnimation.TYPE_BOTTOM_SHEET);
     animation.setStartPosition(startPos);
