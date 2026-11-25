@@ -967,6 +967,7 @@ public class RecordAudioVideoController implements
 
   @Override
   public void onCameraSwitched (boolean isForward, boolean toFrontFace) {
+    tgx101RoundFront = toFrontFace;
     switchCameraButton.spinAround(isForward, toFrontFace);
   }
 
@@ -1756,6 +1757,10 @@ public class RecordAudioVideoController implements
       resetRoundState();
       isCameraReady = false;
 
+      // TGx101 (user 2026-11-26 «начинаю на заднюю, пауза, продолжаю — а продолжает с фронтальной»): the round goes on
+      // with the camera it was being shot with, not the one new rounds start with
+      Settings.instance().tgx101SetRoundOneShotFront(tgx101RoundFront);
+      org.thunderdog.challegram.Tgx101Diag.mark("round: resumed with " + (tgx101RoundFront ? "front" : "rear"));
       prepareVideoRecording();
     }
     setRecordMode(mode, true);
@@ -1872,8 +1877,12 @@ public class RecordAudioVideoController implements
 
   // Video record impl
 
+  /** the camera the current round is being shot with */
+  private boolean tgx101RoundFront = true;
+
   private void setupCamera (boolean isOwned) {
     ownedCamera.getManager().setPreferFrontFacingCamera(Settings.instance().tgx101RoundStartsFront() && isOwned);
+    if (isOwned) tgx101RoundFront = Settings.instance().tgx101RoundStartsFront();
     if (isOwned) Settings.instance().tgx101SetRoundOneShotFront(null); // the menu's choice is for this round only
     ownedCamera.getManager().setMaxResolution(isOwned ? Settings.roundCameraMaxResolution(Settings.instance().getRoundVideoQuality()) : 0);
     ownedCamera.getLegacyManager().setNoPreviewBlur(false);
