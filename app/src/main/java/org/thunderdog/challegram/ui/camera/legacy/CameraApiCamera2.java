@@ -186,6 +186,12 @@ public class CameraApiCamera2 extends CameraApi {
     long desiredSquare = (long) maxResolution * maxResolution;
     Collections.sort(sortedSizes, (a, b) -> comparePreviewSizes(a.getWidth(), a.getHeight(), b.getWidth(), b.getHeight(), desiredSquare, 16f / 9f));
     previewSize = sortedSizes.get(0);
+    if (manager.getMaxResolution() != 0) { // TGx101: rounds from a 4:3 frame — wider, see tgx101RoundFourThirds
+      int[] ws = new int[sortedSizes.size()], hs = new int[sortedSizes.size()];
+      for (int i = 0; i < ws.length; i++) { ws[i] = sortedSizes.get(i).getWidth(); hs[i] = sortedSizes.get(i).getHeight(); }
+      int four = tgx101RoundFourThirds(ws, hs, Math.min(previewSize.getWidth(), previewSize.getHeight()));
+      if (four != -1) previewSize = sortedSizes.get(four);
+    }
     Log.i(Log.TAG_CAMERA, "Camera2: camera %s, preview %dx%d, sensor orientation %d", cameraId, previewSize.getWidth(), previewSize.getHeight(), sensorOrientation);
 
     if (!openDevice(cameraId)) {

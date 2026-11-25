@@ -491,6 +491,26 @@ public abstract class CameraApi {
     return 0;
   }
   
+  /**
+   * TGx101 (user 2026-11-25 «почему у них лучше и картинка не увеличена»): a round is cut from the short side of the
+   * frame, so a 4:3 frame (the sensor's own shape) shows a third more of the scene than a 16:9 one of the same width.
+   * Returns the index of the smallest 4:3 size whose short side is at least {@code minShortSide}, or -1.
+   */
+  public static int tgx101RoundFourThirds (int[] widths, int[] heights, int minShortSide) {
+    int best = -1;
+    long bestArea = Long.MAX_VALUE;
+    for (int i = 0; i < widths.length; i++) {
+      int w = Math.max(widths[i], heights[i]), h = Math.min(widths[i], heights[i]);
+      if (h < minShortSide || Math.abs((float) w / h - 4f / 3f) > .02f) continue;
+      long area = (long) w * h;
+      if (area < bestArea) {
+        bestArea = area;
+        best = i;
+      }
+    }
+    return best;
+  }
+
   protected static int comparePreviewSizes (int w1, int h1, int w2, int h2, long desiredSquare, float desiredRatio) {
     final long s1 = (long) w1 * h1;
     final long s2 = (long) w2 * h2;

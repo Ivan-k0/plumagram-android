@@ -366,6 +366,13 @@ public class CameraApiLegacy extends CameraApi implements Camera.PreviewCallback
         sortPreviewSizes(sizes, previewWidth, previewHeight, previewRatio);
       }
       previewSize = sizes.get(0);
+      if (maxResolution != 0) {
+        int[] ws = new int[sizes.size()], hs = new int[sizes.size()];
+        for (int i = 0; i < ws.length; i++) { ws[i] = sizes.get(i).width; hs[i] = sizes.get(i).height; }
+        int four = tgx101RoundFourThirds(ws, hs, Math.min(previewSize.width, previewSize.height));
+        if (four != -1) previewSize = sizes.get(four);
+        org.thunderdog.challegram.Tgx101Diag.mark("round: preview " + previewSize.width + "x" + previewSize.height);
+      }
       params.setPreviewSize(previewSize.width, previewSize.height);
 
       sizes.clear();
