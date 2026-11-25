@@ -239,6 +239,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
 
     menuItem.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
     menuItem.setTag(menuItem.getMeasuredWidth());
+    menuItem.setTag(R.id.btn_tgx101NotifMenu, null); // the «›» room is added again if this row is «Notifications»
   }
 
   public View addItem (@Nullable Tdlib tdlib, HapticMenuHelper.MenuItem menuItem, OnClickListener listener) {
@@ -463,6 +464,53 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
   @Override
   protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
     super.onMeasure(MeasureSpec.makeMeasureSpec(getItemsWidth(), MeasureSpec.EXACTLY), heightMeasureSpec);
+    if (tgx101ForcedHeight >= 0) setMeasuredDimension(getMeasuredWidth(), tgx101ForcedHeight);
+  }
+
+  // TGx101 (user 2026-11-26 video «плавнее переключение и без миганий… уведомления нативно отделить от списка»)
+  private int tgx101ForcedHeight = -1;
+  private final java.util.Set<Integer> tgx101SepAfter = new java.util.HashSet<>();
+  private final android.graphics.Paint tgx101SepPaint = new android.graphics.Paint();
+
+  /** the card's height while it changes page (-1 — its own) */
+  public void tgx101SetForcedHeight (int height) {
+    if (tgx101ForcedHeight != height) {
+      tgx101ForcedHeight = height;
+      requestLayout();
+    }
+  }
+
+  /** a gap with a darker band after these rows — groups of the menu */
+  public void tgx101SetSeparators (int... afterRows) {
+    tgx101SepAfter.clear();
+    if (afterRows != null) for (int i : afterRows) if (i >= 0) tgx101SepAfter.add(i);
+    for (int i = 0; i < getChildCount(); i++) {
+      View v = getChildAt(i);
+      if (v.getLayoutParams() instanceof LinearLayout.LayoutParams) {
+        LinearLayout.LayoutParams lp = (LinearLayout.LayoutParams) v.getLayoutParams();
+        int want = tgx101SepAfter.contains(i) && i < getChildCount() - 1 ? Screen.dp(TGX101_SEP) : 0;
+        if (lp.bottomMargin != want) {
+          lp.bottomMargin = want;
+          v.setLayoutParams(lp);
+        }
+      }
+    }
+    invalidate();
+  }
+
+  private static final int TGX101_SEP = 8;
+
+  @Override
+  protected void dispatchDraw (Canvas canvas) {
+    super.dispatchDraw(canvas);
+    if (tgx101SepAfter.isEmpty()) return;
+    tgx101SepPaint.setColor(ColorUtils.alphaColor(Theme.isDark() ? .22f : .06f, 0xff000000));
+    for (int i : tgx101SepAfter) {
+      if (i >= getChildCount() - 1) continue;
+      View v = getChildAt(i);
+      float top = v.getBottom(), bottom = top + Screen.dp(TGX101_SEP);
+      canvas.drawRect(Screen.dp(PADDING), top, getMeasuredWidth() - Screen.dp(PADDING), bottom, tgx101SepPaint);
+    }
   }
 
   @Override
@@ -511,6 +559,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
       View v = getChildAt(i);
       if (v != null && v.getVisibility() != View.GONE) {
         total += v.getLayoutParams() != null && v.getLayoutParams().height > 0 ? v.getLayoutParams().height : itemHeight; // rows grown with the text
+        if (v.getLayoutParams() instanceof LinearLayout.LayoutParams) total += ((LinearLayout.LayoutParams) v.getLayoutParams()).bottomMargin;
       }
     }
     return total + padding + padding;
@@ -543,8 +592,15 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     int innerX = sourceX - location[0];
     int innerY = sourceY - location[1];
 
-    int index = Math.floorDiv(innerY - Screen.dp(PADDING), tgx101RowHeight());
-    setSelectedIndex(index == MathUtils.clamp(index, 0, getChildCount() - 1) ? index : -1);
+    int index = -1; // by the rows' own bounds: the group gaps shift them
+    for (int i = 0; i < getChildCount(); i++) {
+      View child = getChildAt(i);
+      if (innerY >= child.getTop() && innerY < child.getBottom()) {
+        index = i;
+        break;
+      }
+    }
+    setSelectedIndex(index);
 
     // Log.i("HAPTIC INNER", String.format("INDEX %d", index));
   }
@@ -596,7 +652,8 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
       for (int i = 0; i < childCount; i++) {
         final float alpha = MathUtils.clamp(1f - Math.abs(factorAnimator.getFactor() - i));
         if (alpha > 0f) {
-          canvas.drawRect(Screen.dp(PADDING), Screen.dp(PADDING) + tgx101RowHeight() * i, getMeasuredWidth() - Screen.dp(PADDING), Screen.dp(PADDING) + tgx101RowHeight() * (i + 1), Paints.fillingPaint(ColorUtils.alphaColor(alpha * 0.05f, Theme.getColor(ColorId.text))));
+          View row = getChildAt(i);
+          canvas.drawRect(Screen.dp(PADDING), row.getTop(), getMeasuredWidth() - Screen.dp(PADDING), row.getBottom(), Paints.fillingPaint(ColorUtils.alphaColor(alpha * 0.05f, Theme.getColor(ColorId.text))));
         }
       }
     }

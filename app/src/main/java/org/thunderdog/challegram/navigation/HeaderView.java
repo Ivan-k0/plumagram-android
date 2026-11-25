@@ -1144,25 +1144,66 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
   public void tgx101SwapMore (int[] ids, String[] titles, int[] icons, boolean forward) {
     if (moreWrap == null || onMoreItemClick == null) return;
     final MenuMoreWrap wrap = moreWrap;
-    final float shift = Screen.dp(18f) * (forward ? 1 : -1) * (Lang.rtl() ? -1 : 1);
+    // (user 2026-11-26 video «плавнее и без миганий»): no empty card between the pages — the old rows slide out while
+    // the new ones slide in over them, the card's height follows from the old to the new
+    final float shift = Screen.dp(24f) * (forward ? 1 : -1) * (Lang.rtl() ? -1 : 1);
     final float scale = org.thunderdog.challegram.U.getAnimationScale(getContext()) > 0f ? org.thunderdog.challegram.U.getAnimationScale(getContext()) : 1f;
+    final long duration = (long) (240 / scale);
+    final android.view.animation.Interpolator curve = androidx.core.view.animation.PathInterpolatorCompat.create(.2f, 0f, 0f, 1f);
+    final int fromHeight = wrap.getHeight();
+    wrap.setMinimumWidth(wrap.getWidth()); // the width stays — only the height moves
+
+    // the old rows as a picture over the card, leaving
+    final android.widget.ImageView ghost = new android.widget.ImageView(getContext());
+    android.graphics.Bitmap shot = null;
+    try {
+      shot = android.graphics.Bitmap.createBitmap(Math.max(1, wrap.getWidth()), Math.max(1, wrap.getHeight()), android.graphics.Bitmap.Config.ARGB_8888);
+      android.graphics.Canvas c = new android.graphics.Canvas(shot);
+      for (int k = 0; k < wrap.getChildCount(); k++) {
+        View child = wrap.getChildAt(k);
+        int save = c.save();
+        c.translate(child.getLeft(), child.getTop());
+        child.draw(c);
+        c.restoreToCount(save);
+      }
+    } catch (Throwable ignored) { shot = null; }
+    android.view.ViewParent parent = wrap.getParent();
+    if (shot != null && parent instanceof android.view.ViewGroup) {
+      ghost.setImageBitmap(shot);
+      ghost.setScaleType(android.widget.ImageView.ScaleType.MATRIX);
+      android.view.ViewGroup group = (android.view.ViewGroup) parent;
+      group.addView(ghost, new android.widget.FrameLayout.LayoutParams(wrap.getWidth(), wrap.getHeight()));
+      ghost.setX(wrap.getX());
+      ghost.setY(wrap.getY());
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) ghost.setTranslationZ(wrap.getTranslationZ() + 1f);
+      ghost.animate().alpha(0f).translationXBy(-shift).setDuration((long) (duration * .6f)).setInterpolator(curve).withEndAction(() -> group.removeView(ghost)).start();
+    }
+
+    ThemeListenerList themeListenerList = navigation != null ? navigation.getThemeListeners() : null;
+    tgx101FillMore(ids, titles, icons, onMoreItemClick, themeListenerList);
     for (int k = 0; k < wrap.getChildCount(); k++) {
       View child = wrap.getChildAt(k);
       child.animate().cancel();
-      child.animate().alpha(0f).translationX(-shift).setDuration((long) (110 / scale)).start();
+      child.setAlpha(0f);
+      child.setTranslationX(shift);
+      child.animate().alpha(1f).translationX(0f).setStartDelay((long) (duration * .2f)).setDuration((long) (duration * .8f)).setInterpolator(curve).start();
     }
-    wrap.postDelayed(() -> {
-      ThemeListenerList themeListenerList = navigation != null ? navigation.getThemeListeners() : null;
-      tgx101FillMore(ids, titles, icons, onMoreItemClick, themeListenerList);
-      for (int k = 0; k < wrap.getChildCount(); k++) {
-        View child = wrap.getChildAt(k);
-        child.animate().cancel();
-        child.setAlpha(0f);
-        child.setTranslationX(shift);
-        child.animate().alpha(1f).translationX(0f).setStartDelay(k * 12L).setDuration((long) (200 / scale)).setInterpolator(androidx.core.view.animation.PathInterpolatorCompat.create(.2f, 0f, 0f, 1f)).start();
-      }
-      wrap.requestLayout();
-    }, (long) (110 / scale));
+    wrap.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+    final int toHeight = wrap.getItemsHeight();
+    if (fromHeight > 0 && toHeight != fromHeight) {
+      wrap.tgx101SetForcedHeight(fromHeight);
+      android.animation.ValueAnimator h = android.animation.ValueAnimator.ofInt(fromHeight, toHeight);
+      h.setDuration(duration);
+      h.setInterpolator(curve);
+      h.addUpdateListener(va -> wrap.tgx101SetForcedHeight((Integer) va.getAnimatedValue()));
+      h.addListener(new android.animation.AnimatorListenerAdapter() {
+        @Override
+        public void onAnimationEnd (android.animation.Animator animation) {
+          wrap.tgx101SetForcedHeight(-1);
+        }
+      });
+      h.start();
+    }
   }
 
   private void tgx101FillMore (int[] ids, String[] titles, int[] icons, View.OnClickListener onItemClick, @Nullable ThemeListenerList themeListeners) {
@@ -1176,11 +1217,24 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       }
     }
     for (int j = moreWrap.getChildCount() - 1; j >= size; j--) moreWrap.removeViewAt(j);
+    for (int k = 0; k < moreWrap.getChildCount(); k++) { // (user 2026-11-26 video: «Voice chat» stayed red from the page before)
+      if (moreWrap.getChildAt(k) instanceof TextView) ((TextView) moreWrap.getChildAt(k)).setTextColor(Theme.textAccentColor());
+    }
     tgx101TintMore(ids, icons);
   }
 
   /** leaving and switching off — red, with a red icon; everything else in the usual colour */
   private void tgx101TintMore (int[] ids, int[] icons) {
+    // groups: «Notifications ›» / «Back» on its own on top, the red one on its own at the bottom
+    int first = ids.length > 0 && (ids[0] == R.id.btn_tgx101NotifMenu || ids[0] == R.id.btn_tgx101NotifBack || ids[0] == R.id.btn_tgx101SavedByChats) ? 0 : -1;
+    if (ids.length > 1 && ids[0] == R.id.btn_tgx101SavedByChats && ids[1] == R.id.btn_tgx101NotifMenu) first = 1;
+    int last = -1;
+    int lastId = ids.length > 0 ? ids[ids.length - 1] : 0;
+    if (lastId == R.id.btn_removeChatFromList || lastId == R.id.btn_removeChatFromListAndStop || lastId == R.id.btn_removeChatFromListOrClearHistory || lastId == R.id.btn_returnToChat || lastId == R.id.btn_tgx101NotifOff || lastId == R.id.btn_tgx101NotifOn) {
+      last = ids.length - 2;
+    }
+    if (first == last) last = -1;
+    moreWrap.tgx101SetSeparators(first, last);
     for (int k = 0; k < moreWrap.getChildCount() && k < ids.length; k++) {
       View child = moreWrap.getChildAt(k);
       if (!(child instanceof TextView)) continue;
@@ -1190,6 +1244,18 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       TextView item = (TextView) child;
       item.setAlpha(1f);
       item.setTranslationX(0f);
+      if (id == R.id.btn_tgx101NotifMenu) { // «›» on the right: it opens a page
+        android.graphics.drawable.Drawable[] d = item.getCompoundDrawables();
+        android.graphics.drawable.Drawable arrow = org.thunderdog.challegram.tool.Drawables.get(getResources(), R.drawable.round_keyboard_arrow_right_24).mutate();
+        arrow.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconLight)));
+        if (Lang.rtl()) item.setCompoundDrawablesWithIntrinsicBounds(arrow, null, d[2], null);
+        else item.setCompoundDrawablesWithIntrinsicBounds(d[0], null, arrow, null);
+        if (item.getTag() instanceof Integer && !Boolean.TRUE.equals(item.getTag(R.id.btn_tgx101NotifMenu))) {
+          item.setTag((Integer) item.getTag() + Screen.dp(32f)); // room for the arrow in the card's width
+          item.setTag(R.id.btn_tgx101NotifMenu, Boolean.TRUE);
+        }
+        continue;
+      }
       if (!danger || icons == null || icons[k] == 0) continue;
       android.graphics.drawable.Drawable drawable = org.thunderdog.challegram.tool.Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(icons[k])).mutate();
       drawable.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconNegative)));
@@ -1201,6 +1267,9 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
 
   private void showMore (int[] ids, String[] titles, int[] icons, View.OnClickListener onItemClick, boolean isLayered, @Nullable ThemeListenerList themeListeners) {
     int size = ids == null ? titles.length : ids.length;
+    moreWrap.setMinimumWidth(0); // a page turn of the last menu kept its width
+    moreWrap.tgx101SetForcedHeight(-1);
+    moreWrap.tgx101SetSeparators();
     int i, j;
     int childCount = moreWrap.getChildCount();
     for (i = 0, j = 0; j < childCount; j++) {
