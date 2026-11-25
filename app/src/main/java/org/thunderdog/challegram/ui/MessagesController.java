@@ -461,7 +461,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   /** the language's own name, «Deutsch», with a capital */
   private static String tgx101NativeName (String code) {
     try {
-      java.util.Locale l = java.util.Locale.forLanguageTag(code);
+      java.util.Locale l = new java.util.Locale(code); // forLanguageTag is Android 5+ (lint, Android 4)
       String n = l.getDisplayName(l);
       if (!StringUtils.isEmpty(n) && !n.equalsIgnoreCase(code)) return n.substring(0, 1).toUpperCase(l) + n.substring(1);
     } catch (Throwable ignored) { }
