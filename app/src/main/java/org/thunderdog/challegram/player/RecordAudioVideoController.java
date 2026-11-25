@@ -820,7 +820,8 @@ public class RecordAudioVideoController implements
   /** the bar's water shows while a voice note is being recorded, not a round video, not the preview */
   private void tgx101UpdateWave () {
     if (inputOverlayView == null) return;
-    tgx101Wave.setState(inputOverlayView, recordingVideo || !tgx101WaveLook ? 0f : MathUtils.clamp(recordFactor), tgx101CloseFactor);
+    // (user 2026-11-26 «нашу волну во время записи кружка, но без птиц»): the bar's water for rounds too
+    tgx101Wave.setState(inputOverlayView, !tgx101WaveLook ? 0f : MathUtils.clamp(recordFactor), tgx101CloseFactor);
   }
 
   private void updateButtons () {
@@ -1235,6 +1236,7 @@ public class RecordAudioVideoController implements
     boolean isRecording = isInRecording(mode);
     this.recordingVideo = isVideoMode(this.recordMode) || isVideoMode(mode);
     setRecordModeImpl(mode);
+    if (mode == RECORD_MODE_VIDEO) RoundVideoRecorder.tgx101AmplitudeListener = this::tgx101OnRoundAmplitude;
     if (targetController != null) {
       if (mode != RECORD_MODE_NONE) {
         targetController.tgx101SetRecordOverlay(true); // the chat's «scroll down» arrow away until the screen closes
@@ -1281,6 +1283,9 @@ public class RecordAudioVideoController implements
     boolean started = startRecording(view, false);
     if (started) {
       setReleased(true, true);
+      // (user 2026-11-26 «почему пауза как капля?»): hands-free from the start, the capsule is the short round button
+      // at once — it stayed stretched as while sliding up to the lock, its bottom under the send button
+      lockView.setCollapseFactor(1f);
     } else {
       Settings.instance().tgx101SetRoundOneShotFront(null);
     }
@@ -1691,6 +1696,7 @@ public class RecordAudioVideoController implements
 
   private void onRecordRemoved () {
     tgx101Controls.reset();
+    RoundVideoRecorder.tgx101AmplitudeListener = null;
     if (tgx101OverlayChat != null) {
       tgx101OverlayChat.tgx101SetRecordOverlay(false);
       tgx101OverlayChat = null;
@@ -1854,6 +1860,12 @@ public class RecordAudioVideoController implements
 
   private void resetState () {
     checkActualRecording(RECORD_MODE_NONE);
+  }
+
+  /** a round's voice loudness → the bar's wave (no birds for rounds) */
+  private void tgx101OnRoundAmplitude (float amplitude) {
+    if (!isOpen() || !recordingVideo || recordMode != RECORD_MODE_VIDEO || !tgx101WaveLook) return;
+    tgx101Wave.setLevel(amplitude / 150f);
   }
 
   @Override

@@ -64,6 +64,35 @@ import me.vkryl.core.BitwiseUtils;
 
 @RequiresApi(Build.VERSION_CODES.JELLY_BEAN_MR2)
 public class RoundVideoRecorder {
+  // TGx101 (user 2026-11-26 «давай добавим нашу волну во время записи кружка, но без птиц»): the voice's loudness of a
+  // round, on the scale of voice messages (Recorder.calculateMaxAmplitude), for the bar's wave
+  public interface Tgx101AmplitudeListener {
+    void onRoundAmplitude (float amplitude);
+  }
+
+  public static volatile @androidx.annotation.Nullable Tgx101AmplitudeListener tgx101AmplitudeListener;
+  private static long tgx101LastAmplitude;
+
+  private static void tgx101Measure (byte[] data, int offset, int length) {
+    Tgx101AmplitudeListener listener = tgx101AmplitudeListener;
+    if (listener == null || length <= 1) return;
+    long now = android.os.SystemClock.uptimeMillis();
+    if (now - tgx101LastAmplitude < 45) return;
+    tgx101LastAmplitude = now;
+    double sum = 0;
+    int samples = length / 2;
+    for (int i = 0; i < samples; i++) {
+      int lo = data[offset + i * 2] & 0xff, hi = data[offset + i * 2 + 1];
+      short peak = (short) ((hi << 8) | lo);
+      if (peak > 2500) sum += peak * peak;
+    }
+    final float amplitude = (float) Math.sqrt(sum / length / 2);
+    org.thunderdog.challegram.tool.UI.post(() -> {
+      Tgx101AmplitudeListener l = tgx101AmplitudeListener;
+      if (l != null) l.onRoundAmplitude(amplitude);
+    });
+  }
+
   public interface Delegate {
     /**
      * Start progress timer at this point, if still required
@@ -1000,6 +1029,7 @@ public class RoundVideoRecorder {
             }
             buffer.offset[a] = audioPresentationTimeNs;
             buffer.read[a] = readResult;
+            tgx101Measure(buffer.buffer, a * 2048, readResult);
           }
           if (buffer.results >= 0 || buffer.last) {
             if (!running && buffer.results < 10) {
