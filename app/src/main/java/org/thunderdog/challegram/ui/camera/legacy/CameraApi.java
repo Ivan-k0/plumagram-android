@@ -214,6 +214,48 @@ public abstract class CameraApi {
     return nextCameraIndex;
   }
 
+  // TGx101 (user 2026-11-26 «нам тоже нужен зум 1,2,5… фонарик нужен»): round video zoom by ratio and the torch
+
+  /** the camera's zoom ratios ×100, index = zoom step (Camera1); null — by steps only */
+  protected volatile int[] tgx101ZoomRatios;
+
+  /** the zoom step for a ratio (1 = no zoom), or -1 when zoom is not known yet */
+  public final float tgx101ZoomStepFor (float ratio) {
+    int[] ratios = tgx101ZoomRatios;
+    if (ratios == null || ratios.length == 0) return -1;
+    int want = Math.round(ratio * 100f), best = 0;
+    for (int i = 1; i < ratios.length; i++) {
+      if (Math.abs(ratios[i] - want) < Math.abs(ratios[best] - want)) best = i;
+    }
+    return best;
+  }
+
+  /** the highest zoom ratio the camera has (1 when unknown) */
+  public final float tgx101MaxZoomRatio () {
+    int[] ratios = tgx101ZoomRatios;
+    return ratios == null || ratios.length == 0 ? 1f : ratios[ratios.length - 1] / 100f;
+  }
+
+  public final void tgx101SetTorch (boolean on) {
+    if (!checkCameraThread()) {
+      sendMessage(ACTION_TGX101_TORCH, on ? 1 : 0, 0);
+      return;
+    }
+    if (isCameraActive) {
+      try {
+        onTgx101Torch(on);
+      } catch (Throwable t) {
+        Log.w(Log.TAG_CAMERA, "Cannot switch the torch", t);
+      }
+    }
+  }
+
+  protected void onTgx101Torch (boolean on) throws Throwable { }
+
+  public boolean tgx101HasTorch () {
+    return mFeatures != null && mFeatures.has(CameraFeatures.FEATURE_FLASH_TORCH);
+  }
+
   /**
    * Change zoom, if possible.
    * */
@@ -660,6 +702,7 @@ public abstract class CameraApi {
   private static final int ACTION_FINISH_ROUND_CAPTURE = -15;
   private static final int ACTION_OPEN_CAMERA_IF_NEEDED = -16;
   private static final int ACTION_DESTROY_ROUND_RENDERER = -17;
+  private static final int ACTION_TGX101_TORCH = -30;
 
   private void handleInternalMessage (Message msg) {
     switch (msg.what) {
@@ -689,6 +732,9 @@ public abstract class CameraApi {
         break;
       case ACTION_REQUEST_ZOOM:
         requestZoom(Float.intBitsToFloat(msg.arg1));
+        break;
+      case ACTION_TGX101_TORCH:
+        tgx101SetTorch(msg.arg1 == 1);
         break;
       case ACTION_TAKE_PHOTO:
         takePhoto(msg.arg1, msg.arg2, (Integer) msg.obj);

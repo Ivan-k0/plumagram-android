@@ -41,7 +41,8 @@ import me.vkryl.core.ColorUtils;
 import me.vkryl.core.MathUtils;
 
 public class RecordLockView extends View {
-  public static final int BUTTON_SIZE = RecordControllerButton.BUTTON_SIZE;
+  // TGx101 (user 2026-11-26 «паузу оставим нашу, просто доработай… больше её сделай»): 46 instead of 40
+  public static final int BUTTON_SIZE = 46;
   public static final int BUTTON_EXPANDED = 33;
 
   private final Drawable drawableVoice;
@@ -132,9 +133,18 @@ public class RecordLockView extends View {
 
   private static final RectF tmpRect = new RectF();
 
+  /** TGx101 (user 2026-11-26 «слишком тёмные и не акцентные кнопки»): in a dark theme the record controls sit a step
+   *  lighter than the filling, so they don't sink into the dimmed chat */
+  public static int tgx101Surface () {
+    int filling = Theme.fillingColor();
+    return Theme.isDark() ? ColorUtils.fromToArgb(filling, 0xffffffff, .13f) : filling;
+  }
+
+  private long tgx101WaveStart;
+
   @Override
   protected void onDraw (Canvas c) {
-    int fillingColor = Theme.fillingColor();
+    int fillingColor = tgx101Surface();
 
     RectF rectF = Paints.getRectF();
     final int viewWidth = getMeasuredWidth();
@@ -155,8 +165,8 @@ public class RecordLockView extends View {
 
     int totalDy = (int) (Screen.dp(2f) * collapseFactor * (1f - sendFactor));
 
-    int width = (int) (Screen.dp(6f) + Screen.dp(2f) * (1f - sendFactor));
-    int height = (int) (Screen.dp(6f) + Screen.dp(1f) * (mode == MODE_DEFAULT ? (1f - sendFactor) : 1f));
+    int width = (int) (Screen.dp(7f) + Screen.dp(2f) * (1f - sendFactor));
+    int height = (int) (Screen.dp(7f) + Screen.dp(1.5f) * (mode == MODE_DEFAULT ? (1f - sendFactor) : 1f));
     int dy = (int) (Screen.dp(BUTTON_SIZE) / 4.5f * (1f - collapseFactor));
     rectF.set(cx - width, cy - height + dy + totalDy, cx + width, cy + height + dy + totalDy);
 
@@ -176,11 +186,24 @@ public class RecordLockView extends View {
       }
 
       if (editFactor > 0f) {
-        // TGx101 (user 2026-10-05): paused — a clear «continue recording» button: a filled accent circle with a white
-        // mic (the grey mic on white was not read as a button)
-        int accent = Theme.chatSendButtonColor();
-        c.drawCircle(rectF.centerX(), rectF.centerY(), Screen.dp(15f) * alpha, Paints.fillingPaint(ColorUtils.alphaColor(alpha, accent)));
-        Drawables.drawCentered(c, mode == MODE_VIDEO ? drawableRound : drawableVoice, rectF.centerX(), rectF.centerY(), PorterDuffPaint.get(ColorId.fillingPositiveContent, alpha));
+        // TGx101 (user 2026-11-26, mockup variant 3 «с волной»): paused — «continue» looks like a record button: a white
+        // circle with a red ring and a red dot; a soft red wave keeps going out of it
+        int red = 0xffef5350;
+        float ccx = rectF.centerX(), ccy = rectF.centerY();
+        float outer = Screen.dp(BUTTON_SIZE / 2f) * alpha;
+        long now = android.os.SystemClock.uptimeMillis();
+        if (tgx101WaveStart == 0) tgx101WaveStart = now;
+        float t = ((now - tgx101WaveStart) % 1600L) / 1600f;
+        c.drawCircle(ccx, ccy, outer, Paints.fillingPaint(ColorUtils.alphaColor(alpha, red)));
+        c.drawCircle(ccx, ccy, outer - Screen.dp(2.5f), Paints.fillingPaint(ColorUtils.alphaColor(alpha, 0xffffffff)));
+        // the wave: from the dot out to the ring, fading
+        float waveR = MathUtils.fromTo(Screen.dp(8f), outer - Screen.dp(4f), t);
+        Paint wave = Paints.getProgressPaint(ColorUtils.alphaColor(alpha * (1f - t) * .55f, red), Screen.dp(2f));
+        c.drawCircle(ccx, ccy, waveR, wave);
+        c.drawCircle(ccx, ccy, Screen.dp(8.5f) * (1f + (float) Math.sin(t * Math.PI) * .06f), Paints.fillingPaint(ColorUtils.alphaColor(alpha, red)));
+        postInvalidateOnAnimation();
+      } else {
+        tgx101WaveStart = 0;
       }
     }
 

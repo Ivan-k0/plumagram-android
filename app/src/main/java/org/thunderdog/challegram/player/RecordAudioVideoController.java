@@ -112,6 +112,7 @@ public class RecordAudioVideoController implements
   private VoiceVideoButtonView voiceVideoButtonView;
   private RecordLockView lockView;
   private CameraControlButton switchCameraButton;
+  private Tgx101RoundControls tgx101Controls; // TGx101 (user 2026-11-26): zoom and light of round videos
   private RecordControllerButton switchCameraButtonWrap;
   private RecordDisposableSwitchButton disposableSwitchButton;
   private RecordDurationView durationView;
@@ -261,6 +262,24 @@ public class RecordAudioVideoController implements
       this.videoBackgroundView.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
       this.rootLayout.addView(videoBackgroundView);
 
+      this.tgx101Controls = new Tgx101RoundControls(context, new Tgx101RoundControls.Host() {
+        @Override
+        public boolean isFrontCamera () {
+          return tgx101RoundFront;
+        }
+
+        @Override
+        public org.thunderdog.challegram.ui.camera.legacy.CameraManagerLegacy camera () {
+          return ownedCamera != null ? ownedCamera.getLegacyManager() : null;
+        }
+
+        @Override
+        public void onControlsChanged () {
+          updateLockY();
+        }
+      });
+      this.rootLayout.addView(tgx101Controls.frontLight);
+
       this.inputOverlayView = new FrameLayoutFix(context) {
         @Override
         public boolean onTouchEvent (MotionEvent event) {
@@ -388,6 +407,7 @@ public class RecordAudioVideoController implements
       });
       this.switchCameraButtonWrap.addView(switchCameraButton);
       this.rootLayout.addView(switchCameraButtonWrap);
+      this.rootLayout.addView(tgx101Controls.lightButton);
 
       this.disposableSwitchButton = new RecordDisposableSwitchButton(context);
       this.disposableSwitchButton.init(null);
@@ -488,6 +508,9 @@ public class RecordAudioVideoController implements
         this.progressView.setElevation(Screen.dp(1.5f));
       }
       this.rootLayout.addView(progressView);
+      this.rootLayout.addView(tgx101Controls.zoomBar);
+      this.rootLayout.addView(tgx101Controls.drum);
+      this.videoLayout.setOnTouchListener((v, e) -> tgx101Controls.onCircleTouch(e));
 
       this.deleteButton = new ImageView(context) {
         @Override
@@ -633,6 +656,7 @@ public class RecordAudioVideoController implements
   public void onCameraCompletelyReady (CameraController camera) {
     if (recordMode == RECORD_MODE_VIDEO) {
       isCameraReady = true;
+      tgx101Controls.reapply(); // zoom and light as they were (after a pause the camera is opened anew)
       checkActualRecording(CLOSE_MODE_CANCEL);
     }
   }
@@ -753,6 +777,7 @@ public class RecordAudioVideoController implements
     float columnX = cx - tgx101ButtonShift;
     lockView.setTranslationX(columnX - lockView.getMeasuredWidth() / 2);
     switchCameraButtonWrap.setTranslationX(columnX - switchCameraButtonWrap.getMeasuredWidth() / 2f);
+    tgx101Controls.lightButton.setTranslationX(columnX - tgx101Controls.lightButton.getMeasuredWidth() / 2f);
     disposableSwitchButton.setTranslationX(columnX - disposableSwitchButton.getMeasuredWidth() / 2f);
     updateLockY();
 
@@ -807,6 +832,8 @@ public class RecordAudioVideoController implements
     lockView.setScaleY(scale);
     switchCameraButtonWrap.setScaleX(scale);
     switchCameraButtonWrap.setScaleY(scale);
+    tgx101Controls.lightButton.setScaleX(scale);
+    tgx101Controls.lightButton.setScaleY(scale);
     disposableSwitchButton.setScaleX(scale);
     disposableSwitchButton.setScaleY(scale);
 
@@ -822,6 +849,7 @@ public class RecordAudioVideoController implements
 
     videoLayout.setTranslationY(y);
     progressView.setTranslationY(y - Screen.dp(RoundProgressView3.PADDING + 10));
+    tgx101Controls.layoutUnder(y + videoLayout.getMeasuredHeight());
   }
 
   private void updateLockY () {
@@ -841,6 +869,9 @@ public class RecordAudioVideoController implements
         y -= switchCameraButtonWrap.getMeasuredHeight();
       }
     }
+
+    tgx101Controls.lightButton.setTranslationY(y);
+    y -= tgx101Controls.lightButton.getMeasuredHeight() * tgx101Controls.lightButton.getAlpha();
 
     disposableSwitchButton.setTranslationY(y);
     if (Views.isValid(disposableSwitchButton)) {
@@ -968,6 +999,7 @@ public class RecordAudioVideoController implements
   @Override
   public void onCameraSwitched (boolean isForward, boolean toFrontFace) {
     tgx101RoundFront = toFrontFace;
+    tgx101Controls.onCameraSwitched();
     switchCameraButton.spinAround(isForward, toFrontFace);
   }
 
@@ -1579,6 +1611,7 @@ public class RecordAudioVideoController implements
     progressView.setScaleX(videoScale);
     progressView.setScaleY(videoScale);
     switchCameraButtonWrap.setAlpha(recordingVideo ? editRange : 0);
+    tgx101Controls.setVisibility(videoRange, 1f - editAnimator.getFloatValue());
     disposableSwitchButton.setAlpha(editRange);
 
     updateMuteAlpha();
@@ -1651,6 +1684,7 @@ public class RecordAudioVideoController implements
   }
 
   private void onRecordRemoved () {
+    tgx101Controls.reset();
     // note: when animations disabled happens before finishVideoRecording
     context.setScreenFlagEnabled(BaseActivity.SCREEN_FLAG_RECORDING, false);
     context.setOrientationLockFlagEnabled(BaseActivity.ORIENTATION_FLAG_RECORDING, false);

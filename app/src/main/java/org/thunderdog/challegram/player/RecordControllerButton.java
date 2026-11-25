@@ -60,8 +60,12 @@ public class RecordControllerButton extends FrameLayoutFix {
   @Override
   protected void dispatchDraw (@NonNull Canvas canvas) {
     final float active = isActiveAnimator.getFloatValue();
+    if (Theme.isDark() && active < 1f) {
+      // TGx101 (user 2026-11-26 «слишком тёмные и не акцентные кнопки»): a step lighter than the filling in a dark theme
+      canvas.drawCircle(getMeasuredWidth() / 2f, getMeasuredHeight() / 2f, Screen.dp(BUTTON_SIZE / 2f), Paints.fillingPaint(RecordLockView.tgx101Surface()));
+    }
     if (active > 0f) {
-      final int color = ColorUtils.fromToArgb(Theme.getColor(ColorId.filling), Theme.getColor(ColorId.fillingPositive), active);
+      final int color = ColorUtils.fromToArgb(RecordLockView.tgx101Surface(), tgx101ActiveColor(), active);
       canvas.drawCircle(getMeasuredWidth() / 2f, getMeasuredHeight() / 2f, Screen.dp(BUTTON_SIZE / 2f), Paints.fillingPaint(color));
     }
 
@@ -71,6 +75,11 @@ public class RecordControllerButton extends FrameLayoutFix {
 
 
 
+
+  /** the filled colour of an active button (the self-destruct timer: positive; the torch: amber) */
+  protected int tgx101ActiveColor () {
+    return Theme.getColor(ColorId.fillingPositive);
+  }
 
   private final FactorAnimator.Target isActiveTarget = new FactorAnimator.Target() {
     @Override

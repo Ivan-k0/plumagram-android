@@ -93,6 +93,28 @@ public class CameraManagerLegacy extends CameraManagerTexture {
     return false;
   }
 
+  // TGx101 (user 2026-11-26): round video zoom by ratio and the torch
+
+  /** true when the ratio was sent to the camera (it knows its zoom steps) */
+  public boolean tgx101SetZoomRatio (float ratio) {
+    float step = api.tgx101ZoomStepFor(ratio);
+    if (step < 0) return false;
+    api.requestZoom(step);
+    return true;
+  }
+
+  public float tgx101MaxZoomRatio () {
+    return api.tgx101MaxZoomRatio();
+  }
+
+  public void tgx101SetTorch (boolean on) {
+    api.tgx101SetTorch(on);
+  }
+
+  public boolean tgx101HasTorch () {
+    return api.tgx101HasTorch();
+  }
+
   @Override
   @UiThread
   public void switchFlashMode () {

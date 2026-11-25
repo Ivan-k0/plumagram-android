@@ -115,6 +115,16 @@ public class CameraApiLegacy extends CameraApi implements Camera.PreviewCallback
   }
 
   @Override
+  protected void onTgx101Torch (boolean on) throws Throwable {
+    if (camera == null) return;
+    Camera.Parameters params = camera.getParameters();
+    List<String> modes = params.getSupportedFlashModes();
+    if (modes == null || !modes.contains(Camera.Parameters.FLASH_MODE_TORCH)) return;
+    params.setFlashMode(on ? Camera.Parameters.FLASH_MODE_TORCH : Camera.Parameters.FLASH_MODE_OFF);
+    camera.setParameters(params);
+  }
+
+  @Override
   protected void onFlashModeChange (int newFlashMode) throws Throwable {
     if (isCameraActive) {
       Camera.Parameters params = camera.getParameters();
@@ -279,6 +289,16 @@ public class CameraApiLegacy extends CameraApi implements Camera.PreviewCallback
     }
     if (zoomSupported) {
       features.setMaxZoom(params.getMaxZoom());
+      List<Integer> ratios = params.getZoomRatios();
+      if (ratios != null && !ratios.isEmpty()) {
+        int[] r = new int[ratios.size()];
+        for (int i = 0; i < r.length; i++) r[i] = ratios.get(i);
+        tgx101ZoomRatios = r;
+      } else {
+        tgx101ZoomRatios = null;
+      }
+    } else {
+      tgx101ZoomRatios = null;
     }
 
     int numFocusAreas = params.getMaxNumFocusAreas();
