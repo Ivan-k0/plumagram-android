@@ -129,7 +129,8 @@ public class ComplexRecyclerView extends CustomRecyclerView implements Runnable 
     if ((flags & FLAG_FORCE) == 0) {
       headerView.setScaleFactor(scrollFactor, scrollFactor, scrollFactor, true);
       if (floatingButton != null && target.getFloatingButtonId() != 0) {
-        floatingButton.setHeightFactor(scrollFactor, 0f, true);
+        floatingButton.tgx101SetQuiet(true);
+        floatingButton.tgx101FollowFinger(scrollFactor); // TGx101: with the finger, not a timed hide (see there)
       }
       if (updateFilling && target.headerView != null) {
         if (scrollFactor == 1f) {

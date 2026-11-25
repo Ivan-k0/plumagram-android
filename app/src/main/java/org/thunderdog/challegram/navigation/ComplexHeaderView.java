@@ -249,6 +249,44 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
     }
   }
 
+  private float tgx101CollapseAt = -1f;
+  private int tgx101CollapseAtFor;
+
+  /** the scale factor where the avatar used to flip to the small circle; found once per header size */
+  private float tgx101CollapsePoint () {
+    int key = currentHeaderOffset * 31 + (int) getMultiLineAddition();
+    if (tgx101CollapseAt < 0f || tgx101CollapseAtFor != key) {
+      float lo = 0f, hi = 1f;
+      for (int i = 0; i < 14; i++) {
+        float mid = (lo + hi) / 2f;
+        if (wouldCollapse(mid)) lo = mid; else hi = mid;
+      }
+      tgx101CollapseAt = hi;
+      tgx101CollapseAtFor = key;
+    }
+    return tgx101CollapseAt;
+  }
+
+  private void tgx101FollowCollapse (float scaleFactor) {
+    float at = tgx101CollapsePoint();
+    float band = .22f;
+    float f = MathUtils.clamp((at + band - scaleFactor) / (band * 2f));
+    f = f * f * (3f - 2f * f); // smoothstep: eases in and out of the change
+    boolean collapse = f >= .5f;
+    if (avatarCollapseAnimator == null || avatarCollapseAnimator.getValue() != collapse) {
+      setCollapseAvatar(collapse, false);
+    }
+    if (avatarCollapseFactor != f) {
+      int oldTextMaxWidth = getCheckTextMaxWidth();
+      avatarCollapseFactor = f;
+      if (avatarExpandListener != null) {
+        avatarExpandListener.onAvatarExpandFactorChanged(this, getAvatarExpandFactor(), true, avatarAllowanceFactor, avatarCollapseFactor);
+      }
+      layoutTextsIfNeeded(oldTextMaxWidth);
+      invalidate();
+    }
+  }
+
   private int currentHeaderOffset;
 
   @Override
@@ -359,7 +397,11 @@ public class ComplexHeaderView extends BaseView implements RtlCheckListener, Sti
             setCollapseAvatar(wouldCollapse(fromFactor), false);
           }
         } else {
-          setCollapseAvatar(wouldCollapse(scaleFactor), true);
+          // TGx101 (user 2026-11-25 «за один свайп происходит 4 анимации», mockup «Профиль: одно движение»): the big photo
+          // turns into the small circle along the swipe itself, over a band round the point where it used to flip, and
+          // stands where the finger stops — no 220 ms animation started at a threshold (the green went in a frame and the
+          // letters burst out)
+          tgx101FollowCollapse(scaleFactor);
         }
       }
       layoutTextsIfNeeded(oldTextMaxWidth);

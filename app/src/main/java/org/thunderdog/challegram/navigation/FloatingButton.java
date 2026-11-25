@@ -77,6 +77,31 @@ public class FloatingButton extends View implements Destroyable, RootFrameLayout
     setScaleY(MIN_SCALE);
   }
 
+  // TGx101 (user 2026-11-25 «кнопка "чат" резко пропадает и сильно яркая, как бельмо», mockup «Профиль: одно движение»):
+  // on the profile the button is a dark circle with an accent sign, and it leaves with the swipe itself — gone over the
+  // first third of the collapse, no timed shrink with an overshoot
+  private boolean tgx101Quiet;
+
+  public void tgx101SetQuiet (boolean quiet) {
+    if (this.tgx101Quiet == quiet) return;
+    this.tgx101Quiet = quiet;
+    RippleSupport.setCircleBackground(this, 56f, 4f, quiet ? ColorId.filling : ColorId.headerButton, true, null);
+    invalidate();
+  }
+
+  /** the swipe's own fade: {@code heightFactor} 1 — the header open, 0 — collapsed */
+  public void tgx101FollowFinger (float heightFactor) {
+    this.heightFactor = heightFactor;
+    setTranslationY((1f - heightFactor) * heightDiff);
+    float shown = MathUtils.clamp((heightFactor - 2f / 3f) * 3f);
+    setAlpha(shown);
+    float scale = .85f + .15f * shown;
+    setScaleX(scale);
+    setScaleY(scale);
+    isShowing = shown > 0f;
+    setTouchEnabled(isShowing);
+  }
+
   private RootFrameLayout rootView;
 
   @Override
@@ -285,7 +310,7 @@ public class FloatingButton extends View implements Destroyable, RootFrameLayout
   @Override
   protected void onDraw (Canvas c) {
     if (icon != null) {
-      draw(c, iconRes, icon, center, iconTop, Paints.getHeaderFloatIconPorterDuffPaint(), 1f);
+      draw(c, iconRes, icon, center, iconTop, tgx101Quiet ? Paints.getPorterDuffPaint(org.thunderdog.challegram.theme.Theme.getColor(ColorId.textLink)) : Paints.getHeaderFloatIconPorterDuffPaint(), 1f);
     } else if (leftIcon != null || rightIcon != null) {
       Paint paint = Paints.getHeaderFloatIconPorterDuffPaint();
       if (leftIcon != null)
