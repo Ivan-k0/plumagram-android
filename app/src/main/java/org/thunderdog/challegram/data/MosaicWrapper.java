@@ -1119,10 +1119,7 @@ public class MosaicWrapper implements FactorAnimator.Target, ComplexReceiver.Key
     float alpha = android.graphics.Color.alpha(color) / 255f;
     if (tgx101GlowPaint == null) {
       tgx101GlowPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
-      tgx101GlowPaint.setStyle(android.graphics.Paint.Style.STROKE);
     }
-    final float step = org.thunderdog.challegram.tool.Screen.dp(2.5f);
-    final int steps = 9; // ~22 dp of light from the edge inwards
     for (MosaicItemInfo info : mosaicItems) {
       if (messageId != 0 && info.target.getSourceMessageId() != messageId) continue;
       int left = lastStartX + info.x, top = lastStartY + info.y;
@@ -1133,15 +1130,15 @@ public class MosaicWrapper implements FactorAnimator.Target, ComplexReceiver.Key
       rect.set(left, top, right, bottom);
       clip.addRoundRect(rect, r, r, android.graphics.Path.Direction.CW);
       c.clipPath(clip);
-      tgx101GlowPaint.setStrokeWidth(step + 1f); // a hair of overlap: no seams between the rings
-      for (int i = 0; i < steps; i++) {
-        float k = 1f - i / (float) steps;
-        tgx101GlowPaint.setColor(me.vkryl.core.ColorUtils.alphaColor(alpha * .5f * k * k, color));
-        float inset = step * i + step / 2f;
-        rect.set(left + inset, top + inset, right - inset, bottom - inset);
-        float rr = Math.max(0f, r - inset);
-        c.drawRoundRect(rect, rr, rr, tgx101GlowPaint);
-      }
+      // (user 2026-11-25 «подсветка не подходит — пусть всё фото внутри рамки подсвечивается, чтобы на тёмном и светлом
+      // фото выглядело нормально»): the whole picture under one even wash — a little white lifts a dark photo, the accent
+      // tints a light one — and the frame round it
+      tgx101GlowPaint.setStyle(android.graphics.Paint.Style.FILL);
+      rect.set(left, top, right, bottom);
+      tgx101GlowPaint.setColor(me.vkryl.core.ColorUtils.alphaColor(alpha * .14f, 0xffffffff));
+      c.drawRect(rect, tgx101GlowPaint);
+      tgx101GlowPaint.setColor(me.vkryl.core.ColorUtils.alphaColor(alpha * .30f, color));
+      c.drawRect(rect, tgx101GlowPaint);
       float inset = paint.getStrokeWidth() / 2f;
       rect.set(left + inset, top + inset, right - inset, bottom - inset);
       c.drawRoundRect(rect, Math.max(0f, r - inset), Math.max(0f, r - inset), paint);
