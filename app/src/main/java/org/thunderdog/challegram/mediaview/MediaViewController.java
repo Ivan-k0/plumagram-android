@@ -2563,6 +2563,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private android.widget.TextView tgx101Counter;
   private boolean tgx101CounterShown;
   private float tgx101CounterFade;
+  private boolean tgx101CounterRetired;
 
   private void tgx101UpdateCounter (String text) {
     if (tgx101Counter == null) return;
@@ -7049,9 +7050,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       if (tgx101NameHeader()) {
         // «N из M» under the header, as the reference: it moves and fades with the header (a child drawn past its edge)
         tgx101Counter = new android.widget.TextView(context);
-        tgx101Counter.setTextColor(0xe6ffffff);
-        tgx101Counter.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
-        tgx101Counter.setShadowLayer(Screen.dp(3f), 0, Screen.dp(.5f), 0x99000000);
+        tgx101Counter.setTextColor(0xffffffff);
+        tgx101Counter.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15f);
+        // (user 2026-11-25, the reference's screenshot «обрати внимание на фон цифр»): a dark see-through pill under the words
+        android.graphics.drawable.GradientDrawable pill = new android.graphics.drawable.GradientDrawable();
+        pill.setColor(0x8c2a2a2a);
+        pill.setCornerRadius(Screen.dp(16f));
+        tgx101Counter.setBackground(pill);
+        tgx101Counter.setPadding(Screen.dp(12f), Screen.dp(4f), Screen.dp(12f), Screen.dp(5f));
         tgx101Counter.setAlpha(0f);
         onMediaStackChanged(false);
       }
@@ -7066,7 +7072,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           if (tgx101Counter == null) return true;
           float y = header.getTop() + header.getTranslationY() + header.getHeight() + Screen.dp(8f);
           if (tgx101Counter.getTranslationY() != y) tgx101Counter.setTranslationY(y);
-          float a = header.getAlpha() * (tgx101CounterShown ? tgx101CounterFade : 0f);
+          // (user 2026-11-25, as the reference: «количество показывается в первый раз; скрыл превью нажатием — повторно цифры уже
+          // не появляются»): once the header has gone with a tap, the count stays away
+          if (tgx101CounterShown && tgx101CounterFade >= 1f && header.getAlpha() < .05f) tgx101CounterRetired = true;
+          float a = tgx101CounterRetired ? 0f : header.getAlpha() * (tgx101CounterShown ? tgx101CounterFade : 0f);
           if (tgx101Counter.getAlpha() != a) tgx101Counter.setAlpha(a);
           return true;
         });
