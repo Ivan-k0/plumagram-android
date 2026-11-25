@@ -1623,6 +1623,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101CompactBubblesHint, "Тоньше текстовые пузыри: время стоит на последней строке, сообщения ближе друг к другу — на экране помещается больше");
     RU.put(R.string.Tgx101RearRounds, "Кружки — начинать с основной камеры");
     RU.put(R.string.Tgx101HidePhone, "Скрыть мой номер в боковом меню");
+    RU.put(R.string.Tgx101ShowPeerIds, "Показывать ID в профилях");
     RU.put(R.string.Tgx101ContactMessage, "Написать");
     RU.put(R.string.Tgx101ContactVoiceCall, "Аудиозвонок");
     RU.put(R.string.Tgx101ContactVideoCall, "Видеозвонок");

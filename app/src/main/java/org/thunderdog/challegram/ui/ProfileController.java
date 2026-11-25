@@ -867,6 +867,14 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     return tdlib.chatUsername(chat.id);
   }
 
+  /** TGx101 (user 2026-11-25 «так его и рисовать в профиле нужно»): the ID as bots and scripts take it — a channel or
+   *  supergroup with «-100» in front, a basic group negative, a person as is */
+  private String tgx101PeerIdText () {
+    if (secretChat == null && supergroup != null) return Long.toString(-1000000000000L - supergroup.id);
+    if (secretChat == null && group != null) return Long.toString(-group.id);
+    return Long.toString(getPeerId());
+  }
+
   private long getPeerId () {
     if (secretChat != null) {
       return secretChat.id;
@@ -919,7 +927,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
         UI.copyText("@" + username, R.string.CopiedUsername);
       }
     } else if (id == R.id.btn_peer_id_copy) {
-      UI.copyText(Long.toString(getPeerId()), R.string.CopiedPeerId);
+      UI.copyText(tgx101PeerIdText(), R.string.CopiedPeerId);
     } else if (id == R.id.btn_copyLink) {
       String username = getProfileUsername();
       if (!StringUtils.isEmpty(username)) {
@@ -1921,7 +1929,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
           view.setData(R.string.PictureAndText);
         } else if (itemId == R.id.btn_peer_id) {
           view.setName(getPeerTypeStringResourceId());
-          view.setData(Strings.buildCounter(getPeerId()));
+          view.setData(tgx101PeerIdText());
         } else if (itemId == R.id.btn_birthdate) {
           view.setData(R.string.Birthdate);
           TdApi.Birthdate birthdate = userFull != null ? userFull.birthdate : null;
@@ -5295,7 +5303,7 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     } else if (viewId == R.id.btn_useExplicitDice) {
       Settings.instance().setNewSetting(((ListItem) v.getTag()).getLongId(), baseAdapter.toggleView(v));
     } else if (viewId == R.id.btn_peer_id) {
-      showOptions(Long.toString(getPeerId()), new int[]{R.id.btn_peer_id_copy}, new String[]{Lang.getString(R.string.Copy)}, null, new int[]{R.drawable.baseline_content_copy_24});
+      showOptions(tgx101PeerIdText(), new int[]{R.id.btn_peer_id_copy}, new String[]{Lang.getString(R.string.Copy)}, null, new int[]{R.drawable.baseline_content_copy_24});
     } else if (viewId == R.id.btn_username) {
       boolean canSetUsername = canSetUsername();
       boolean canInviteUsers = chat != null && tdlib.canManageInviteLinks(chat);

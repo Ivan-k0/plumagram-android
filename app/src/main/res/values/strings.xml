@@ -6758,6 +6758,7 @@
   <string name="Tgx101CompactBubblesHint">Thinner text bubbles: the time stands on the last line, bubbles closer to each other — more messages on the screen</string>
   <string name="Tgx101RearRounds">Video messages start with the main camera</string>
   <string name="Tgx101HidePhone">Hide my phone number in the side menu</string>
+  <string name="Tgx101ShowPeerIds">Show ID in profiles</string>
   <string name="Tgx101ContactMessage">Message</string>
   <string name="Tgx101ContactVoiceCall">Audio call</string>
   <string name="Tgx101ContactVideoCall">Video call</string>
