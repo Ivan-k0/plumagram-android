@@ -199,6 +199,27 @@ public class CameraApiLegacy extends CameraApi implements Camera.PreviewCallback
     if (manager.getMaxResolution() != 0 && params.isVideoStabilizationSupported()) {
       params.setVideoStabilization(Settings.instance().getRoundStabilizationMode() == Settings.ROUND_STABILIZATION_SYSTEM);
     }
+    // TGx101 (user 2026-11-25 recordings: ours 20 fps, the reference 30 — every frame jumped twice as far, the shake
+    // looked like jerks): video messages ask the camera for a full 30 frames a second; left alone it drops to 20 indoors
+    if (manager.getMaxResolution() != 0) {
+      try {
+        List<int[]> ranges = params.getSupportedPreviewFpsRange();
+        int[] best = null;
+        if (ranges != null) {
+          for (int[] range : ranges) {
+            int min = range[Camera.Parameters.PREVIEW_FPS_MIN_INDEX], max = range[Camera.Parameters.PREVIEW_FPS_MAX_INDEX];
+            if (max != 30000) continue;
+            if (best == null || min > best[Camera.Parameters.PREVIEW_FPS_MIN_INDEX]) best = range;
+          }
+        }
+        if (best != null) {
+          params.setPreviewFpsRange(best[Camera.Parameters.PREVIEW_FPS_MIN_INDEX], best[Camera.Parameters.PREVIEW_FPS_MAX_INDEX]);
+          org.thunderdog.challegram.Tgx101Diag.mark("round: fps range " + best[0] / 1000 + "-" + best[1] / 1000);
+        }
+      } catch (Throwable t) {
+        Log.w(Log.TAG_CAMERA, "Cannot set the round fps range", t);
+      }
+    }
 
     List<String> focusModes = params.getSupportedFocusModes();
     if (focusModes != null) {
