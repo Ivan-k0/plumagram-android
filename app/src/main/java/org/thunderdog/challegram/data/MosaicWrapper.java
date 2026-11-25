@@ -1113,7 +1113,7 @@ public class MosaicWrapper implements FactorAnimator.Target, ComplexReceiver.Key
   /** the jump's highlight inside the pictures: {@code messageId} 0 — every item (a single photo is its only one) */
   public void tgx101DrawItemOutline (android.graphics.Canvas c, long messageId, android.graphics.Paint paint) {
     if (mosaicItems == null) return;
-    boolean single = mosaicItems.size() == 1;
+    boolean single = mosaicItems.length == 1;
     float r = org.thunderdog.challegram.tool.Screen.dp(single ? Math.max(6f, org.thunderdog.challegram.theme.Theme.getBubbleDefaultRadius() - 3f) : 6f);
     int color = paint.getColor();
     float alpha = android.graphics.Color.alpha(color) / 255f;
