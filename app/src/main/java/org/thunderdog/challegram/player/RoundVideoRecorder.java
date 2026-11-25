@@ -439,6 +439,7 @@ public class RoundVideoRecorder {
 
     width = mPreviewWidth;
     height = mPreviewHeight;
+    stabilizer.setFrameAspect((float) Math.max(width, height) / Math.max(1, Math.min(width, height)));
 
     int minSide = Math.min(width, height);
     float scale = mSurfaceWidth / (float) minSide;

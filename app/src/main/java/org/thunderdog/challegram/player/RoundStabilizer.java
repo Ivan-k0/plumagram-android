@@ -38,12 +38,22 @@ public class RoundStabilizer implements SensorEventListener {
   private static final float ZOOM = 1.1f;
   private static final float MAX_SHIFT = ZOOM - 1f;
   // NDC shift per radian: 1 / tan(half of the square's field of view, ~50 degrees).
-  private static final float SHIFT_PER_RADIAN = 2.0f;
+  private static final float SHIFT_PER_RADIAN_16_9 = 2.0f;
+  // TGx101 (user 2026-11-26 recording from a 4:3 frame: shake up instead of down): the same tilt moves the picture less
+  // when the circle shows more of the scene — the shift per radian follows the frame (a 4:3 one is a third wider)
+  private float shiftPerRadian = SHIFT_PER_RADIAN_16_9;
+  private float limitTilt = MAX_SHIFT / SHIFT_PER_RADIAN_16_9;
+
+  /** {@code aspect} — the camera frame's long side over its short one (16:9 → 1.78, 4:3 → 1.33) */
+  public void setFrameAspect (float aspect) {
+    if (!(aspect >= 1f) || aspect > 2.5f) aspect = 16f / 9f;
+    shiftPerRadian = SHIFT_PER_RADIAN_16_9 * aspect / (16f / 9f);
+    limitTilt = MAX_SHIFT / shiftPerRadian;
+  }
   private static final float MAX_ROLL_RADIANS = (float) Math.toRadians(10);
   // High-pass time constant: movement slower than this is treated as intentional.
   private static final float FOLLOW_SECONDS = 0.5f;
   // (user 2026-10-20 «стабилизацию гироскопом — красиво, по уму») the angles that use up the whole margin
-  private static final float LIMIT_TILT = MAX_SHIFT / SHIFT_PER_RADIAN;
   // Near the margin the picture comes back to the centre up to this many times faster: after a turn it no longer
   // sits at the edge for half a second, where the shake passed through uncorrected
   private static final float EDGE_PULL = 6f;
@@ -101,8 +111,8 @@ public class RoundStabilizer implements SensorEventListener {
     if (lastTimestampNs != 0) {
       float dt = (event.timestamp - lastTimestampNs) / 1_000_000_000f;
       if (dt > 0 && dt < 0.1f) {
-        angleX = follow(angleX + event.values[0] * dt, LIMIT_TILT, dt);
-        angleY = follow(angleY + event.values[1] * dt, LIMIT_TILT, dt);
+        angleX = follow(angleX + event.values[0] * dt, limitTilt, dt);
+        angleY = follow(angleY + event.values[1] * dt, limitTilt, dt);
         angleZ = follow(angleZ + event.values[2] * dt, MAX_ROLL_RADIANS, dt);
       }
     }
@@ -146,9 +156,9 @@ public class RoundStabilizer implements SensorEventListener {
     float ax = angles[0], ay = angles[1], az = angles[2];
     // Tilting the top towards the user makes the rear camera look up (scene moves down)
     // and the front camera look down (scene moves up).
-    float shiftY = soft((isFrontFacing ? -ax : ax) * SHIFT_PER_RADIAN, MAX_SHIFT);
+    float shiftY = soft((isFrontFacing ? -ax : ax) * shiftPerRadian, MAX_SHIFT);
     // Turning left/right: the rear camera and the mirrored front picture both move the same way.
-    float shiftX = soft(-ay * SHIFT_PER_RADIAN, MAX_SHIFT);
+    float shiftX = soft(-ay * shiftPerRadian, MAX_SHIFT);
     float roll = soft(az, MAX_ROLL_RADIANS);
 
     // Called from both the preview and the encoder threads, so no shared scratch matrix.
