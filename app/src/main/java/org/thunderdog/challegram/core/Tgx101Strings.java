@@ -1628,6 +1628,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101NotifCustomize, "Настроить");
     RU.put(R.string.Tgx101NotifOff, "Выключить уведомления");
     RU.put(R.string.Tgx101ThemeNightDeep, "Глубокая ночь");
+    RU.put(R.string.Tgx101NotifSilent, "Без звука");
+    RU.put(R.string.Tgx101NotifSound, "Со звуком");
+    RU.put(R.string.Tgx101NotifSilentDone, "Уведомления из этого чата будут приходить без звука");
+    RU.put(R.string.Tgx101NotifSoundDone, "Уведомления из этого чата снова со звуком");
     RU.put(R.string.Tgx101ContactMessage, "Написать");
     RU.put(R.string.Tgx101ContactVoiceCall, "Аудиозвонок");
     RU.put(R.string.Tgx101ContactVideoCall, "Видеозвонок");

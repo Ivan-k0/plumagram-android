@@ -3545,6 +3545,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (chat != null) {
         tdlib.ui().toggleMute(this, chat.id, false, null);
       }
+    } else if (id == R.id.btn_tgx101NotifSound) {
+      if (chat != null) tgx101ToggleChatSound(chat.id);
     } else if (id == R.id.btn_tgx101NotifOff) {
       if (chat != null) tdlib.setMuteFor(chat.id, TdlibUi.MUTE_FOREVER);
     } else if (id == R.id.btn_tgx101NotifOn) {
@@ -6399,6 +6401,34 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return Tgx101BarOrder.chatIconOf(Tgx101BarOrder.chatKeyOf(id));
   }
 
+  /** «Silent»: this chat's notifications without a sound (an empty custom sound); a custom sound it had comes back */
+  private void tgx101ToggleChatSound (long chatId) {
+    org.thunderdog.challegram.telegram.TdlibNotificationManager n = tdlib.notifications();
+    me.vkryl.leveldb.LevelDB pmc = org.thunderdog.challegram.unsorted.Settings.instance().pmc();
+    String key = "tgx101_silent_" + tdlib.accountId() + "_" + chatId;
+    if (n.isSoundEnabled(chatId)) {
+      String had = n.hasCustomSound(chatId) ? n.getCustomSound(chatId, null) : null;
+      if (had != null) {
+        pmc.putString(key, had);
+        pmc.putString(key + "_name", n.getCustomSoundName(chatId) != null ? n.getCustomSoundName(chatId) : "");
+        pmc.putString(key + "_path", n.getCustomSoundPath(chatId) != null ? n.getCustomSoundPath(chatId) : "");
+      } else {
+        pmc.remove(key);
+      }
+      n.setCustomSound(chatId, "", null, null);
+      UI.showToast(R.string.Tgx101NotifSilentDone, android.widget.Toast.LENGTH_SHORT);
+    } else {
+      String had = pmc.getString(key, null);
+      if (had != null) {
+        n.setCustomSound(chatId, had, pmc.getString(key + "_name", null), pmc.getString(key + "_path", null));
+      } else {
+        n.setCustomSound(chatId, null, null, null);
+      }
+      pmc.remove(key);
+      UI.showToast(R.string.Tgx101NotifSoundDone, android.widget.Toast.LENGTH_SHORT);
+    }
+  }
+
   /** a tap in the ⋮ menu that changes its page instead of closing it; true — handled */
   public boolean tgx101MenuPage (int id, org.thunderdog.challegram.navigation.HeaderView header) {
     if (chat == null || tgx101MenuIds == null) return false;
@@ -6409,6 +6439,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
       IntList icons = new IntList(5);
       ids.append(R.id.btn_tgx101NotifBack); strings.append(R.string.Tgx101MenuBack); icons.append(R.drawable.baseline_arrow_back_24);
       if (enabled) {
+        // (user 2026-11-26 «без звука — нужна»): notifications come, only silent
+        boolean sound = tdlib.notifications().isSoundEnabled(chat.id);
+        ids.append(R.id.btn_tgx101NotifSound); strings.append(sound ? R.string.Tgx101NotifSilent : R.string.Tgx101NotifSound); icons.append(sound ? R.drawable.baseline_volume_off_24 : R.drawable.baseline_volume_up_24);
         ids.append(R.id.btn_mute); strings.append(R.string.Tgx101MuteFor); icons.append(R.drawable.baseline_notifications_paused_24);
       }
       ids.append(R.id.btn_tgx101ChatNotifications); strings.append(R.string.Tgx101NotifCustomize); icons.append(R.drawable.baseline_tune_24);
