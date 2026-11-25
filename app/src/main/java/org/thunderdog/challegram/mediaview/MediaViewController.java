@@ -1714,8 +1714,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     int to = (tgx101CaptionExpanded ? full - tgx101ChapterGap() : tgx101CaptionCollapsedHeight()) + tgx101ChapterGap();
     scroll.setVerticalFadingEdgeEnabled(!tgx101CaptionExpanded);
     android.animation.ValueAnimator animator = android.animation.ValueAnimator.ofInt(from, to);
-    animator.setDuration(200);
-    animator.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    // (user 2026-11-25, the reference: «как плавно открывается описание») ~0.4 s on a soft curve — it went in 3–5 frames
+    // (200 ms halved by the phone's animation scale)
+    animator.setDuration((long) (380 / Math.max(.1f, U.getAnimationScale(context()))));
+    animator.setInterpolator(androidx.core.view.animation.PathInterpolatorCompat.create(.2f, 0f, 0f, 1f));
     animator.addUpdateListener(a -> scroll.setMaxHeight((int) a.getAnimatedValue()));
     animator.addListener(new android.animation.AnimatorListenerAdapter() {
       @Override
@@ -2525,6 +2527,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           } else {
             headerCell.setTitle(R.string.Photo);
           }
+        } else if (tgx101NameHeader()) {
+          // TGx101 (user 2026-11-25, the reference recorded: «отображение названия и кол-ва файлов… у нас кол-во мигает каждый раз
+          // при открытии»): the author's name on top, the date under it, «N из M» on its own small line under the header — and
+          // only once the real total is known (it showed the loaded «31 из 33» for a frame, then «18 831 из 18 833»)
+          String author = getAuthorText(stack.getCurrent());
+          headerCell.setTitle(author != null ? author : Lang.getString(R.string.XofY, currentIndex, totalIndex));
+          tgx101UpdateCounter(Lang.getString(R.string.XofY, currentIndex, totalIndex));
         } else {
           headerCell.setTitle(Lang.getString(R.string.XofY, currentIndex, totalIndex));
         }
@@ -2539,6 +2548,28 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
     if (!itemCountChanged) {
       checkNeedThumbs();
+    }
+  }
+
+  /** the name-and-date header with the count under it: a chat's media opened from a message */
+  private boolean tgx101NameHeader () {
+    return mode == MODE_MESSAGES && getArgumentsStrict() != null && StringUtils.isEmpty(getArgumentsStrict().customSubtitle);
+  }
+
+  private android.widget.TextView tgx101Counter;
+  private boolean tgx101CounterShown;
+
+  private void tgx101UpdateCounter (String text) {
+    if (tgx101Counter == null) return;
+    boolean known = (loadedInitialChunk || getArgumentsStrict().noLoadMore) && stack.getEstimatedSize() > 1;
+    tgx101Counter.setText(text);
+    if (known && !tgx101CounterShown) {
+      tgx101CounterShown = true;
+      tgx101Counter.animate().alpha(1f).setDuration((long) (180 / Math.max(.1f, U.getAnimationScale(context())))).start();
+    } else if (!known && tgx101CounterShown) {
+      tgx101CounterShown = false;
+      tgx101Counter.animate().cancel();
+      tgx101Counter.setAlpha(0f);
     }
   }
 
@@ -2629,6 +2660,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           }
         }
         String authorText = getAuthorText(item);
+        if (authorText != null && tgx101NameHeader() && !(getArgumentsStrict().noLoadMore && stack.getEstimatedSize() == 1)) {
+          return time != null ? time : ""; // the name is the title now
+        }
         if (authorText != null) {
           SpannableStringBuilder b = new SpannableStringBuilder(authorText);
           b.setSpan(Lang.newBoldSpan(Text.needFakeBold(authorText)), 0, authorText.length(), Spannable.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -7002,6 +7036,19 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       int leftMargin = Screen.dp(68f);
       int rightMargin = measureButtonsPadding();
       Views.setMargins((FrameLayout.LayoutParams) headerCell.getLayoutParams(), Lang.rtl() ? rightMargin : leftMargin, headerView.getEffectiveTopOffset(), Lang.rtl() ? leftMargin : rightMargin, 0);
+      if (tgx101NameHeader()) {
+        // «N из M» under the header, as the reference: it moves and fades with the header (a child drawn past its edge)
+        tgx101Counter = new android.widget.TextView(context);
+        tgx101Counter.setTextColor(0xe6ffffff);
+        tgx101Counter.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
+        tgx101Counter.setShadowLayer(Screen.dp(3f), 0, Screen.dp(.5f), 0x99000000);
+        tgx101Counter.setAlpha(0f);
+        headerView.setClipChildren(false);
+        headerView.setClipToPadding(false);
+        headerView.addView(tgx101Counter, FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+        headerView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> tgx101Counter.setTranslationY(v.getHeight() + Screen.dp(8f)));
+        onMediaStackChanged(false);
+      }
       contentView.addView(headerView);
     }
 
