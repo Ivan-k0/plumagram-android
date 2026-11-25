@@ -131,6 +131,9 @@ public class HapticMenuHelper implements View.OnTouchListener, View.OnLongClickL
       return this;
     }
 
+    /** TGx101: a hold on the row (the menu closes first) */
+    public View.OnLongClickListener tgx101OnLongClick;
+
     public MenuItem setOnClickListener (OnItemClickListener onClickListener) {
       this.onClickListener = onClickListener;
       return this;
@@ -323,6 +326,13 @@ public class HapticMenuHelper implements View.OnTouchListener, View.OnLongClickL
     for (MenuItem item : items) {
       item.boundView = moreWrap.addItem(item.tdlib, item, itemView -> onMenuItemClick(item, itemView, view));
       item.boundView.setVisibility(item.isVisible() ? View.VISIBLE : View.GONE);
+      if (item.tgx101OnLongClick != null) {
+        final View.OnLongClickListener hold = item.tgx101OnLongClick;
+        item.boundView.setOnLongClickListener(v -> {
+          hideMenu();
+          return hold.onLongClick(v);
+        });
+      }
       if (item.tutorialFlag != 0) {
         Settings.instance().markTutorialAsComplete(item.tutorialFlag);
       }

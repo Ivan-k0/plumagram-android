@@ -766,6 +766,8 @@
   <item type="id" name="share_bottom" />
   <item type="id" name="share_comment_stub" />
   <item type="id" name="btn_open" />
+  <item type="id" name="btn_tgx101SendTranslate" />
+  <item type="id" name="btn_tgx101SendUntranslate" />
   <item type="id" name="menu_btn_tgx101SavedOrder" />
   <item type="id" name="btn_tgx101WsProxyStatus" />
   <item type="id" name="btn_tgx101LinkAlways" />

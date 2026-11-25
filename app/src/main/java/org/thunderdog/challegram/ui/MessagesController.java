@@ -418,8 +418,71 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (items == null) items = new ArrayList<>();
       items.add(new HapticMenuHelper.MenuItem(R.id.btn_tgx101Ai, Lang.getString(R.string.Tgx101Ai), R.drawable.baseline_stars_24));
     }
+    // TGx101 (user 2026-11-25 «в подобных меню нужно добавить кнопку перевода», mockup «Перевод в меню отправки» А):
+    // «Translate · to English» first — the typed text becomes its translation in the field; held, the row picks another
+    // language. While the field still holds that translation the row says «Back to the original»
+    String typed = inputView != null && inputView.getText() != null ? inputView.getText().toString().trim() : "";
+    if (!typed.isEmpty() && !isEditingMessage()) {
+      if (items == null) items = new ArrayList<>();
+      if (tgx101SendTranslated != null && tgx101SendTranslated.equals(inputView.getText().toString())) {
+        items.add(0, new HapticMenuHelper.MenuItem(R.id.btn_tgx101SendUntranslate, Lang.getString(R.string.Tgx101SendUntranslate), R.drawable.baseline_undo_24));
+      } else {
+        String lang = tgx101SendTranslateLanguage();
+        HapticMenuHelper.MenuItem tr = new HapticMenuHelper.MenuItem(R.id.btn_tgx101SendTranslate, Lang.getString(R.string.Tgx101SendTranslate),
+          Lang.getString(R.string.Tgx101SendTranslateTo, Lang.getLanguageName(lang, lang)), R.drawable.baseline_translate_24);
+        tr.tgx101OnLongClick = v -> {
+          UI.post(this::tgx101PickSendTranslateLanguage, 150);
+          return true;
+        };
+        items.add(0, tr);
+      }
+    }
     hideCursorsForInputView();
     return items;
+  }
+
+  // TGx101: translating the typed text before sending (see onCreateHapticMenu)
+  private @Nullable CharSequence tgx101SendOriginal;
+  private @Nullable String tgx101SendTranslated;
+  private static final String KEY_TGX101_SEND_TRANSLATE = "tgx101_send_translate_lang";
+
+  /** the last language picked; at first the last one used for translating, or English (Russian for an English UI) */
+  private String tgx101SendTranslateLanguage () {
+    String saved = Settings.instance().pmc().getString(KEY_TGX101_SEND_TRANSLATE, null);
+    if (!StringUtils.isEmpty(saved)) return saved;
+    String ui = Lang.locale().getLanguage();
+    for (String recent : Settings.instance().getTranslateLanguageRecents()) {
+      if (!recent.equals(ui)) return recent;
+    }
+    return "en".equals(ui) ? "ru" : "en";
+  }
+
+  private void tgx101PickSendTranslateLanguage () {
+    TranslationControllerV2.LanguageSelectorPopup popup = new TranslationControllerV2.LanguageSelectorPopup(context, this, language -> {
+      Settings.instance().pmc().putString(KEY_TGX101_SEND_TRANSLATE, language);
+      org.thunderdog.challegram.Tgx101Diag.mark("send translate: language " + language);
+      tgx101TranslateInput(language);
+    }, tgx101SendTranslateLanguage(), null);
+    popup.show();
+  }
+
+  private void tgx101TranslateInput (String language) {
+    if (inputView == null) return;
+    final CharSequence original = new android.text.SpannableStringBuilder(inputView.getText());
+    TdApi.FormattedText text = inputView.getOutputText(false);
+    if (Td.isEmpty(text)) return;
+    org.thunderdog.challegram.Tgx101Diag.mark("send translate: " + text.text.length() + " chars to " + language);
+    tdlib.send(new TdApi.TranslateText(text, language, tgx.td.TdConstants.TEXT_FORMAT_NEUTRAL), (result, error) -> runOnUiThreadOptional(() -> {
+      if (error != null || result == null) {
+        UI.showError(error);
+        return;
+      }
+      CharSequence translated = TD.toCharSequence(result);
+      tgx101SendOriginal = original;
+      inputView.setInput(translated, true, true);
+      tgx101SendTranslated = inputView.getText().toString();
+      UI.showToast(Lang.getString(R.string.Tgx101SendTranslated, Lang.getLanguageName(language, language)), android.widget.Toast.LENGTH_SHORT);
+    }));
   }
 
   @Override
@@ -442,6 +505,15 @@ public class MessagesController extends ViewController<MessagesController.Argume
       openSetSenderPopup();
     } else if (viewId == R.id.btn_tgx101Ai) {
       tgx101ShowAiMenu();
+    } else if (viewId == R.id.btn_tgx101SendTranslate) {
+      tgx101TranslateInput(tgx101SendTranslateLanguage());
+    } else if (viewId == R.id.btn_tgx101SendUntranslate) {
+      if (tgx101SendOriginal != null && inputView != null) {
+        inputView.setInput(tgx101SendOriginal, true, true);
+        org.thunderdog.challegram.Tgx101Diag.mark("send translate: back to the original");
+      }
+      tgx101SendOriginal = null;
+      tgx101SendTranslated = null;
     } else if (viewId == R.id.btn_sendOnceOnline) {
       TdApi.MessageSendOptions sendOptions = Td.newSendOptions(new TdApi.MessageSchedulingStateSendWhenOnline());
       send(sendOptions, true);

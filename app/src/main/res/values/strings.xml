@@ -6642,6 +6642,10 @@
   <string name="Tgx101HideBlocked">Hide messages from blocked users</string>
   <string name="Tgx101WsProxy">Connect through WebSocket (like Telegram Web)</string>
   <string name="Tgx101WsProxyHint">Telegram traffic goes the way the web version connects. Can help where Telegram is slowed down. Adds the «WebSocket» proxy and turns it on.</string>
+  <string name="Tgx101SendTranslate">Translate</string>
+  <string name="Tgx101SendTranslateTo">to %1$s</string>
+  <string name="Tgx101SendUntranslate">Back to the original</string>
+  <string name="Tgx101SendTranslated">Translated to %1$s · hold ➤ to go back</string>
   <string name="Tgx101WsStatusWaiting">Status: waiting for the first connection</string>
   <string name="Tgx101WsStatusOk">Status: working through Telegram\'s web servers · %1$d connections · addresses: %2$s</string>
   <string name="Tgx101WsStatusDirect">Status: the web servers don\'t answer (%1$s) — going direct</string>

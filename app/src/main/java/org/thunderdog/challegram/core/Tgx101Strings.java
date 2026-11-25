@@ -926,6 +926,10 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101HideBlocked, "Скрывать сообщения заблокированных");
     RU.put(R.string.Tgx101WsProxy, "Подключение через WebSocket (как веб-Telegram)");
     RU.put(R.string.Tgx101WsProxyHint, "Трафик Telegram идёт так же, как у веб-версии. Может помочь там, где Telegram замедляют. Включает прокси «WebSocket (веб-Telegram)» в списке ниже.");
+    RU.put(R.string.Tgx101SendTranslate, "Перевести");
+    RU.put(R.string.Tgx101SendTranslateTo, "на %1$s");
+    RU.put(R.string.Tgx101SendUntranslate, "Вернуть оригинал");
+    RU.put(R.string.Tgx101SendTranslated, "Переведено: %1$s · удержите ➤, чтобы вернуть");
     RU.put(R.string.Tgx101WsStatusWaiting, "Сейчас: ждёт первого подключения");
     RU.put(R.string.Tgx101WsStatusOk, "Сейчас: работает через веб-серверы Telegram · подключений: %1$d · адреса: %2$s");
     RU.put(R.string.Tgx101WsStatusDirect, "Сейчас: веб-серверы не отвечают (%1$s), идёт напрямую");
