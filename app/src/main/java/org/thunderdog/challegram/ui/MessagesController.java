@@ -458,31 +458,129 @@ public class MessagesController extends ViewController<MessagesController.Argume
     return "en".equals(ui) ? "ru" : "en";
   }
 
-  private void tgx101PickSendTranslateLanguage () {
-    TranslationControllerV2.LanguageSelectorPopup popup = new TranslationControllerV2.LanguageSelectorPopup(context, this, language -> {
-      Settings.instance().pmc().putString(KEY_TGX101_SEND_TRANSLATE, language);
-      org.thunderdog.challegram.Tgx101Diag.mark("send translate: language " + language);
-      tgx101TranslateInput(language);
-    }, tgx101SendTranslateLanguage(), null);
-    popup.show();
+  /** the language's own name, «Deutsch», with a capital */
+  private static String tgx101NativeName (String code) {
+    try {
+      java.util.Locale l = java.util.Locale.forLanguageTag(code);
+      String n = l.getDisplayName(l);
+      if (!StringUtils.isEmpty(n) && !n.equalsIgnoreCase(code)) return n.substring(0, 1).toUpperCase(l) + n.substring(1);
+    } catch (Throwable ignored) { }
+    return Lang.getLanguageName(code, code);
   }
 
+  // TGx101 (user 2026-11-25 «меню выбора странное и не в нашем стиле, нет поиска», mockup «Язык перевода и загрузка» 1):
+  // a sheet from below — «Translate to», a search, the recent languages, then all; each by its own name with ours under it
+  private void tgx101PickSendTranslateLanguage () {
+    final String current = tgx101SendTranslateLanguage();
+    final String[] all = Lang.getSupportedLanguagesForTranslate();
+    final org.thunderdog.challegram.ui.Tgx101Sheet.Handle[] h = new org.thunderdog.challegram.ui.Tgx101Sheet.Handle[1];
+    h[0] = org.thunderdog.challegram.ui.Tgx101Sheet.show(this, null, body -> {
+      body.addView(org.thunderdog.challegram.ui.Tgx101Sheet.title(context, Lang.getString(R.string.Tgx101TranslateToTitle)));
+      android.widget.EditText search = new android.widget.EditText(context);
+      search.setSingleLine(true);
+      search.setHint(Lang.getString(R.string.Tgx101TranslateSearch));
+      search.setImeOptions(android.view.inputmethod.EditorInfo.IME_ACTION_SEARCH);
+      org.thunderdog.challegram.ui.Tgx101SavedHomeController.styleField(search, true);
+      LinearLayout.LayoutParams sp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(44f));
+      sp.setMargins(Screen.dp(16f), 0, Screen.dp(16f), Screen.dp(6f));
+      body.addView(search, sp);
+      final LinearLayout list = new LinearLayout(context);
+      list.setOrientation(LinearLayout.VERTICAL);
+      body.addView(list);
+      final Runnable[] fill = new Runnable[1];
+      fill[0] = () -> {
+        list.removeAllViews();
+        String q = search.getText().toString().trim().toLowerCase(java.util.Locale.ROOT);
+        java.util.LinkedHashSet<String> recent = new java.util.LinkedHashSet<>();
+        recent.add(current);
+        recent.addAll(Settings.instance().getTranslateLanguageRecents());
+        boolean any = false;
+        for (int pass = 0; pass < 2; pass++) {
+          boolean header = false;
+          for (String code : pass == 0 ? recent.toArray(new String[0]) : all) {
+            if (pass == 1 && q.isEmpty() && recent.contains(code)) continue;
+            if (pass == 0 && !q.isEmpty()) continue; // a search shows one list
+            String own = tgx101NativeName(code), ours = Lang.getLanguageName(code, code);
+            if (!q.isEmpty() && !own.toLowerCase().contains(q) && !ours.toLowerCase().contains(q) && !code.toLowerCase(java.util.Locale.ROOT).startsWith(q)) continue;
+            if (!header) {
+              header = true;
+              if (q.isEmpty()) {
+                android.widget.TextView t = org.thunderdog.challegram.ui.Tgx101SavedHomeController.text(context, 12.5f, Theme.textDecentColor(), true);
+                t.setText(Lang.getString(pass == 0 ? R.string.Tgx101TranslateRecent : R.string.Tgx101TranslateAll));
+                t.setPadding(Screen.dp(20f), Screen.dp(8f), Screen.dp(20f), Screen.dp(2f));
+                list.addView(t);
+              }
+            }
+            any = true;
+            list.addView(org.thunderdog.challegram.ui.Tgx101Sheet.row(context, 0, 0, own, own.equalsIgnoreCase(ours) ? null : ours, code.equals(current), v -> {
+              org.thunderdog.challegram.tool.Keyboard.hide(search);
+              h[0].dismiss();
+              Settings.instance().pmc().putString(KEY_TGX101_SEND_TRANSLATE, code);
+              java.util.ArrayList<String> rec = Settings.instance().getTranslateLanguageRecents();
+              rec.remove(code);
+              rec.add(0, code);
+              while (rec.size() > 5) rec.remove(rec.size() - 1);
+              Settings.instance().setTranslateLanguageRecents(rec);
+              org.thunderdog.challegram.Tgx101Diag.mark("send translate: language " + code);
+              UI.post(() -> tgx101TranslateInput(code), 200);
+            }));
+          }
+        }
+        if (!any) {
+          android.widget.TextView t = org.thunderdog.challegram.ui.Tgx101SavedHomeController.text(context, 14f, Theme.textDecentColor(), false);
+          t.setText(Lang.getString(R.string.Tgx101TranslateNothing));
+          t.setPadding(Screen.dp(20f), Screen.dp(12f), Screen.dp(20f), Screen.dp(12f));
+          list.addView(t);
+        }
+      };
+      search.addTextChangedListener(new android.text.TextWatcher() {
+        @Override public void beforeTextChanged (CharSequence s, int st, int c, int a) { }
+        @Override public void onTextChanged (CharSequence s, int st, int b, int c) { }
+        @Override public void afterTextChanged (android.text.Editable e) { fill[0].run(); }
+      });
+      fill[0].run();
+    });
+  }
+
+  private boolean tgx101Translating;
+  private @Nullable android.animation.ValueAnimator tgx101TranslatePulse;
+
+  /** mockup 2: the text stays and breathes while it is translated, then gives way to the translation in a short fade */
   private void tgx101TranslateInput (String language) {
-    if (inputView == null) return;
+    if (inputView == null || tgx101Translating) return;
     final CharSequence original = new android.text.SpannableStringBuilder(inputView.getText());
     TdApi.FormattedText text = inputView.getOutputText(false);
     if (Td.isEmpty(text)) return;
+    tgx101Translating = true;
     org.thunderdog.challegram.Tgx101Diag.mark("send translate: " + text.text.length() + " chars to " + language);
+    final View field = inputView;
+    tgx101TranslatePulse = android.animation.ValueAnimator.ofFloat(1f, .4f);
+    tgx101TranslatePulse.setDuration((long) (650 / Math.max(.1f, U.getAnimationScale(context))));
+    tgx101TranslatePulse.setRepeatMode(android.animation.ValueAnimator.REVERSE);
+    tgx101TranslatePulse.setRepeatCount(android.animation.ValueAnimator.INFINITE);
+    tgx101TranslatePulse.addUpdateListener(a -> field.setAlpha((float) a.getAnimatedValue()));
+    tgx101TranslatePulse.start();
     tdlib.send(new TdApi.TranslateText(text, language, tgx.td.TdConstants.TEXT_FORMAT_NEUTRAL), (result, error) -> runOnUiThreadOptional(() -> {
-      if (error != null || result == null) {
-        UI.showError(error);
+      tgx101Translating = false;
+      if (tgx101TranslatePulse != null) {
+        tgx101TranslatePulse.cancel();
+        tgx101TranslatePulse = null;
+      }
+      if (error != null || result == null || inputView == null) {
+        field.animate().alpha(1f).setDuration(150).start();
+        UI.showToast(R.string.Tgx101TranslateFailed, android.widget.Toast.LENGTH_SHORT);
+        org.thunderdog.challegram.Tgx101Diag.mark("send translate failed: " + (error != null ? error.message : "no result"));
         return;
       }
-      CharSequence translated = TD.toCharSequence(result);
-      tgx101SendOriginal = original;
-      inputView.setInput(translated, true, true);
-      tgx101SendTranslated = inputView.getText().toString();
-      UI.showToast(Lang.getString(R.string.Tgx101SendTranslated, Lang.getLanguageName(language, language)), android.widget.Toast.LENGTH_SHORT);
+      long out = (long) (110 / Math.max(.1f, U.getAnimationScale(context)));
+      field.animate().alpha(0f).setDuration(out).withEndAction(() -> {
+        if (inputView == null) return;
+        tgx101SendOriginal = original;
+        inputView.setInput(TD.toCharSequence(result), true, true);
+        tgx101SendTranslated = inputView.getText().toString();
+        field.animate().alpha(1f).setDuration(out * 2).start();
+        UI.showToast(Lang.getString(R.string.Tgx101SendTranslated, Lang.getLanguageName(language, language)), android.widget.Toast.LENGTH_SHORT);
+      }).start();
     }));
   }
 
@@ -3195,6 +3293,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   private void send (TdApi.MessageSendOptions sendOptions, boolean applyMarkdown) {
+    if (tgx101Translating) {
+      // the original must not go while its translation is on the way (mockup «Язык перевода и загрузка»)
+      UI.showToast(R.string.Tgx101TranslateWait, android.widget.Toast.LENGTH_SHORT);
+      return;
+    }
     if (isEditingMessage()) {
       saveMessage(applyMarkdown);
     } else if (pendingAttachment != null) {

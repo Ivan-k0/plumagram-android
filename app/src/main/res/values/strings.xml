@@ -6643,6 +6643,13 @@
   <string name="Tgx101WsProxy">Connect through WebSocket (like Telegram Web)</string>
   <string name="Tgx101WsProxyHint">Telegram traffic goes the way the web version connects. Can help where Telegram is slowed down. Adds the «WebSocket» proxy and turns it on.</string>
   <string name="Tgx101SendTranslate">Translate</string>
+  <string name="Tgx101TranslateToTitle">Translate to</string>
+  <string name="Tgx101TranslateSearch">Search language</string>
+  <string name="Tgx101TranslateRecent">RECENT</string>
+  <string name="Tgx101TranslateAll">ALL LANGUAGES</string>
+  <string name="Tgx101TranslateNothing">No such language</string>
+  <string name="Tgx101TranslateFailed">Couldn\'t translate — the text is as it was</string>
+  <string name="Tgx101TranslateWait">Translating…</string>
   <string name="Tgx101SendTranslateTo">to %1$s</string>
   <string name="Tgx101SendUntranslate">Back to the original</string>
   <string name="Tgx101SendTranslated">Translated to %1$s · hold ➤ to go back</string>

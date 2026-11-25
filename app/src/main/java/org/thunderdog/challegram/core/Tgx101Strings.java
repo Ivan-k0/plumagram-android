@@ -927,6 +927,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101WsProxy, "Подключение через WebSocket (как веб-Telegram)");
     RU.put(R.string.Tgx101WsProxyHint, "Трафик Telegram идёт так же, как у веб-версии. Может помочь там, где Telegram замедляют. Включает прокси «WebSocket (веб-Telegram)» в списке ниже.");
     RU.put(R.string.Tgx101SendTranslate, "Перевести");
+    RU.put(R.string.Tgx101TranslateToTitle, "Перевести на");
+    RU.put(R.string.Tgx101TranslateSearch, "Поиск языка");
+    RU.put(R.string.Tgx101TranslateRecent, "НЕДАВНИЕ");
+    RU.put(R.string.Tgx101TranslateAll, "ВСЕ ЯЗЫКИ");
+    RU.put(R.string.Tgx101TranslateNothing, "Такого языка нет");
+    RU.put(R.string.Tgx101TranslateFailed, "Не удалось перевести — текст не тронут");
+    RU.put(R.string.Tgx101TranslateWait, "Перевожу…");
     RU.put(R.string.Tgx101SendTranslateTo, "на %1$s");
     RU.put(R.string.Tgx101SendUntranslate, "Вернуть оригинал");
     RU.put(R.string.Tgx101SendTranslated, "Переведено: %1$s · удержите ➤, чтобы вернуть");
