@@ -286,7 +286,7 @@ public class Tgx101RoundControls {
     }
 
     private float rulerWidth () {
-      return Math.min(getWidth() - Screen.dp(40f), Screen.dp(320f));
+      return Math.min(getWidth() - Screen.dp(40f), Screen.dp(236f)); // (user 2026-11-26 «сам барабан меньше сделай»): 320 → 236
     }
 
     private float barTop () {
@@ -348,7 +348,7 @@ public class Tgx101RoundControls {
       }
       if (expandFactor > 0f) {
         // the ruler: log scale 1…max, big ticks at 1, 2, 5, 10 with numbers
-        float left = rect.left + Screen.dp(28f), right = rect.right - Screen.dp(28f);
+        float left = rect.left + Screen.dp(20f), right = rect.right - Screen.dp(20f);
         float max = maxZoom();
         float base = rect.top + Screen.dp(10f);
         for (int z10 = 10; z10 <= Math.round(max * 10); z10 += z10 < 20 ? 2 : z10 < 50 ? 5 : 10) {
@@ -618,7 +618,7 @@ public class Tgx101RoundControls {
       anchor.getLocationOnScreen(loc);
       getLocationOnScreen(own);
       float ax = loc[0] - own[0], ay = loc[1] - own[1] + anchor.getHeight() / 2f;
-      float w = Screen.dp(56f), h = Screen.dp(184f);
+      float w = Screen.dp(48f), h = Screen.dp(150f); // smaller (user 2026-11-26)
       float right = ax - Screen.dp(6f) + Screen.dp(12f) * (1f - shown);
       rect.set(right - w, ay - h / 2f, right, ay + h / 2f);
       int alpha = (int) (255 * shown);
@@ -630,7 +630,7 @@ public class Tgx101RoundControls {
       c.drawRoundRect(rect, w / 2f, w / 2f, paint);
 
       // the middle mark
-      float rowH = Screen.dp(32f);
+      float rowH = Screen.dp(26f);
       RectF mid = new RectF(rect.left + Screen.dp(6f), rect.centerY() - rowH / 2f, rect.right - Screen.dp(6f), rect.centerY() + rowH / 2f);
       paint.setColor(0xffffb300);
       paint.setAlpha(alpha);
