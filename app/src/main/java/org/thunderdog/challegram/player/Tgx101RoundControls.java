@@ -420,10 +420,16 @@ public class Tgx101RoundControls {
             setExpanded(true);
           }
           if (dragging) {
-            // from where the value was, not a jump to the finger: the ruler slides under it
-            float cx = getWidth() / 2f, w = rulerWidth();
-            float left = cx - w / 2f + Screen.dp(28f), right = cx + w / 2f - Screen.dp(28f);
-            setZoom(zoomForX(xForZoom(dragFromZoom, left, right) + (x - dragFromX), left, right), false);
+            // from where the value was, not a jump to the finger; (user 2026-11-26 «у эталона можно за один свайп пройти
+            // весь путь, у нас нужно два-три раза палец отрывать»): 1× → the top in a swipe of ~40 % of the screen
+            float max = maxZoom();
+            float f0 = max > 1f ? (float) (Math.log(dragFromZoom) / Math.log(max)) : 0f;
+            float f = Math.max(0f, Math.min(1f, f0 + (x - dragFromX) / (getWidth() * .4f)));
+            if (f <= 0f || f >= 1f) { // at an end: what goes past it counts back from the end at once
+              dragFromX = x;
+              dragFromZoom = f <= 0f ? 1f : max;
+            }
+            setZoom((float) Math.exp(f * Math.log(max)), false);
           }
           return true;
         case MotionEvent.ACTION_UP:
