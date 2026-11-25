@@ -1378,9 +1378,22 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     }
   }
 
+  /** the back button's colour as drawn: white over the photo, the header's, the white header's grey with the transform */
+  private int tgx101BackColor () {
+    return ColorUtils.fromToArgb(ColorUtils.fromToArgb(Theme.headerBackColor(), Color.WHITE, headerCell != null ? headerCell.getAvatarExpandFactor() : 0f), Theme.getColor(ColorId.icon), getTransformFactor());
+  }
+
+  // TGx101 (user 2026-11-25 «полазил в профиле и иконка меню стала серой»): the shared back button is painted here; the
+  // way out asks for this colour to fade it back — it was told «white» (the id below ignores the white header coming with
+  // the collapse), saw no difference with the chats' white and left the grey in place
+  @Override
+  protected int getHeaderIconColor () {
+    return isEditing() ? super.getHeaderIconColor() : tgx101BackColor();
+  }
+
   private void updateButtonsColor () {
     if (headerView != null) {
-      headerView.getBackButton().setColor(ColorUtils.fromToArgb(ColorUtils.fromToArgb(Theme.headerBackColor(), Color.WHITE, headerCell != null ? headerCell.getAvatarExpandFactor() : 0f), Theme.getColor(ColorId.icon), getTransformFactor()));
+      headerView.getBackButton().setColor(tgx101BackColor());
       headerView.updateButtonsTransform(getMenuId(), this, getTransformFactor());
     }
   }
