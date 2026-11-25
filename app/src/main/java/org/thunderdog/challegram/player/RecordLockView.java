@@ -140,7 +140,8 @@ public class RecordLockView extends View {
     return Theme.isDark() ? ColorUtils.fromToArgb(filling, 0xffffffff, .13f) : filling;
   }
 
-  private long tgx101WaveStart;
+  private final android.graphics.Path tgx101Play = new android.graphics.Path();
+  private final android.graphics.CornerPathEffect tgx101Round = new android.graphics.CornerPathEffect(Screen.dp(2f));
 
   @Override
   protected void onDraw (Canvas c) {
@@ -186,24 +187,23 @@ public class RecordLockView extends View {
       }
 
       if (editFactor > 0f) {
-        // TGx101 (user 2026-11-26, mockup variant 3 «с волной»): paused — «continue» looks like a record button: a white
-        // circle with a red ring and a red dot; a soft red wave keeps going out of it
-        int red = 0xffef5350;
+        // TGx101 (user 2026-11-26 «продолжить выделяется из дизайна… просто кнопка плэй в нашем стиле цвета, без
+        // анимации»): an accent circle with a white «play»
+        int accent = Theme.chatSendButtonColor();
         float ccx = rectF.centerX(), ccy = rectF.centerY();
-        float outer = Screen.dp(BUTTON_SIZE / 2f) * alpha;
-        long now = android.os.SystemClock.uptimeMillis();
-        if (tgx101WaveStart == 0) tgx101WaveStart = now;
-        float t = ((now - tgx101WaveStart) % 1600L) / 1600f;
-        c.drawCircle(ccx, ccy, outer, Paints.fillingPaint(ColorUtils.alphaColor(alpha, red)));
-        c.drawCircle(ccx, ccy, outer - Screen.dp(2.5f), Paints.fillingPaint(ColorUtils.alphaColor(alpha, 0xffffffff)));
-        // the wave: from the dot out to the ring, fading
-        float waveR = MathUtils.fromTo(Screen.dp(8f), outer - Screen.dp(4f), t);
-        Paint wave = Paints.getProgressPaint(ColorUtils.alphaColor(alpha * (1f - t) * .55f, red), Screen.dp(2f));
-        c.drawCircle(ccx, ccy, waveR, wave);
-        c.drawCircle(ccx, ccy, Screen.dp(8.5f) * (1f + (float) Math.sin(t * Math.PI) * .06f), Paints.fillingPaint(ColorUtils.alphaColor(alpha, red)));
-        postInvalidateOnAnimation();
-      } else {
-        tgx101WaveStart = 0;
+        c.drawCircle(ccx, ccy, Screen.dp(BUTTON_SIZE / 2f - 3f) * alpha, Paints.fillingPaint(ColorUtils.alphaColor(alpha, accent)));
+        float h = Screen.dp(8.5f) * alpha, w = h * 1.732f / 2f * 2f * .5f * 2f / 1.15f;
+        android.graphics.Path play = tgx101Play;
+        play.reset();
+        float left = ccx - w / 3f + Screen.dp(1f);
+        play.moveTo(left, ccy - h);
+        play.lineTo(left + w, ccy);
+        play.lineTo(left, ccy + h);
+        play.close();
+        Paint white = Paints.fillingPaint(ColorUtils.alphaColor(alpha, 0xffffffff));
+        white.setPathEffect(tgx101Round);
+        c.drawPath(play, white);
+        white.setPathEffect(null);
       }
     }
 

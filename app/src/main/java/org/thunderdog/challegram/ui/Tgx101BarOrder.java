@@ -106,7 +106,8 @@ public final class Tgx101BarOrder {
     CHAT_TRANSLATE = "translate", CHAT_PINNED = "pinned", CHAT_LINKED = "linked", CHAT_SCHEDULED = "scheduled", CHAT_VOICE_CHAT = "voiceChat",
     CHAT_TOPICS = "topics", CHAT_REPORT = "report", CHAT_PASSCODE = "passcode", CHAT_PROXY = "proxy", CHAT_OTHER = "other",
     CHAT_MEDIA = "media", // «Медиа в этом канале» (user 2026-10-27)
-    CHAT_LEAVE = "leave"; // TGx101 (user 2026-10-16): «Leave» / «Delete chat» on its own, not among «the rest»
+    CHAT_LEAVE = "leave", // TGx101 (user 2026-10-16): «Leave» / «Delete chat» on its own, not among «the rest»
+    CHAT_EXPORT = "export"; // TGx101 (user 2026-11-26 «экспорт чата нужно дать возможность отключать»): out of «the rest»
   private static final String[] CHAT_OFF_BY_DEFAULT = {CHAT_PROXY};
 
   public static final String QUOTE = "quote", COPY = "copy", SELECT_ALL = "selectAll", EDITOR = "editor",
@@ -127,7 +128,7 @@ public final class Tgx101BarOrder {
     // (user 2026-11-20 «ночной режим вообще убери из меню — в боковом уже есть кнопка ☀»): no «Night mode» row for anyone
     {DRAWER_GAZETA, DRAWER_STORY, DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_PEEK, DRAWER_PLAYER, DRAWER_STORAGE},
     {CHAT_CALL, CHAT_VIDEO_CALL, CHAT_SEARCH, CHAT_DATE, CHAT_SAVED_BY_CHATS, CHAT_BACKGROUND, CHAT_MUTE, CHAT_NOTIFICATIONS, CHAT_MEDIA, CHAT_TRANSLATE,
-      CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_OTHER, CHAT_PROXY, CHAT_LEAVE},
+      CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_EXPORT, CHAT_OTHER, CHAT_PROXY, CHAT_LEAVE},
     {TAB_GAZETA, TAB_CONTACTS, TAB_CALLS, TAB_SETTINGS, TAB_PROFILE}
   };
 
@@ -252,6 +253,7 @@ public final class Tgx101BarOrder {
     if (id == R.id.btn_reportChat) return CHAT_REPORT;
     if (id == R.id.btn_setPasscode) return CHAT_PASSCODE;
     if (id == R.id.btn_tgx101ChatProxy) return CHAT_PROXY;
+    if (id == R.id.btn_exportChat) return CHAT_EXPORT;
     if (id == R.id.btn_removeChatFromList || id == R.id.btn_removeChatFromListAndStop || id == R.id.btn_removeChatFromListOrClearHistory || id == R.id.btn_returnToChat) return CHAT_LEAVE; // «Join» stands where «Leave» would
     return CHAT_OTHER;
   }
@@ -277,6 +279,7 @@ public final class Tgx101BarOrder {
       case CHAT_PASSCODE: return R.string.PasscodeTitle;
       case CHAT_PROXY: return R.string.Proxy;
       case CHAT_LEAVE: return R.string.Tgx101ChatMenuLeave;
+      case CHAT_EXPORT: return R.string.ChatExport;
       case CHAT_OTHER: default: return R.string.Tgx101ChatMenuOther;
     }
   }
@@ -301,6 +304,7 @@ public final class Tgx101BarOrder {
       case CHAT_REPORT: return R.drawable.baseline_report_24;
       case CHAT_PASSCODE: return R.drawable.baseline_lock_24;
       case CHAT_PROXY: return R.drawable.baseline_security_24;
+      case CHAT_EXPORT: return R.drawable.baseline_file_download_24;
       case CHAT_OTHER: default: return R.drawable.baseline_more_horiz_24;
     }
   }
@@ -416,7 +420,13 @@ public final class Tgx101BarOrder {
         boolean off = (bar == BAR_SWIPE && indexOf(SWIPE_OFF_BY_DEFAULT, key) != -1) || (bar == BAR_CHAT_MENU && indexOf(CHAT_OFF_BY_DEFAULT, key) != -1)
           || (bar == BAR_CAPSULE && indexOf(CAPSULE_OFF_BY_DEFAULT, key) != -1)
           || (bar == BAR_DRAWER && indexOf(DRAWER_OFF_BY_DEFAULT, key) != -1);
-        result.add(off ? "-" + key : key);
+        int at = -1;
+        if (bar == BAR_CHAT_MENU && CHAT_EXPORT.equals(key)) { // a saved setup gets it where it was — just before «the rest»
+          at = result.indexOf(CHAT_OTHER);
+          if (at == -1) at = result.indexOf("-" + CHAT_OTHER);
+        }
+        if (at != -1) result.add(at, off ? "-" + key : key);
+        else result.add(off ? "-" + key : key);
       }
     }
     if (bar == BAR_DRAWER) {

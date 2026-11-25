@@ -2816,7 +2816,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // the round «scroll down» button stuck out from under the lock capsule (user's video 2026-10-05 14:17)
     tgx101Recording = isRecording;
     if (scrollToBottomButtonWrap != null) {
-      scrollToBottomButtonWrap.setAlpha(isRecording || tgx101CameraPick ? 0f : MathUtils.clamp(scrollToBottomVisible.getFloatValue()));
+      scrollToBottomButtonWrap.setAlpha(isRecording || tgx101CameraPick || tgx101RecordOverlay ? 0f : MathUtils.clamp(scrollToBottomVisible.getFloatValue()));
     }
   }
 
@@ -2828,7 +2828,23 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (tgx101CameraPick == picking) return;
     tgx101CameraPick = picking;
     if (scrollToBottomButtonWrap == null) return;
-    float to = picking || tgx101Recording ? 0f : MathUtils.clamp(scrollToBottomVisible.getFloatValue());
+    tgx101UpdateArrow(picking);
+  }
+
+  private boolean tgx101RecordOverlay;
+
+  /** TGx101 (user 2026-11-26 «сзади плэй чёрное пятно»): on pause the recording is «stopped» and the «scroll down»
+   *  arrow came back right under «continue» — it stays away while the recording screen is open at all */
+  public void tgx101SetRecordOverlay (boolean open) {
+    if (tgx101RecordOverlay == open) return;
+    tgx101RecordOverlay = open;
+    tgx101UpdateArrow(open);
+  }
+
+  private void tgx101UpdateArrow (boolean hiding) {
+    if (scrollToBottomButtonWrap == null) return;
+    float to = tgx101CameraPick || tgx101Recording || tgx101RecordOverlay ? 0f : MathUtils.clamp(scrollToBottomVisible.getFloatValue());
+    boolean picking = hiding;
     scrollToBottomButtonWrap.animate().cancel();
     scrollToBottomButtonWrap.animate().alpha(to).setDuration(picking ? 120 : 200).start();
   }
@@ -6485,7 +6501,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
   // The attach button disappears once you start typing; this keeps it reachable
   // from the header menu, always as the last item.
   private void appendAttachMoreItem (IntList ids, StringList strings) {
-    if (canWriteMessages()) {
+    // TGx101 (user 2026-11-26 «прикрепить должно появляться только когда начинаешь печатать»): with an empty field the
+    // clip is right there in the input
+    boolean typing = inputView != null && inputView.getText() != null && inputView.getText().length() > 0;
+    if (canWriteMessages() && typing) {
       ids.append(R.id.btn_attachFromMenu);
       strings.append(R.string.AttachFromMenu);
     }
@@ -11853,7 +11872,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onFactorChanged (int id, float factor, float fraction, FactorAnimator callee) {
     switch (id) {
       case ANIMATOR_SCROLL_TO_BOTTOM: {
-        scrollToBottomButtonWrap.setAlpha(tgx101Recording || tgx101CameraPick ? 0f : MathUtils.clamp(factor));
+        scrollToBottomButtonWrap.setAlpha(tgx101Recording || tgx101CameraPick || tgx101RecordOverlay ? 0f : MathUtils.clamp(factor));
         checkScrollButtonOffsets();
         break;
       }

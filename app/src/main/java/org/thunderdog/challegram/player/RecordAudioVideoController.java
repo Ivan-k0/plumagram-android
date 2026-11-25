@@ -1236,6 +1236,10 @@ public class RecordAudioVideoController implements
     this.recordingVideo = isVideoMode(this.recordMode) || isVideoMode(mode);
     setRecordModeImpl(mode);
     if (targetController != null) {
+      if (mode != RECORD_MODE_NONE) {
+        targetController.tgx101SetRecordOverlay(true); // the chat's «scroll down» arrow away until the screen closes
+        tgx101OverlayChat = targetController;
+      }
       targetController.setChatAction(recordingVideo ? TdApi.ChatActionRecordingVideoNote.CONSTRUCTOR : TdApi.ChatActionRecordingVoiceNote.CONSTRUCTOR, mode != RECORD_MODE_NONE, false);
       targetController.hideBottomHint();
     }
@@ -1683,8 +1687,14 @@ public class RecordAudioVideoController implements
     checkActualRecording(CLOSE_MODE_CANCEL);
   }
 
+  private MessagesController tgx101OverlayChat;
+
   private void onRecordRemoved () {
     tgx101Controls.reset();
+    if (tgx101OverlayChat != null) {
+      tgx101OverlayChat.tgx101SetRecordOverlay(false);
+      tgx101OverlayChat = null;
+    }
     // note: when animations disabled happens before finishVideoRecording
     context.setScreenFlagEnabled(BaseActivity.SCREEN_FLAG_RECORDING, false);
     context.setOrientationLockFlagEnabled(BaseActivity.ORIENTATION_FLAG_RECORDING, false);
