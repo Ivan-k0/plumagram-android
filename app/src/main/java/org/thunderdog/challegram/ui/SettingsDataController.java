@@ -1887,8 +1887,6 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           int r = result.get(R.id.btn_tgx101VoiceMic);
           Settings.instance().setTgx101VoiceMic(r == 2 ? Settings.TGX101_VOICE_MIC_EXTERNAL : r == 3 ? Settings.TGX101_VOICE_MIC_PHONE : Settings.TGX101_VOICE_MIC_AUTO);
           adapter.updateValuedSettingById(R.id.btn_tgx101VoiceMic);
-;
-          }
         }));
     } else if (id == R.id.btn_tgx101VoiceQueue) {
       boolean skip = Settings.instance().skipOwnVoiceInQueue();
