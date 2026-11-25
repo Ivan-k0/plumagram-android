@@ -1627,6 +1627,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MuteFor, "Выключить на время…");
     RU.put(R.string.Tgx101NotifCustomize, "Настроить");
     RU.put(R.string.Tgx101NotifOff, "Выключить уведомления");
+    RU.put(R.string.Tgx101ThemeNightDeep, "Глубокая ночь");
     RU.put(R.string.Tgx101ContactMessage, "Написать");
     RU.put(R.string.Tgx101ContactVoiceCall, "Аудиозвонок");
     RU.put(R.string.Tgx101ContactVideoCall, "Видеозвонок");

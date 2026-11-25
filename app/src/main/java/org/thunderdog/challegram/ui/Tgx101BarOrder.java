@@ -309,6 +309,12 @@ public final class Tgx101BarOrder {
     }
   }
 
+  /** TGx101 (user 2026-11-26 «покинуть группу значит выключить нельзя и оно должно быть в самом низу… уведомления тоже
+   *  выключить нельзя и в самом верху?»): not in the ⋮ editor — «Notifications ›» always first, «Leave» always last */
+  public static boolean isChatFixed (String key) {
+    return CHAT_NOTIFICATIONS.equals(key) || CHAT_MUTE.equals(key) || CHAT_LEAVE.equals(key);
+  }
+
   /** Sorts the ⋮ menu's (id, title) pairs into the user's order and drops the hidden entries */
   public static void applyToChatMenu (me.vkryl.core.collection.IntList ids, org.thunderdog.challegram.util.StringList strings) {
     List<String> order = getOrder(BAR_CHAT_MENU);
@@ -325,14 +331,27 @@ public final class Tgx101BarOrder {
         strings.append(srcStrings[i]);
       }
     }
+    for (int i = 0; i < n; i++) { // «Notifications ›» right after it
+      if (CHAT_NOTIFICATIONS.equals(chatKeyOf(srcIds[i]))) {
+        ids.append(srcIds[i]);
+        strings.append(srcStrings[i]);
+      }
+    }
     for (String entry : order) {
       if (entry.startsWith("-")) continue;
       if (CHAT_SAVED_BY_CHATS.equals(entry)) continue;
+      if (isChatFixed(entry.startsWith("-") ? entry.substring(1) : entry)) continue;
       for (int i = 0; i < n; i++) {
         if (chatKeyOf(srcIds[i]).equals(entry)) {
           ids.append(srcIds[i]);
           strings.append(srcStrings[i]);
         }
+      }
+    }
+    for (int i = 0; i < n; i++) { // «Leave» at the very bottom
+      if (CHAT_LEAVE.equals(chatKeyOf(srcIds[i]))) {
+        ids.append(srcIds[i]);
+        strings.append(srcStrings[i]);
       }
     }
   }

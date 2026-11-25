@@ -246,6 +246,7 @@ public class Theme {
       case ThemeId.NIGHT_BLACK:
         return ColorId.themeNightBlack;
       case ThemeId.NIGHT_BLUE:
+      case ThemeId.NIGHT_DEEP:
         return ColorId.themeNightBlue;
       case ThemeId.ORANGE:
         return ColorId.themeOrange;

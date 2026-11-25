@@ -255,6 +255,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         boolean hidden = entry.startsWith("-");
         if (hidden != (section == 1)) continue;
         String key = hidden ? entry.substring(1) : entry;
+        if (mode() == MODE_CHAT_MENU && Tgx101BarOrder.isChatFixed(key)) continue; // always there: «Notifications» on top, «Leave» at the bottom
         if (mode() == MODE_DRAWER && Tgx101BarOrder.isDrawerSpacer(key)) {
           // (user 2026-11-20): a space or a divider — no switch, it is moved, or tapped / swiped away
           // (user 2026-11-20, «тонкие строки»): a divider is the line itself, a space a low strip in a dashed frame

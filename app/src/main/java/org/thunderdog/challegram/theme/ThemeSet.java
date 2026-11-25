@@ -24,6 +24,7 @@ import org.thunderdog.challegram.theme.builtin.ThemeDefault;
 import org.thunderdog.challegram.theme.builtin.ThemeGreen;
 import org.thunderdog.challegram.theme.builtin.ThemeNightBlack;
 import org.thunderdog.challegram.theme.builtin.ThemeNightBlue;
+import org.thunderdog.challegram.theme.builtin.ThemeNightDeep;
 import org.thunderdog.challegram.theme.builtin.ThemeOrange;
 import org.thunderdog.challegram.theme.builtin.ThemePink;
 import org.thunderdog.challegram.theme.builtin.ThemeRed;
@@ -107,6 +108,8 @@ public class ThemeSet {
 
       case ThemeId.NIGHT_BLUE:
         return new ThemeNightBlue();
+      case ThemeId.NIGHT_DEEP: // TGx101 (user 2026-11-26 «нужно новую тему ночную срисовать»)
+        return new ThemeNightDeep();
       case ThemeId.NIGHT_BLACK:
         return new ThemeNightBlack();
       case ThemeId.BLACK_WHITE:

@@ -2815,6 +2815,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // see RecordAudioVideoController.updatePositions)
     // the round «scroll down» button stuck out from under the lock capsule (user's video 2026-10-05 14:17)
     tgx101Recording = isRecording;
+    if (mentionButtonWrap != null) mentionButtonWrap.setVisibility(isRecording || tgx101CameraPick || tgx101RecordOverlay ? View.INVISIBLE : View.VISIBLE);
+    if (reactionsButtonWrap != null) reactionsButtonWrap.setVisibility(isRecording || tgx101CameraPick || tgx101RecordOverlay ? View.INVISIBLE : View.VISIBLE);
     if (scrollToBottomButtonWrap != null) {
       scrollToBottomButtonWrap.setAlpha(isRecording || tgx101CameraPick || tgx101RecordOverlay ? 0f : MathUtils.clamp(scrollToBottomVisible.getFloatValue()));
     }
@@ -2843,6 +2845,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
   private void tgx101UpdateArrow (boolean hiding) {
     if (scrollToBottomButtonWrap == null) return;
+    // (user 2026-11-26 video: still a dark circle by ▶): with the arrow gone the mentions / reactions buttons slide down
+    // into its place — away too while the camera choice or the recording screen is up
+    boolean blocked = tgx101CameraPick || tgx101Recording || tgx101RecordOverlay;
+    if (mentionButtonWrap != null) mentionButtonWrap.setVisibility(blocked ? View.INVISIBLE : View.VISIBLE);
+    if (reactionsButtonWrap != null) reactionsButtonWrap.setVisibility(blocked ? View.INVISIBLE : View.VISIBLE);
     float to = tgx101CameraPick || tgx101Recording || tgx101RecordOverlay ? 0f : MathUtils.clamp(scrollToBottomVisible.getFloatValue());
     boolean picking = hiding;
     scrollToBottomButtonWrap.animate().cancel();
