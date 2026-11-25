@@ -84,6 +84,8 @@
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
   <uses-permission android:name="android.permission.WRITE_SETTINGS" tools:node="remove" />
   <uses-permission android:name="android.permission.BLUETOOTH" />
+  <!-- TGx101 (user 2026-11-25): the voice microphone «Auto» tells a car from earbuds by the device's class; asked only when «Auto» is picked -->
+  <uses-permission android:name="android.permission.BLUETOOTH_CONNECT" />
   <!--<uses-permission android:name="android.permission.PROCESS_OUTGOING_CALLS" />-->
   <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"
     tools:ignore="RequestInstallPackagesPolicy" />

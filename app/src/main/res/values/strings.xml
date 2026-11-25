@@ -6643,6 +6643,13 @@
   <string name="Tgx101WsProxy">Connect through WebSocket (like Telegram Web)</string>
   <string name="Tgx101WsProxyHint">Telegram traffic goes the way the web version connects. Can help where Telegram is slowed down. Adds the «WebSocket» proxy and turns it on.</string>
   <string name="Tgx101SendTranslate">Translate</string>
+  <string name="Tgx101VoiceMic">Microphone for voice messages</string>
+  <string name="Tgx101VoiceMicAuto">Auto</string>
+  <string name="Tgx101VoiceMicExternal">External (headset, car)</string>
+  <string name="Tgx101VoiceMicPhone">Phone</string>
+  <string name="Tgx101VoiceMicHint">Auto: a wired headset\'s microphone, otherwise the phone\'s — over Bluetooth the car doesn\'t take it as a call.</string>
+  <string name="Tgx101VoiceMicAsk">To tell a car from earbuds, PlumaGram needs the «Nearby devices» permission. It only reads what kind of device is connected: in a car the voice message is recorded with the phone\'s microphone (no «call» in the car), in earbuds with theirs. Without it, Bluetooth always uses the phone\'s microphone.</string>
+  <string name="Tgx101VoiceMicAllow">Allow</string>
   <string name="Tgx101TranslateToTitle">Translate to</string>
   <string name="Tgx101TranslateSearch">Search language</string>
   <string name="Tgx101TranslateRecent">RECENT</string>

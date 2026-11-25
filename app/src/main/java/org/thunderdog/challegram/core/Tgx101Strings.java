@@ -927,6 +927,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101WsProxy, "Подключение через WebSocket (как веб-Telegram)");
     RU.put(R.string.Tgx101WsProxyHint, "Трафик Telegram идёт так же, как у веб-версии. Может помочь там, где Telegram замедляют. Включает прокси «WebSocket (веб-Telegram)» в списке ниже.");
     RU.put(R.string.Tgx101SendTranslate, "Перевести");
+    RU.put(R.string.Tgx101VoiceMic, "Микрофон для голосовых");
+    RU.put(R.string.Tgx101VoiceMicAuto, "Авто");
+    RU.put(R.string.Tgx101VoiceMicExternal, "Внешний (гарнитура, машина)");
+    RU.put(R.string.Tgx101VoiceMicPhone, "Телефон");
+    RU.put(R.string.Tgx101VoiceMicHint, "Авто: в машине — микрофон телефона (машина не примет запись за звонок), в наушниках — их микрофон.");
+    RU.put(R.string.Tgx101VoiceMicAsk, "Чтобы отличать машину от наушников, PlumaGram нужно разрешение «Устройства поблизости». Оно нужно только чтобы понять, что подключено: в машине голосовое пишется с микрофона телефона (машина не примет его за звонок), в наушниках — с их микрофона. Без разрешения по блютузу всегда будет микрофон телефона.");
+    RU.put(R.string.Tgx101VoiceMicAllow, "Разрешить");
     RU.put(R.string.Tgx101TranslateToTitle, "Перевести на");
     RU.put(R.string.Tgx101TranslateSearch, "Поиск языка");
     RU.put(R.string.Tgx101TranslateRecent, "НЕДАВНИЕ");

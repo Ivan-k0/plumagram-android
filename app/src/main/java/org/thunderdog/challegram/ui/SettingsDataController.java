@@ -461,6 +461,9 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.setData(Settings.instance().tgx101VoiceAnim() == Settings.TGX101_VOICE_ANIM_STANDARD ? R.string.Tgx101VoiceAnimStandard : R.string.Tgx101VoiceAnimWave);
         } else if (itemId == R.id.btn_tgx101VoiceQueue) {
           view.setData(Settings.instance().skipOwnVoiceInQueue() ? R.string.Tgx101VoiceQueueSkipOwn : R.string.Tgx101VoiceQueueAll);
+        } else if (itemId == R.id.btn_tgx101VoiceMic) {
+          int m = Settings.instance().tgx101VoiceMic();
+          view.setData(m == Settings.TGX101_VOICE_MIC_EXTERNAL ? R.string.Tgx101VoiceMicExternal : m == Settings.TGX101_VOICE_MIC_PHONE ? R.string.Tgx101VoiceMicPhone : R.string.Tgx101VoiceMicAuto);
         } else if (itemId == R.id.btn_tgx101Gestures) {
           int action = Settings.instance().tgx101DoubleTapAction();
           // (user 2026-11-10 «не могу найти, где включается меню по удержанию»): the long press is named here too
@@ -591,6 +594,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_HEADER, 0, 0, R.string.RecordingAndPhotos),
         new ListItem(ListItem.TYPE_SHADOW_TOP),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_toggleNewSetting, 0, R.string.PauseMediaOnRecord).setLongId(Settings.SETTING_FLAG_PAUSE_MEDIA_ON_RECORD),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101VoiceMic, 0, R.string.Tgx101VoiceMic),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_tgx101VoiceQueue, 0, R.string.Tgx101VoiceQueue),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1457,7 +1462,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101NoAnimation || id == R.id.btn_tgx101MediaDots || id == R.id.btn_tgx101SaveFolder) return 4; // «Media»
     if (id == R.id.btn_tgx101HideAllReactions || id == R.id.btn_tgx101HideChannelReactions || id == R.id.btn_tgx101NextChannelSwipe || id == R.id.btn_tgx101NextChannelBackToList || id == R.id.btn_showDiscussButton || id == R.id.btn_showCommentsButton
       || id == R.id.btn_showChannelMuteButton || id == R.id.btn_tgx101ChannelMuteBell || id == R.id.btn_hideSubscribeLink || id == R.id.btn_separateChannelPosts || id == R.id.btn_tgx101TypeMedia) return 3;
-    if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality
+    if (id == R.id.btn_tgx101VoiceQueue || id == R.id.btn_tgx101VoiceMic || id == R.id.btn_tgx101CameraInAttach || id == R.id.btn_tgx101ZoomPullClose || id == R.id.btn_roundVideoQuality
       || id == R.id.btn_roundStabilization) return 4;
     if (id == R.id.btn_tgx101Snooze || id == R.id.btn_tgx101ForegroundNotif || id == R.id.btn_tgx101KeepHighRate || id == R.id.btn_tgx101IdleCut) return 5;
     if (id == R.id.btn_tgx101AppIcon || id == R.id.btn_tgx101NotificationPlane) return 9; // user 2026-10-14: the plane icon goes with the app icon
@@ -1868,6 +1873,34 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         .setIntDelegate((resultId, result) -> {
           Settings.instance().setTgx101VoiceAnim(result.get(R.id.btn_tgx101VoiceAnim) == 2 ? Settings.TGX101_VOICE_ANIM_STANDARD : Settings.TGX101_VOICE_ANIM_WAVE);
           adapter.updateValuedSettingById(R.id.btn_tgx101VoiceAnim);
+        }));
+    } else if (id == R.id.btn_tgx101VoiceMic) {
+      int m = Settings.instance().tgx101VoiceMic();
+      showSettings(new SettingsWrapBuilder(R.id.btn_tgx101VoiceMic)
+        .addHeaderItem(Lang.getString(R.string.Tgx101VoiceMicHint))
+        .setRawItems(new ListItem[] {
+          new ListItem(ListItem.TYPE_RADIO_OPTION, 1, 0, R.string.Tgx101VoiceMicAuto, R.id.btn_tgx101VoiceMic, m == Settings.TGX101_VOICE_MIC_AUTO),
+          new ListItem(ListItem.TYPE_RADIO_OPTION, 2, 0, R.string.Tgx101VoiceMicExternal, R.id.btn_tgx101VoiceMic, m == Settings.TGX101_VOICE_MIC_EXTERNAL),
+          new ListItem(ListItem.TYPE_RADIO_OPTION, 3, 0, R.string.Tgx101VoiceMicPhone, R.id.btn_tgx101VoiceMic, m == Settings.TGX101_VOICE_MIC_PHONE)
+        })
+        .setIntDelegate((resultId, result) -> {
+          int r = result.get(R.id.btn_tgx101VoiceMic);
+          Settings.instance().setTgx101VoiceMic(r == 2 ? Settings.TGX101_VOICE_MIC_EXTERNAL : r == 3 ? Settings.TGX101_VOICE_MIC_PHONE : Settings.TGX101_VOICE_MIC_AUTO);
+          adapter.updateValuedSettingById(R.id.btn_tgx101VoiceMic);
+          // (user 2026-11-25 «спросить, когда человек будет переключать на авто, с объяснением»): «Auto» tells a car from
+          // earbuds only with the «nearby devices» permission — asked here, once, with the reason
+          if (r != 2 && r != 3 && android.os.Build.VERSION.SDK_INT >= 31
+            && context().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            showOptions(Lang.getString(R.string.Tgx101VoiceMicAsk), new int[] {R.id.btn_done, R.id.btn_cancel},
+              new String[] {Lang.getString(R.string.Tgx101VoiceMicAllow), Lang.getString(R.string.Cancel)},
+              new int[] {OptionColor.BLUE, OptionColor.NORMAL}, new int[] {R.drawable.baseline_bluetooth_24, R.drawable.baseline_cancel_24}, (optionView, optionId) -> {
+                if (optionId == R.id.btn_done) {
+                  context().requestCustomPermissions(new String[] {android.Manifest.permission.BLUETOOTH_CONNECT}, (code, permissions, grantResults, grantCount) ->
+                    org.thunderdog.challegram.Tgx101Diag.mark("voice mic: nearby devices permission " + (grantCount > 0 ? "given" : "refused")));
+                }
+                return true;
+              });
+          }
         }));
     } else if (id == R.id.btn_tgx101VoiceQueue) {
       boolean skip = Settings.instance().skipOwnVoiceInQueue();

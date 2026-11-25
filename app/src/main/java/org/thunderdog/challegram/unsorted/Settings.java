@@ -4922,6 +4922,20 @@ public class Settings {
 
   private static final String KEY_TGX101_PLAYER_PAUSE_MUSIC = "tgx101_player_pause_music";
 
+  /** TGx101 (user 2026-11-25 «машина думает, что это звонок», variant В without the Bluetooth permission): the voice
+   *  note's microphone — auto (a wired / USB headset's, else the phone's; Bluetooth can't be told a car from earbuds without
+   *  a permission, so it is the phone's), external (the connected device's), the phone's */
+  public static final int TGX101_VOICE_MIC_AUTO = 0, TGX101_VOICE_MIC_EXTERNAL = 1, TGX101_VOICE_MIC_PHONE = 2;
+  private static final String KEY_TGX101_VOICE_MIC = "tgx101_voice_mic";
+
+  public int tgx101VoiceMic () {
+    return pmc.getInt(KEY_TGX101_VOICE_MIC, TGX101_VOICE_MIC_AUTO);
+  }
+
+  public void setTgx101VoiceMic (int value) {
+    pmc.putInt(KEY_TGX101_VOICE_MIC, value);
+  }
+
   /** TGx101 player: music (the app's and other players') pauses while a video plays — on by default */
   public boolean tgx101PlayerPauseMusic () {
     return pmc.getBoolean(KEY_TGX101_PLAYER_PAUSE_MUSIC, true);
