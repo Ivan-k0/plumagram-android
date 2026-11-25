@@ -1674,7 +1674,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private int tgx101CaptionCollapsedHeight () {
-    return Text.getLineHeight(TGMessage.getTextStyleProvider(), true) * 2 + Screen.dp(16f); // top padding + 2 lines (no third line peeking)
+    // (user 2026-11-25 «пусть изначально помещается 3-4 строки, а не 2»): upright three lines and half of the fourth under
+    // the fading edge — it shows there is more; on its side two, the video needs the room
+    boolean landscape = Screen.currentWidth() > Screen.currentHeight();
+    int line = Text.getLineHeight(TGMessage.getTextStyleProvider(), true);
+    return (landscape ? line * 2 : line * 3 + line / 2) + Screen.dp(16f);
   }
 
   private int tgx101CaptionExpandedHeight () {
@@ -7251,10 +7255,20 @@ public class MediaViewController extends ViewController<MediaViewController.Args
                   if (Math.abs(dx) >= Screen.getTouchSlop()) swipeChecked = true; // sideways — the album's own swipe
                   break;
                 }
-                swipeChecked = true;
                 // (user 2026-10-31 «если там есть описание то свайп не работает»): a swipe down over a folded caption is
-                // the viewer's — it closes; only what the caption answers (unfold, fold, scroll its text) stays with it
-                if (dy > 0 && !tgx101CaptionExpanded) break;
+                // the viewer's — it closes; (user 2026-11-25 «свайп сильно чувствительный — провожу по описанию, а у меня
+                // сворачивает фото»): only a real one — the caption holds the finger for the first 64 dp down, a short slide
+                // while reading leaves the photo where it is
+                if (dy > 0 && !tgx101CaptionExpanded) {
+                  if (dy < Screen.dp(64f)) {
+                    if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
+                    return true;
+                  }
+                  swipeChecked = true;
+                  if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(false);
+                  break;
+                }
+                swipeChecked = true;
                 if (getParent() != null) getParent().requestDisallowInterceptTouchEvent(true);
                 if ((dy < 0 && !tgx101CaptionExpanded) || (dy > 0 && tgx101CaptionExpanded && getScrollY() == 0)) {
                   swipeTaken = true;
