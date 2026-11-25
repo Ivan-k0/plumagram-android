@@ -2424,7 +2424,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
       }
       // the flash goes after the corner fixes: they repaint the frame around a photo in the bubble colour and left
       // white edges in the highlight (video 10.10 13:00, «по краям пустоты»)
-      if (highlightFactor != 0f && tgx101HighlightedChildId == 0 && tgx101QuoteText == null) {
+      if (highlightFactor != 0f && tgx101HighlightedChildId == 0 && tgx101QuoteText == null && !tgx101OutlineInsideMedia()) {
         // (user 2026-11-17, mockup «Подсветка при переходе», variant 2 «обводка»): a thin accent frame round the bubble
         // that holds and melts with the highlight, in place of the wash and the wave
         drawBubble(c, tgx101OutlinePaint(), true, 0);
@@ -7791,6 +7791,16 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   private static final long TGX101_OUTLINE_IN = 700L;
+
+  /** a photo or a video draws the jump's highlight inside its own picture (user 2026-11-25, mockup variant А) */
+  protected boolean tgx101OutlineInsideMedia () {
+    return false;
+  }
+
+  /** the jump's highlight is on, and not the quoted words' own */
+  protected final boolean tgx101JumpHighlightOn () {
+    return highlightFactor != 0f && tgx101QuoteText == null;
+  }
 
   /** the frame is still coming in: one more frame is wanted */
   protected final boolean tgx101OutlineAppearing () {

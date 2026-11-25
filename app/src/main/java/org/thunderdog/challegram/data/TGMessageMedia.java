@@ -775,6 +775,11 @@ public class TGMessageMedia extends TGMessage {
     return Td.showCaptionAboveMedia(msg.content);
   }
 
+  @Override
+  protected boolean tgx101OutlineInsideMedia () {
+    return true;
+  }
+
   private int tgx101MediaOffset () {
     return tgx101CaptionAbove() ? Screen.dp(TEXT_MARGIN) + wrapper.getHeight() + Screen.dp(TEXT_MARGIN) : 0;
   }
@@ -786,8 +791,11 @@ public class TGMessageMedia extends TGMessage {
     final int textTop = tgx101CaptionAbove() ? startY + Screen.dp(TEXT_MARGIN) : startY + mosaicWrapper.getHeight() + Screen.dp(TEXT_MARGIN);
     startY += tgx101MediaOffset();
     mosaicWrapper.draw(view, c, startX, startY, complexReceiver, useFullWidth(), tgx101HiddenMedia != null ? tgx101HiddenMedia.getSourceMessageId() : 0);
-    if (tgx101HighlightedChildId() != 0) {
-      mosaicWrapper.tgx101DrawItemOutline(c, tgx101HighlightedChildId(), tgx101OutlinePaint()); // TGx101: only that album item is outlined
+    if (tgx101HighlightedChildId() != 0 || (tgx101JumpHighlightOn() && tgx101OutlineInsideMedia())) {
+      // TGx101 (user 2026-11-25 «подсветка должна быть внутри фотографии, внутри контура пусть ещё подсвечивает», mockup
+      // «Подсветка фото по цитате» А): a thin accent frame along the picture's own edge and a soft light inwards from it —
+      // in an album only that item, a single photo or video its whole picture; the bubble itself gets no frame
+      mosaicWrapper.tgx101DrawItemOutline(c, tgx101HighlightedChildId(), tgx101OutlinePaint());
       if (tgx101OutlineAppearing()) view.postInvalidateOnAnimation();
     }
     // (user video 2026-10-22 «как скрывается и появляется кнопка ⋮ — нужно плавнее»): it vanished at once on the tap and

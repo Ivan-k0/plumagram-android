@@ -1108,16 +1108,44 @@ public class MosaicWrapper implements FactorAnimator.Target, ComplexReceiver.Key
   }
 
   /** TGx101 (user 2026-11-17 «обводка»): a frame inside one album item's edges, over the photo */
+  private static android.graphics.Paint tgx101GlowPaint;
+
+  /** the jump's highlight inside the pictures: {@code messageId} 0 — every item (a single photo is its only one) */
   public void tgx101DrawItemOutline (android.graphics.Canvas c, long messageId, android.graphics.Paint paint) {
     if (mosaicItems == null) return;
-    float inset = paint.getStrokeWidth() / 2f, r = org.thunderdog.challegram.tool.Screen.dp(6f);
+    boolean single = mosaicItems.size() == 1;
+    float r = org.thunderdog.challegram.tool.Screen.dp(single ? Math.max(6f, org.thunderdog.challegram.theme.Theme.getBubbleDefaultRadius() - 3f) : 6f);
+    int color = paint.getColor();
+    float alpha = android.graphics.Color.alpha(color) / 255f;
+    if (tgx101GlowPaint == null) {
+      tgx101GlowPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+      tgx101GlowPaint.setStyle(android.graphics.Paint.Style.STROKE);
+    }
+    final float step = org.thunderdog.challegram.tool.Screen.dp(2.5f);
+    final int steps = 9; // ~22 dp of light from the edge inwards
     for (MosaicItemInfo info : mosaicItems) {
-      if (info.target.getSourceMessageId() == messageId) {
-        int left = lastStartX + info.x, top = lastStartY + info.y;
-        android.graphics.RectF rect = org.thunderdog.challegram.tool.Paints.getRectF();
-        rect.set(left + inset, top + inset, left + info.target.getCellWidth() - inset, top + info.target.getCellHeight() - inset);
-        c.drawRoundRect(rect, r, r, paint);
+      if (messageId != 0 && info.target.getSourceMessageId() != messageId) continue;
+      int left = lastStartX + info.x, top = lastStartY + info.y;
+      int right = left + info.target.getCellWidth(), bottom = top + info.target.getCellHeight();
+      android.graphics.RectF rect = org.thunderdog.challegram.tool.Paints.getRectF();
+      int save = c.save();
+      android.graphics.Path clip = new android.graphics.Path();
+      rect.set(left, top, right, bottom);
+      clip.addRoundRect(rect, r, r, android.graphics.Path.Direction.CW);
+      c.clipPath(clip);
+      tgx101GlowPaint.setStrokeWidth(step + 1f); // a hair of overlap: no seams between the rings
+      for (int i = 0; i < steps; i++) {
+        float k = 1f - i / (float) steps;
+        tgx101GlowPaint.setColor(me.vkryl.core.ColorUtils.alphaColor(alpha * .5f * k * k, color));
+        float inset = step * i + step / 2f;
+        rect.set(left + inset, top + inset, right - inset, bottom - inset);
+        float rr = Math.max(0f, r - inset);
+        c.drawRoundRect(rect, rr, rr, tgx101GlowPaint);
       }
+      float inset = paint.getStrokeWidth() / 2f;
+      rect.set(left + inset, top + inset, right - inset, bottom - inset);
+      c.drawRoundRect(rect, Math.max(0f, r - inset), Math.max(0f, r - inset), paint);
+      c.restoreToCount(save);
     }
   }
 
