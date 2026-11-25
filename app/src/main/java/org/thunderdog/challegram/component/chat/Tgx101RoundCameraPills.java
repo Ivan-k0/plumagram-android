@@ -170,9 +170,11 @@ public class Tgx101RoundCameraPills extends View {
     getLocationOnScreen(selfLoc);
     float size = Screen.dp(40f), pad = Screen.dp(5f), gap = Screen.dp(6f);
     float w = size + pad * 2;
+    // (user 2026-11-26 «как продолжение кнопки записи кружка, смести правее»): right over the button's centre,
+    // a short step above it
     float cx = anchorLoc[0] - selfLoc[0] + anchor.getWidth() / 2f;
-    cx = Math.min(cx, getWidth() - w / 2f - Screen.dp(12f));
-    float bottom = anchorLoc[1] - selfLoc[1] - Screen.dp(28f);
+    cx = Math.min(cx, getWidth() - w / 2f - Screen.dp(2f));
+    float bottom = anchorLoc[1] - selfLoc[1] - Screen.dp(10f);
     capsule.set(cx - w / 2f, bottom - (size * 2 + gap + pad * 2), cx + w / 2f, bottom);
     float y = bottom - pad;
     rects[FRONT].set(cx - size / 2f, y - size, cx + size / 2f, y);

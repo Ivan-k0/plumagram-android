@@ -2816,8 +2816,21 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // the round «scroll down» button stuck out from under the lock capsule (user's video 2026-10-05 14:17)
     tgx101Recording = isRecording;
     if (scrollToBottomButtonWrap != null) {
-      scrollToBottomButtonWrap.setAlpha(isRecording ? 0f : MathUtils.clamp(scrollToBottomVisible.getFloatValue()));
+      scrollToBottomButtonWrap.setAlpha(isRecording || tgx101CameraPick ? 0f : MathUtils.clamp(scrollToBottomVisible.getFloatValue()));
     }
+  }
+
+  private boolean tgx101CameraPick;
+
+  /** TGx101 (user 2026-11-26 «когда я выбираю камеры… стрелку прячь»): the «scroll down» arrow sits where the
+   *  camera capsule opens — gone while the capsule is up, back (faded in) if it closes without a recording */
+  public void tgx101SetCameraPick (boolean picking) {
+    if (tgx101CameraPick == picking) return;
+    tgx101CameraPick = picking;
+    if (scrollToBottomButtonWrap == null) return;
+    float to = picking || tgx101Recording ? 0f : MathUtils.clamp(scrollToBottomVisible.getFloatValue());
+    scrollToBottomButtonWrap.animate().cancel();
+    scrollToBottomButtonWrap.animate().alpha(to).setDuration(picking ? 120 : 200).start();
   }
 
   public MessagesManager getManager () {
@@ -11840,7 +11853,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
   public void onFactorChanged (int id, float factor, float fraction, FactorAnimator callee) {
     switch (id) {
       case ANIMATOR_SCROLL_TO_BOTTOM: {
-        scrollToBottomButtonWrap.setAlpha(tgx101Recording ? 0f : MathUtils.clamp(factor));
+        scrollToBottomButtonWrap.setAlpha(tgx101Recording || tgx101CameraPick ? 0f : MathUtils.clamp(factor));
         checkScrollButtonOffsets();
         break;
       }

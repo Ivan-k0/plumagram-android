@@ -274,13 +274,22 @@ public class VoiceVideoButtonView extends View implements FactorAnimator.Target,
 
   private Tgx101RoundCameraPills tgx101Pills;
 
+  private void tgx101ArrowHidden (boolean hidden) {
+    org.thunderdog.challegram.navigation.ViewController<?> c = UI.getCurrentStackItem(getContext());
+    if (c instanceof org.thunderdog.challegram.ui.MessagesController) {
+      ((org.thunderdog.challegram.ui.MessagesController) c).tgx101SetCameraPick(hidden);
+    }
+  }
+
   private void tgx101AskCamera () {
     // TGx101 (user 2026-11-25, variant А): pills above the button — the finger slides to one and lets go
     if (tgx101Pills != null && !tgx101Pills.isFinished()) tgx101Pills.dismiss();
+    tgx101ArrowHidden(true);
     tgx101Pills = Tgx101RoundCameraPills.show(this, new Tgx101RoundCameraPills.Callback() {
       @Override
       public void onPicked (boolean front) {
         tgx101Pills = null;
+        tgx101ArrowHidden(false); // the recording keeps it hidden from here
         org.thunderdog.challegram.Tgx101Diag.mark("round: camera picked " + (front ? "front" : "rear"));
         UI.getContext(getContext()).getRecordAudioVideoController().tgx101StartRoundWithCamera(VoiceVideoButtonView.this, front);
       }
@@ -288,6 +297,7 @@ public class VoiceVideoButtonView extends View implements FactorAnimator.Target,
       @Override
       public void onDismissed () {
         tgx101Pills = null;
+        tgx101ArrowHidden(false);
         org.thunderdog.challegram.Tgx101Diag.mark("round: camera pills closed");
       }
     });
