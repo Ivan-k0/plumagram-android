@@ -14,13 +14,15 @@
     <item name="android:windowActionBarOverlay">true</item>
   </style>
 
-  <style name="DialogTheme" parent="@android:style/Theme.Holo.Light.Dialog">
+  <style name="DialogTheme" parent="@android:style/Theme.Material.Light.Dialog.Alert">
     <item name="android:textColorLink">#ff039be5</item>
-    <item name="android:windowBackground">@drawable/transparent</item>
+    <item name="android:windowBackground">@drawable/tgx101_dialog_bg</item>
+    <item name="android:colorAccent">#ff3d95d6</item>
   </style>
-  <style name="DialogThemeDark" parent="@android:style/Theme.Holo.Dialog">
+  <style name="DialogThemeDark" parent="@android:style/Theme.Material.Dialog.Alert">
     <item name="android:textColorLink">#ff039be5</item>
-    <item name="android:windowBackground">@drawable/transparent</item>
+    <item name="android:windowBackground">@drawable/tgx101_dialog_bg</item>
+    <item name="android:colorAccent">#ff5eb5f7</item>
   </style>
 
   <style name="TransparentTheme" parent="@style/AppTheme">

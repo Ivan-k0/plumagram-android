@@ -81,8 +81,9 @@ public class Tgx101RoundControls {
   public Tgx101RoundControls (Context context, Host host) {
     this.context = context;
     this.host = host;
-    level = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getInt(KEY_LIGHT, LEVELS.length - 1);
-    if (level < 0 || level >= LEVELS.length) level = LEVELS.length - 1;
+    // (user 2026-11-26 «по умолчанию яркость фонарика фронта 20%»)
+    level = org.thunderdog.challegram.unsorted.Settings.instance().pmc().getInt(KEY_LIGHT, 0);
+    if (level < 0 || level >= LEVELS.length) level = 0;
 
     frontLight = new View(context);
     frontLight.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -91,9 +92,14 @@ public class Tgx101RoundControls {
 
     zoomBar = new ZoomBar(context);
     zoomBar.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(ZoomBar.HEIGHT), Gravity.TOP));
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+      // (user 2026-11-26 «цифра зума скрыта за кружком»): the circle is lifted by 2.5 dp — the bar and its badge go over it
+      zoomBar.setTranslationZ(Screen.dp(4f));
+    }
 
     drum = new DrumView(context);
     drum.setLayoutParams(FrameLayoutFix.newParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) drum.setTranslationZ(Screen.dp(4f));
 
     lightButton = new RecordControllerButton(context) {
       @Override
@@ -377,8 +383,16 @@ public class Tgx101RoundControls {
       }
     }
 
-    private float downX;
+    private float downX, dragFromX, dragFromZoom;
     private boolean dragging, touching;
+    private final Runnable holdOpen = () -> {
+      if (touching && !dragging) {
+        dragging = true;
+        dragFromX = downX;
+        dragFromZoom = zoom;
+        setExpanded(true);
+      }
+    };
 
     @Override
     public boolean onTouchEvent (MotionEvent e) {
@@ -391,21 +405,31 @@ public class Tgx101RoundControls {
           dragging = false;
           touching = true;
           getParent().requestDisallowInterceptTouchEvent(true);
+          // (user 2026-11-26 «зажатие для зума должно быть сразу очевидным»): a hold opens the ruler without waiting
+          // for the finger to move; a quick tap still picks a stop
+          removeCallbacks(holdOpen);
+          postDelayed(holdOpen, 180);
           return true;
         case MotionEvent.ACTION_MOVE:
           if (!touching) return false;
           if (!dragging && Math.abs(x - downX) > Screen.getTouchSlop()) {
+            removeCallbacks(holdOpen);
             dragging = true;
+            dragFromX = x;
+            dragFromZoom = zoom;
             setExpanded(true);
           }
           if (dragging) {
+            // from where the value was, not a jump to the finger: the ruler slides under it
             float cx = getWidth() / 2f, w = rulerWidth();
-            setZoom(zoomForX(x, cx - w / 2f + Screen.dp(28f), cx + w / 2f - Screen.dp(28f)), false);
+            float left = cx - w / 2f + Screen.dp(28f), right = cx + w / 2f - Screen.dp(28f);
+            setZoom(zoomForX(xForZoom(dragFromZoom, left, right) + (x - dragFromX), left, right), false);
           }
           return true;
         case MotionEvent.ACTION_UP:
           if (!touching) return false;
           touching = false;
+          removeCallbacks(holdOpen);
           if (dragging) {
             setExpanded(false);
           } else {
@@ -420,6 +444,7 @@ public class Tgx101RoundControls {
           return true;
         case MotionEvent.ACTION_CANCEL:
           touching = false;
+          removeCallbacks(holdOpen);
           if (dragging) setExpanded(false);
           return true;
       }
@@ -483,7 +508,6 @@ public class Tgx101RoundControls {
             longPressed = true;
             v.setPressed(false);
             if (!lightOn) toggleLight();
-            Tgx101Haptics.play(Tgx101Haptics.HEAVY);
             drum.show(v, level);
           };
           v.postDelayed(longPress, 380);
@@ -517,8 +541,7 @@ public class Tgx101RoundControls {
   private void setLevel (int newLevel) {
     newLevel = Math.max(0, Math.min(LEVELS.length - 1, newLevel));
     if (newLevel == level) return;
-    level = newLevel;
-    Tgx101Haptics.play(Tgx101Haptics.TICK);
+    level = newLevel; // (user 2026-11-26 «вибрацию в барабане убери»)
     org.thunderdog.challegram.unsorted.Settings.instance().pmc().putInt(KEY_LIGHT, level);
     updateFrontLight();
   }

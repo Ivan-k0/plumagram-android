@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TGx101 (user 2026-11-26 «опять этот допотопный дизайн вылазит»): system alerts as rounded cards like our windows;
+     the colour is set from the theme in BaseActivity.modifyAlert -->
+<inset xmlns:android="http://schemas.android.com/apk/res/android"
+  android:insetLeft="24dp" android:insetRight="24dp" android:insetTop="24dp" android:insetBottom="24dp">
+  <shape android:shape="rectangle">
+    <corners android:radius="24dp" />
+    <solid android:color="#ffffffff" />
+  </shape>
+</inset>

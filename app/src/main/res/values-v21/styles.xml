@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+  <!-- TGx101 (user 2026-11-26 «допотопный дизайн»): Android 5+ alerts in the Material look — no blue line under the
+       title, buttons as text on the right — on our rounded card -->
+  <style name="DialogTheme" parent="@android:style/Theme.Material.Light.Dialog.Alert">
+    <item name="android:textColorLink">#ff039be5</item>
+    <item name="android:windowBackground">@drawable/tgx101_dialog_bg</item>
+    <item name="android:colorAccent">#ff3d95d6</item>
+  </style>
+  <style name="DialogThemeDark" parent="@android:style/Theme.Material.Dialog.Alert">
+    <item name="android:textColorLink">#ff039be5</item>
+    <item name="android:windowBackground">@drawable/tgx101_dialog_bg</item>
+    <item name="android:colorAccent">#ff5eb5f7</item>
+  </style>
+</resources>
