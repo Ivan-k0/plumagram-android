@@ -262,6 +262,11 @@ public class ColorPreviewView extends View implements FactorAnimator.Target {
     }*/
   }
 
+  /** TGx101: the thickness as 0…1, exactly what {@link #setRadiusFactor} took */
+  public float getRadiusFactor () {
+    return radiusFactor;
+  }
+
   public float getBrushRadius (float scale) {
     return (MIN_RADIUS + (MAX_RADIUS - MIN_RADIUS) * radiusFactor) * scale;
   }

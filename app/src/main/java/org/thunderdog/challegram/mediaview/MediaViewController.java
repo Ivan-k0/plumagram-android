@@ -9119,10 +9119,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (tgx101PaintTools != null) tgx101PaintTools.setBrushColor(v.getBrushColor());
     if (tgx101SizeWedge != null) {
       float radius = v.getBrushRadius(1f);
-      tgx101SizeWedge.setFactor((radius - 4f) / 16f); // also when the size is set by dragging the colour up
+      // (user 2026-11-25 «смотри на ползунок», recording: the knob jumped ~60 px back and forth while dragged) the thickness'
+      // own 0…1, not «(radius − 4) / 16» — that was the old 4…20 range; since the thinnest is 1.5 it put the knob elsewhere
+      // after every step and the finger's next move put it back
+      tgx101SizeWedge.setFactor(v.getRadiusFactor()); // also when the size is set by dragging the colour up
       tgx101SizeWedge.setPreview(Screen.dp(radius), v.getBrushColor());
       if (!tgx101ApplyingToolSize && tgx101PaintTools != null) {
-        tgx101ToolSizes[tgx101PaintTools.getSelected()] = (radius - 4f) / 16f;
+        tgx101ToolSizes[tgx101PaintTools.getSelected()] = v.getRadiusFactor();
       }
     }
     if (paintView != null) {
