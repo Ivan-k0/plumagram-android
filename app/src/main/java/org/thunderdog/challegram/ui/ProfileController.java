@@ -1261,7 +1261,8 @@ public class ProfileController extends ViewController<ProfileController.Args> im
 
     float headerSize = HeaderView.getSize(true);
     float top = lickShadow.getTranslationY() + headerSize + getTopViewTopPadding();
-    setTransformFactor(top > headerSize ? 0f : 1f - (top / headerSize));
+    tgx101PagerTransform = top > headerSize ? 0f : 1f - (top / headerSize);
+    tgx101ApplyTransform();
 
     setForgetProfileMargin(top < (HeaderView.getTopOffset() + HeaderView.getSize(false) / 2f - Screen.dp(8f)));
     setNeedMediaSubtitle(top < HeaderView.getSize(true) - Screen.dp(16f));
@@ -1317,10 +1318,29 @@ public class ProfileController extends ViewController<ProfileController.Args> im
     return true;
   }
 
+  // TGx101 (user 2026-11-25 «3 цвета меняется… белая, как у вкладок»): the collapsed header is the tabs' white from the
+  // start — the white comes in with the collapse itself (over the first half of the path, while the photo still fills the
+  // header) and the tabs sticking later change nothing; it used to go green → the header's blue → a white wipe from below
+  private float tgx101PagerTransform, tgx101CollapseWhite;
+
+  private void tgx101ApplyTransform () {
+    float collapse = isEditing() ? 0f : tgx101CollapseWhite;
+    setTransformFactor(Math.max(tgx101PagerTransform, collapse));
+  }
+
+  @Override
+  public void tgx101OnScrollCollapse (float scrollFactor) {
+    float white = me.vkryl.core.MathUtils.clamp((1f - scrollFactor) * 2f);
+    if (tgx101CollapseWhite != white) {
+      tgx101CollapseWhite = white;
+      tgx101ApplyTransform();
+    }
+  }
+
   @Override
   protected void drawTransform (Canvas c, float transformFactor, int width, int bottom) {
-    float height = HeaderView.getSize(true);
-    c.drawRect(0, height - height * transformFactor, width, bottom, Paints.fillingPaint(Theme.fillingColor()));
+    // one colour fading in over the whole header, not a sheet rising from its bottom edge
+    c.drawRect(0, 0, width, bottom, Paints.fillingPaint(ColorUtils.alphaColor(transformFactor, Theme.fillingColor())));
   }
 
   @Override

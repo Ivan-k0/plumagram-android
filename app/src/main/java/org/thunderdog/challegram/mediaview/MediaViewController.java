@@ -2558,6 +2558,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private android.widget.TextView tgx101Counter;
   private boolean tgx101CounterShown;
+  private float tgx101CounterFade;
 
   private void tgx101UpdateCounter (String text) {
     if (tgx101Counter == null) return;
@@ -2565,11 +2566,16 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     tgx101Counter.setText(text);
     if (known && !tgx101CounterShown) {
       tgx101CounterShown = true;
-      tgx101Counter.animate().alpha(1f).setDuration((long) (180 / Math.max(.1f, U.getAnimationScale(context())))).start();
+      android.animation.ValueAnimator fade = android.animation.ValueAnimator.ofFloat(0f, 1f);
+      fade.setDuration((long) (180 / Math.max(.1f, U.getAnimationScale(context()))));
+      fade.addUpdateListener(a -> {
+        tgx101CounterFade = (float) a.getAnimatedValue();
+        if (tgx101Counter != null) tgx101Counter.invalidate();
+      });
+      fade.start();
     } else if (!known && tgx101CounterShown) {
       tgx101CounterShown = false;
-      tgx101Counter.animate().cancel();
-      tgx101Counter.setAlpha(0f);
+      tgx101CounterFade = 0f;
     }
   }
 
@@ -7043,13 +7049,24 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         tgx101Counter.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
         tgx101Counter.setShadowLayer(Screen.dp(3f), 0, Screen.dp(.5f), 0x99000000);
         tgx101Counter.setAlpha(0f);
-        headerView.setClipChildren(false);
-        headerView.setClipToPadding(false);
-        headerView.addView(tgx101Counter, FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
-        headerView.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> tgx101Counter.setTranslationY(v.getHeight() + Screen.dp(8f)));
         onMediaStackChanged(false);
       }
       contentView.addView(headerView);
+      if (tgx101Counter != null) {
+        // (user 2026-11-25 «где кол-во медиа?»): inside the header it was clipped by the header's own edge — now a sibling
+        // right under it that follows the header's place and fade every frame
+        contentView.addView(tgx101Counter, FrameLayoutFix.newParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.CENTER_HORIZONTAL));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) tgx101Counter.setElevation(Screen.dp(3f));
+        final View header = headerView;
+        tgx101Counter.getViewTreeObserver().addOnPreDrawListener(() -> {
+          if (tgx101Counter == null) return true;
+          float y = header.getTop() + header.getTranslationY() + header.getHeight() + Screen.dp(8f);
+          if (tgx101Counter.getTranslationY() != y) tgx101Counter.setTranslationY(y);
+          float a = header.getAlpha() * (tgx101CounterShown ? tgx101CounterFade : 0f);
+          if (tgx101Counter.getAlpha() != a) tgx101Counter.setAlpha(a);
+          return true;
+        });
+      }
     }
 
     switch (mode) {

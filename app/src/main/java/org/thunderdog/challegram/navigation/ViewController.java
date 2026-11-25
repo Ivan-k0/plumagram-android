@@ -1388,6 +1388,9 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     // override
   }
 
+  /** TGx101: a collapsing header's own factor (1 — open, 0 — collapsed), told by ComplexRecyclerView on every scroll step */
+  public void tgx101OnScrollCollapse (float scrollFactor) { }
+
   protected void applyTransformChanges () { }
   protected void clearTransformChanges () { }
   protected void applyStaticTransform (float factor) { }
