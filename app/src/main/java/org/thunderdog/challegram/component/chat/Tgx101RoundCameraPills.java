@@ -45,6 +45,8 @@ public class Tgx101RoundCameraPills extends View {
   private final TextPaint textPaint;
   private final Paint fillPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
   private final Paint shadowPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private final Paint tagPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+  private final RectF tagRect = new RectF();
   private final Drawable[] icons = new Drawable[2];
   private final String[] titles = new String[2];
   private final RectF[] rects = {new RectF(), new RectF()};
@@ -67,7 +69,8 @@ public class Tgx101RoundCameraPills extends View {
     this.callback = callback;
     this.textPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
     this.textPaint.setTypeface(Fonts.getRobotoMedium());
-    this.textPaint.setTextSize(Screen.dp(15f));
+    this.textPaint.setTextSize(Screen.dp(13f));
+    this.tagPaint.setColor(0xff000000);
     this.shadowPaint.setColor(0x33000000);
     titles[FRONT] = Lang.getString(R.string.Tgx101RoundFront);
     titles[REAR] = Lang.getString(R.string.Tgx101RoundRear);
@@ -156,33 +159,32 @@ public class Tgx101RoundCameraPills extends View {
     }
   }
 
+  // TGx101 (user 2026-11-25 «пилюли огромные… ставь друг над другом или переделай дизайн»): two round icons
+  // in a column over the button — the front one nearer, the rear one above; a label only by the one under the finger
   private void layoutPills () {
     anchor.getLocationOnScreen(anchorLoc);
     getLocationOnScreen(selfLoc);
-    float anchorRight = anchorLoc[0] - selfLoc[0] + anchor.getWidth();
-    float anchorTop = anchorLoc[1] - selfLoc[1];
-    float h = Screen.dp(44f), gap = Screen.dp(8f), padH = Screen.dp(14f), iconW = Screen.dp(24f), iconGap = Screen.dp(8f);
-    float bottom = anchorTop - Screen.dp(14f);
-    float right = Math.min(anchorRight - Screen.dp(6f), getWidth() - Screen.dp(8f));
-    for (int i = REAR; i >= FRONT; i--) {
-      float w = padH + iconW + iconGap + textPaint.measureText(titles[i]) + padH;
-      rects[i].set(right - w, bottom - h, right, bottom);
-      right -= w + gap;
-    }
+    float size = Screen.dp(44f), gap = Screen.dp(10f);
+    float cx = anchorLoc[0] - selfLoc[0] + anchor.getWidth() / 2f;
+    cx = Math.min(cx, getWidth() - size / 2f - Screen.dp(6f));
+    float bottom = anchorLoc[1] - selfLoc[1] - Screen.dp(12f);
+    rects[FRONT].set(cx - size / 2f, bottom - size, cx + size / 2f, bottom);
+    bottom -= size + gap;
+    rects[REAR].set(cx - size / 2f, bottom - size, cx + size / 2f, bottom);
   }
 
   private int pillAt (float x, float y, boolean forgiving) {
-    float slop = Screen.dp(forgiving ? 20f : 6f);
+    float slop = Screen.dp(forgiving ? 14f : 6f);
     for (int i = 0; i < 2; i++) {
       RectF r = rects[i];
-      if (x >= r.left - slop && x <= r.right + slop && y >= r.top - slop * 2 && y <= r.bottom + slop) return i;
+      if (x >= r.left - slop && x <= r.right + slop && y >= r.top - slop && y <= r.bottom + slop) return i;
     }
     if (forgiving) {
-      // anywhere clearly above the button: the half the finger is on
-      float top = Math.max(rects[FRONT].bottom, rects[REAR].bottom) + Screen.dp(4f);
-      if (y < top && y > rects[REAR].top - Screen.dp(90f)) {
-        float mid = (rects[FRONT].right + rects[REAR].left) / 2f;
-        return x < mid ? FRONT : REAR;
+      // anywhere in the column above the button: the nearer of the two
+      float cx = rects[FRONT].centerX();
+      if (Math.abs(x - cx) < Screen.dp(70f) && y < rects[FRONT].bottom + Screen.dp(6f) && y > rects[REAR].top - Screen.dp(70f)) {
+        float mid = (rects[FRONT].top + rects[REAR].bottom) / 2f;
+        return y > mid ? FRONT : REAR;
       }
     }
     return NONE;
@@ -286,13 +288,13 @@ public class Tgx101RoundCameraPills extends View {
 
     for (int i = 0; i < 2; i++) {
       // the farther pill comes a touch later: they fly out of the button one after the other
-      float delay = i == REAR ? 0f : .18f;
+      float delay = i == FRONT ? 0f : .18f;
       float t = Math.max(0f, Math.min(1f, (appear - delay) / (1f - delay)));
       if (t <= 0f) continue;
       float out = finished ? 1f : 0f;
       float pop = finished && pickedForOut == i ? (1f - appear) * .12f : 0f; // the picked one swells as it goes
       float overshoot = 1f + (float) Math.sin(t * Math.PI) * .06f * (1f - out);
-      float s = (.55f + .45f * t) * overshoot + pop + selectFactor[i] * .06f;
+      float s = (.55f + .45f * t) * overshoot + pop + selectFactor[i] * .12f;
 
       RectF r = rects[i];
       float cx = r.centerX(), cy = r.centerY();
@@ -300,38 +302,45 @@ public class Tgx101RoundCameraPills extends View {
 
       int save = c.save();
       c.translate(tx, ty);
-      c.scale(s, s, cx, cy);
       int alpha = (int) (255 * Math.min(1f, t * 1.4f));
-      float rad = r.height() / 2f;
+      float rad = r.width() / 2f;
 
+      // the label: slides out to the left of the circle under the finger
+      float lf = selectFactor[i];
+      if (lf > 0f) {
+        textPaint.setColor(0xffffffff);
+        textPaint.setAlpha((int) (alpha * lf));
+        float tw = textPaint.measureText(titles[i]);
+        float th = Screen.dp(28f), pad = Screen.dp(10f);
+        float right = r.left - Screen.dp(8f) - Screen.dp(8f) * s + Screen.dp(8f) * (1f - lf);
+        tagRect.set(right - tw - pad * 2, cy - th / 2f, right, cy + th / 2f);
+        tagPaint.setAlpha((int) (0x9a * (alpha / 255f) * lf));
+        c.drawRoundRect(tagRect, th / 2f, th / 2f, tagPaint);
+        Paint.FontMetrics fm = textPaint.getFontMetrics();
+        c.drawText(titles[i], tagRect.left + pad, cy - (fm.ascent + fm.descent) / 2f, textPaint);
+      }
+
+      c.scale(s, s, cx, cy);
       shadowPaint.setAlpha((int) (0x33 * (alpha / 255f)));
-      c.drawRoundRect(r.left, r.top + Screen.dp(2f), r.right, r.bottom + Screen.dp(2f), rad, rad, shadowPaint);
+      c.drawCircle(cx, cy + Screen.dp(1.5f), rad, shadowPaint);
       fillPaint.setColor(blend(bg, accent, selectFactor[i]));
       fillPaint.setAlpha(alpha);
-      c.drawRoundRect(r, rad, rad, fillPaint);
+      c.drawCircle(cx, cy, rad, fillPaint);
 
-      int textColor = blend(text, accentText, selectFactor[i]);
       int iconColor = blend(icon, accentText, selectFactor[i]);
-      float x = r.left + Screen.dp(14f);
       Drawable d = icons[i];
       if (d != null) {
-        float icx = x + Screen.dp(12f);
         int iSave = c.save();
         // coin turn: squeeze to an edge and open again
         float flip = (float) Math.cos(flipFactor[i] * Math.PI * 2f);
-        c.scale(Math.max(.05f, Math.abs(flip)), 1f, icx, cy);
+        c.scale(Math.max(.05f, Math.abs(flip)), 1f, cx, cy);
         d.setColorFilter(new PorterDuffColorFilter(iconColor, PorterDuff.Mode.SRC_IN));
         d.setAlpha(alpha);
         int iw = d.getIntrinsicWidth(), ih = d.getIntrinsicHeight();
-        d.setBounds((int) (icx - iw / 2f), (int) (cy - ih / 2f), (int) (icx + iw / 2f), (int) (cy + ih / 2f));
+        d.setBounds((int) (cx - iw / 2f), (int) (cy - ih / 2f), (int) (cx + iw / 2f), (int) (cy + ih / 2f));
         d.draw(c);
         c.restoreToCount(iSave);
       }
-      textPaint.setColor(textColor);
-      textPaint.setAlpha(alpha);
-      float textX = x + Screen.dp(24f) + Screen.dp(8f);
-      Paint.FontMetrics fm = textPaint.getFontMetrics();
-      c.drawText(titles[i], textX, cy - (fm.ascent + fm.descent) / 2f, textPaint);
       c.restoreToCount(save);
     }
   }
