@@ -80,6 +80,10 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
 
   private boolean isPlaying;
   private long playDuration = -1, playPosition = -1;
+  // TGx101 (user 2026-11-25 «переход полосы голосового по волне — плавнее, больше шагов»): the position arrives a few
+  // times a second and the bar jumped between them; it now glides on at the measured rate every frame up to the next one
+  private long tgx101PosAt;
+  private float tgx101PosRate;
   private int playSeconds;
 
   public boolean hasPreview;
@@ -317,10 +321,20 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
   @Override
   public void onTrackStateChanged (Tdlib tdlib, long chatId, long messageId, int fileId, int state) {
     setPlaying(state == TGPlayerController.STATE_PLAYING || state == TGPlayerController.STATE_PAUSED);
+    if (state != TGPlayerController.STATE_PLAYING) tgx101PosAt = 0; // paused or stopped: the bar stands, no frames asked
   }
 
   @Override
   public void onTrackPlayProgress (Tdlib tdlib, long chatId, long messageId, int fileId, float progress, long position, long totalDuration, boolean isBuffering) {
+    // TGx101: the rate of the position over time (it carries the playback speed), for the bar to glide between updates
+    long now = android.os.SystemClock.uptimeMillis();
+    if (tgx101PosAt != 0 && position > playPosition && playPosition >= 0) {
+      float rate = (position - playPosition) / (float) Math.max(1, now - tgx101PosAt);
+      if (rate > .2f && rate < 4f) tgx101PosRate = tgx101PosRate <= 0 ? rate : tgx101PosRate * .6f + rate * .4f;
+    } else if (position < playPosition) {
+      tgx101PosRate = 0; // a seek back: wait for the next step
+    }
+    tgx101PosAt = isBuffering || TGPlayerController.STATE_PLAYING != tdlib.context().player().getState() ? 0 : now;
     this.playPosition = position;
     this.playDuration = totalDuration;
     int newSeconds = position > 0 ? U.calculateRemainingSeconds(position) : 0;
@@ -995,7 +1009,13 @@ public class FileComponent extends BaseComponent implements FileProgressComponen
           } else if (playDuration <= 0 || playPosition <= 0) {
             seek = 0f;
           } else {
-            seek = (float) ((double) playPosition / (double) playDuration);
+            long shown = playPosition;
+            if (tgx101PosAt != 0 && tgx101PosRate > 0) {
+              long gap = android.os.SystemClock.uptimeMillis() - tgx101PosAt;
+              shown += (long) (Math.min(gap, 600) * tgx101PosRate); // at most ~0.6 s ahead if updates stall
+              context.invalidate(); // the next frame moves it on
+            }
+            seek = Math.min(1f, (float) ((double) shown / (double) playDuration));
           }
         } else {
           seek = context.isContentRead() ? 0f : 1f;
