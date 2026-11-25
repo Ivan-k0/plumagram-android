@@ -44,6 +44,10 @@ public class HeaderButton extends View {
   }
 
   private Drawable drawable;
+  /** TGx101 (user 2026-11-25 «остальное увеличь до размеров стока»): a thin icon in a header is drawn as big as the solid
+   *  one it stands for — they are drawn small inside their 24 dp and the thin line made them look smaller still */
+  private boolean tgx101Thin;
+  private static final float TGX101_THIN_SCALE = 1.2f;
   private @DrawableRes int drawableRes;
 
   protected @ColorId int themeColorId, toThemeColorId;
@@ -105,7 +109,9 @@ public class HeaderButton extends View {
     if (currentResource != resource) {
       currentResource = resource;
       boolean invalidate = drawable != null;
-      drawable = resource != 0 ? Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(resource)) : null; // TGx101: thin icons everywhere (user 2026-11-23)
+      int shown = resource != 0 ? org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(resource) : 0;
+      tgx101Thin = shown != resource;
+      drawable = resource != 0 ? Drawables.get(getResources(), shown) : null; // TGx101: thin icons everywhere (user 2026-11-23)
       drawableRes = resource;
       if (invalidate) {
         invalidate();
@@ -212,6 +218,7 @@ public class HeaderButton extends View {
         c.scale(-1f, 1f, getMeasuredWidth() / 2, getMeasuredHeight() / 2);
       }
       float scale = (.8f + .2f * (1f - progressFactor)) * org.thunderdog.challegram.unsorted.Settings.instance().tgx101HeaderIconSize() / 100f; // (user 2026-11-24): MagiX «Значки в шапке»
+      if (tgx101Thin) scale *= TGX101_THIN_SCALE;
       if (scale != 1f) {
         c.save();
         c.scale(scale, scale, getMeasuredWidth() / 2, getMeasuredHeight() / 2);

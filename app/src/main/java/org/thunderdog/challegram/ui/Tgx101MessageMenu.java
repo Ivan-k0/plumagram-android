@@ -2156,8 +2156,7 @@ public final class Tgx101MessageMenu {
     if (icon == R.drawable.baseline_unarchive_24) return R.drawable.tgx101_o_unarchive_24;
     if (icon == R.drawable.baseline_share_arrow_24) return R.drawable.tgx101_o_forward_24;
     if (icon == R.drawable.baseline_share_24) return R.drawable.tgx101_o_share_24;
-    if (icon == R.drawable.baseline_more_vert_24) return R.drawable.tgx101_o_more_vert_24;
-    if (icon == R.drawable.baseline_more_horiz_24) return R.drawable.tgx101_o_more_horiz_24;
+    // ⋮ and ⋯ stay the solid dots everywhere (user 2026-11-25 «точки верни как было. везде»)
     return icon;
   }
 
