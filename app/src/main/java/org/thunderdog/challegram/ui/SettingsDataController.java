@@ -1887,19 +1887,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           int r = result.get(R.id.btn_tgx101VoiceMic);
           Settings.instance().setTgx101VoiceMic(r == 2 ? Settings.TGX101_VOICE_MIC_EXTERNAL : r == 3 ? Settings.TGX101_VOICE_MIC_PHONE : Settings.TGX101_VOICE_MIC_AUTO);
           adapter.updateValuedSettingById(R.id.btn_tgx101VoiceMic);
-          // (user 2026-11-25 «спросить, когда человек будет переключать на авто, с объяснением»): «Auto» tells a car from
-          // earbuds only with the «nearby devices» permission — asked here, once, with the reason
-          if (r != 2 && r != 3 && android.os.Build.VERSION.SDK_INT >= 31
-            && context().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            showOptions(Lang.getString(R.string.Tgx101VoiceMicAsk), new int[] {R.id.btn_done, R.id.btn_cancel},
-              new String[] {Lang.getString(R.string.Tgx101VoiceMicAllow), Lang.getString(R.string.Cancel)},
-              new int[] {OptionColor.BLUE, OptionColor.NORMAL}, new int[] {R.drawable.baseline_bluetooth_24, R.drawable.baseline_cancel_24}, (optionView, optionId) -> {
-                if (optionId == R.id.btn_done) {
-                  context().requestCustomPermissions(new String[] {android.Manifest.permission.BLUETOOTH_CONNECT}, (code, permissions, grantResults, grantCount) ->
-                    org.thunderdog.challegram.Tgx101Diag.mark("voice mic: nearby devices permission " + (grantCount > 0 ? "given" : "refused")));
-                }
-                return true;
-              });
+;
           }
         }));
     } else if (id == R.id.btn_tgx101VoiceQueue) {

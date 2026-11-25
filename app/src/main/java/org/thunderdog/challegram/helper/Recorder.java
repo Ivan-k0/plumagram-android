@@ -374,14 +374,18 @@ public class Recorder implements Runnable {
         }
       }
       int mode = org.thunderdog.challegram.unsorted.Settings.instance().tgx101VoiceMic();
+      if (mode == org.thunderdog.challegram.unsorted.Settings.TGX101_VOICE_MIC_AUTO) {
+        // (user 2026-11-25 «если стоит авто — как сейчас, телефон берёт из того источника, к которому подключён»): no ask
+        org.thunderdog.challegram.Tgx101Diag.mark("voice mic: auto — the phone picks, bluetooth " + (bluetooth != null) + ", wired " + (wired != null));
+        return;
+      }
       android.media.AudioDeviceInfo pick;
       if (mode == org.thunderdog.challegram.unsorted.Settings.TGX101_VOICE_MIC_PHONE) {
         pick = builtin;
       } else if (mode == org.thunderdog.challegram.unsorted.Settings.TGX101_VOICE_MIC_EXTERNAL) {
         pick = wired != null ? wired : bluetooth != null ? bluetooth : builtin;
       } else {
-        // auto: earbuds or a headset over Bluetooth — theirs; a car or a hands-free kit (or unknown: no permission) — the phone's
-        pick = wired != null ? wired : bluetooth != null && tgx101IsHeadset(bluetooth) ? bluetooth : builtin;
+        pick = builtin;
       }
       if (pick != null && pick.getType() == android.media.AudioDeviceInfo.TYPE_BLUETOOTH_SCO && !am.isBluetoothScoOn()) {
         am.startBluetoothSco();
@@ -393,32 +397,6 @@ public class Recorder implements Runnable {
     } catch (Throwable t) {
       org.thunderdog.challegram.Tgx101Diag.mark("voice mic: pick failed " + t);
     }
-  }
-
-  /** a Bluetooth microphone that is earbuds or a headset, by its device class; false for a car, a hands-free kit or when
-   *  the «nearby devices» permission wasn't given */
-  private static boolean tgx101IsHeadset (android.media.AudioDeviceInfo device) {
-    try {
-      if (android.os.Build.VERSION.SDK_INT >= 31 && org.thunderdog.challegram.unsorted.AppContext.get().checkSelfPermission(android.Manifest.permission.BLUETOOTH_CONNECT) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-        return false;
-      }
-      if (device.getType() == 26) return true; // a BLE headset is a headset by its type
-      android.bluetooth.BluetoothAdapter adapter = android.bluetooth.BluetoothAdapter.getDefaultAdapter();
-      if (adapter == null) return false;
-      String name = String.valueOf(device.getProductName());
-      String address = android.os.Build.VERSION.SDK_INT >= 28 ? device.getAddress() : null;
-      for (android.bluetooth.BluetoothDevice bt : adapter.getBondedDevices()) {
-        boolean same = (address != null && !address.isEmpty() && address.equalsIgnoreCase(bt.getAddress())) || name.equals(bt.getName());
-        if (!same || bt.getBluetoothClass() == null) continue;
-        int cls = bt.getBluetoothClass().getDeviceClass();
-        boolean car = cls == android.bluetooth.BluetoothClass.Device.AUDIO_VIDEO_CAR_AUDIO || cls == android.bluetooth.BluetoothClass.Device.AUDIO_VIDEO_HANDSFREE;
-        org.thunderdog.challegram.Tgx101Diag.mark("voice mic: bluetooth «" + name + "» class 0x" + Integer.toHexString(cls) + (car ? " — a car" : " — earbuds / headset"));
-        return !car;
-      }
-    } catch (Throwable t) {
-      org.thunderdog.challegram.Tgx101Diag.mark("voice mic: bluetooth class unknown " + t);
-    }
-    return false;
   }
 
   private static void tgx101LogRoute (AudioRecord recorder) {
@@ -434,11 +412,17 @@ public class Recorder implements Runnable {
     try {
       android.media.AudioManager am = (android.media.AudioManager) org.thunderdog.challegram.unsorted.AppContext.get().getSystemService(android.content.Context.AUDIO_SERVICE);
       if (am == null) return;
-      boolean inCall = org.thunderdog.challegram.service.TGCallService.currentInstance() != null || org.thunderdog.challegram.voip.Tgx101GroupCall.current() != null;
-      if ((tgx101ScoOpened || am.isBluetoothScoOn()) && !inCall) {
+      // (user 2026-11-25 «а если идёт звонок? звонок должен идти через машину»): only the channel opened here for «external»,
+      // and never while the phone is in any call — Telegram's, a phone call or another app's
+      int audioMode = am.getMode();
+      boolean inCall = audioMode == android.media.AudioManager.MODE_IN_CALL || audioMode == android.media.AudioManager.MODE_IN_COMMUNICATION || audioMode == android.media.AudioManager.MODE_RINGTONE
+        || org.thunderdog.challegram.service.TGCallService.currentInstance() != null || org.thunderdog.challegram.voip.Tgx101GroupCall.current() != null;
+      if (tgx101ScoOpened && !inCall) {
         am.setBluetoothScoOn(false);
         am.stopBluetoothSco();
-        org.thunderdog.challegram.Tgx101Diag.mark("voice mic: the call channel closed after the recording (" + (tgx101ScoOpened ? "ours" : "left open by the system") + ")");
+        org.thunderdog.challegram.Tgx101Diag.mark("voice mic: our call channel closed after the recording");
+      } else if (am.isBluetoothScoOn()) {
+        org.thunderdog.challegram.Tgx101Diag.mark("voice mic: a call channel is open after the recording, not ours or in a call (mode " + audioMode + ") — left as it is");
       }
       tgx101ScoOpened = false;
     } catch (Throwable ignored) { }
