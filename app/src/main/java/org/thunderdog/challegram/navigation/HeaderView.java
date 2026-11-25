@@ -1077,6 +1077,10 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     }
     if (onMoreItemClick == null) {
       onMoreItemClick = v -> {
+        ViewController<?> cur = stack.getCurrent();
+        if (cur instanceof org.thunderdog.challegram.ui.MessagesController && ((org.thunderdog.challegram.ui.MessagesController) cur).tgx101MenuPage(v.getId(), this)) {
+          return; // the menu turned a page
+        }
         ((PopupLayout) v.getParent().getParent()).hideWindow(true);
         ViewController<?> c = stack.getCurrent();
         if (c instanceof MoreDelegate) {
@@ -1136,6 +1140,65 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     }
   }
 
+  /** TGx101 (user 2026-11-26, mockup «Меню чата»): the open ⋮ menu turns a page — the rows slide out and the new ones in */
+  public void tgx101SwapMore (int[] ids, String[] titles, int[] icons, boolean forward) {
+    if (moreWrap == null || onMoreItemClick == null) return;
+    final MenuMoreWrap wrap = moreWrap;
+    final float shift = Screen.dp(18f) * (forward ? 1 : -1) * (Lang.rtl() ? -1 : 1);
+    final float scale = org.thunderdog.challegram.U.getAnimationScale(getContext()) > 0f ? org.thunderdog.challegram.U.getAnimationScale(getContext()) : 1f;
+    for (int k = 0; k < wrap.getChildCount(); k++) {
+      View child = wrap.getChildAt(k);
+      child.animate().cancel();
+      child.animate().alpha(0f).translationX(-shift).setDuration((long) (110 / scale)).start();
+    }
+    wrap.postDelayed(() -> {
+      ThemeListenerList themeListenerList = navigation != null ? navigation.getThemeListeners() : null;
+      tgx101FillMore(ids, titles, icons, onMoreItemClick, themeListenerList);
+      for (int k = 0; k < wrap.getChildCount(); k++) {
+        View child = wrap.getChildAt(k);
+        child.animate().cancel();
+        child.setAlpha(0f);
+        child.setTranslationX(shift);
+        child.animate().alpha(1f).translationX(0f).setStartDelay(k * 12L).setDuration((long) (200 / scale)).setInterpolator(androidx.core.view.animation.PathInterpolatorCompat.create(.2f, 0f, 0f, 1f)).start();
+      }
+      wrap.requestLayout();
+    }, (long) (110 / scale));
+  }
+
+  private void tgx101FillMore (int[] ids, String[] titles, int[] icons, View.OnClickListener onItemClick, @Nullable ThemeListenerList themeListeners) {
+    int size = ids.length;
+    int childCount = moreWrap.getChildCount();
+    for (int i = 0; i < size; i++) {
+      if (i < childCount) {
+        moreWrap.updateItem(i, ids[i], titles[i], icons != null ? icons[i] : 0, onItemClick, themeListeners);
+      } else {
+        moreWrap.addItem(ids[i], titles[i], icons != null ? icons[i] : 0, null, onItemClick);
+      }
+    }
+    for (int j = moreWrap.getChildCount() - 1; j >= size; j--) moreWrap.removeViewAt(j);
+    tgx101TintMore(ids, icons);
+  }
+
+  /** leaving and switching off — red, with a red icon; everything else in the usual colour */
+  private void tgx101TintMore (int[] ids, int[] icons) {
+    for (int k = 0; k < moreWrap.getChildCount() && k < ids.length; k++) {
+      View child = moreWrap.getChildAt(k);
+      if (!(child instanceof TextView)) continue;
+      int id = ids[k];
+      boolean danger = id == R.id.btn_removeChatFromList || id == R.id.btn_removeChatFromListAndStop || id == R.id.btn_removeChatFromListOrClearHistory
+        || id == R.id.btn_tgx101NotifOff || id == R.id.btn_deleteThread;
+      TextView item = (TextView) child;
+      item.setAlpha(1f);
+      item.setTranslationX(0f);
+      if (!danger || icons == null || icons[k] == 0) continue;
+      android.graphics.drawable.Drawable drawable = org.thunderdog.challegram.tool.Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(icons[k])).mutate();
+      drawable.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconNegative)));
+      item.setTextColor(Theme.getColor(ColorId.textNegative));
+      if (Lang.rtl()) item.setCompoundDrawablesWithIntrinsicBounds(null, null, drawable, null);
+      else item.setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null);
+    }
+  }
+
   private void showMore (int[] ids, String[] titles, int[] icons, View.OnClickListener onItemClick, boolean isLayered, @Nullable ThemeListenerList themeListeners) {
     int size = ids == null ? titles.length : ids.length;
     int i, j;
@@ -1158,6 +1221,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     for (int k = 0; k < moreWrap.getChildCount(); k++) { // a red «Delete» from the last menu doesn't stay red
       if (moreWrap.getChildAt(k) instanceof TextView) ((TextView) moreWrap.getChildAt(k)).setTextColor(Theme.textAccentColor());
     }
+    if (ids != null) tgx101TintMore(ids, icons);
     PopupLayout popupLayout = new PopupLayout(getContext());
     popupLayout.init(true);
     if (!isLayered) {

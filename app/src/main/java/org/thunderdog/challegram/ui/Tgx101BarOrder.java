@@ -242,7 +242,7 @@ public final class Tgx101BarOrder {
     if (id == R.id.btn_tgx101SavedByChats) return CHAT_SAVED_BY_CHATS;
     if (id == R.id.btn_tgx101ChatBackground) return CHAT_BACKGROUND;
     if (id == R.id.btn_mute) return CHAT_MUTE;
-    if (id == R.id.btn_tgx101ChatNotifications) return CHAT_NOTIFICATIONS;
+    if (id == R.id.btn_tgx101ChatNotifications || id == R.id.btn_tgx101NotifMenu) return CHAT_NOTIFICATIONS;
     if (id == R.id.btn_tgx101ChatMedia) return CHAT_MEDIA;
     if (id == R.id.btn_translateWholeChat) return CHAT_TRANSLATE;
     if (id == R.id.btn_showPinnedMessage) return CHAT_PINNED;

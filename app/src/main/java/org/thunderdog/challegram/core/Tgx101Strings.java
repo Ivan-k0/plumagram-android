@@ -1624,6 +1624,9 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101RearRounds, "Кружки — начинать с основной камеры");
     RU.put(R.string.Tgx101HidePhone, "Скрыть мой номер в боковом меню");
     RU.put(R.string.Tgx101ShowPeerIds, "Показывать ID в профилях");
+    RU.put(R.string.Tgx101MuteFor, "Выключить на время…");
+    RU.put(R.string.Tgx101NotifCustomize, "Настроить");
+    RU.put(R.string.Tgx101NotifOff, "Выключить уведомления");
     RU.put(R.string.Tgx101ContactMessage, "Написать");
     RU.put(R.string.Tgx101ContactVoiceCall, "Аудиозвонок");
     RU.put(R.string.Tgx101ContactVideoCall, "Видеозвонок");

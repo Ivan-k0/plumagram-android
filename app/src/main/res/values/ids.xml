@@ -1666,6 +1666,10 @@
   <item name="btn_tgx101RearRounds" type="id"/>
   <item name="btn_tgx101HidePhone" type="id"/>
   <item name="btn_tgx101ShowPeerIds" type="id"/>
+  <item name="btn_tgx101NotifMenu" type="id"/>
+  <item name="btn_tgx101NotifBack" type="id"/>
+  <item name="btn_tgx101NotifOff" type="id"/>
+  <item name="btn_tgx101NotifOn" type="id"/>
   <item name="btn_tgx101MenuProfileText" type="id"/>
   <item name="btn_tgx101MenuProfileMedia" type="id"/>
   <item name="btn_tgx101MenuProfileVoice" type="id"/>

@@ -3538,6 +3538,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (chat != null) {
         tdlib.ui().toggleMute(this, chat.id, false, null);
       }
+    } else if (id == R.id.btn_tgx101NotifOff) {
+      if (chat != null) tdlib.setMuteFor(chat.id, TdlibUi.MUTE_FOREVER);
+    } else if (id == R.id.btn_tgx101NotifOn) {
+      if (chat != null) tdlib.setMuteFor(chat.id, 0);
     } else if (id == R.id.btn_tgx101ChatMedia) {
       if (chat != null) {
         org.thunderdog.challegram.data.Tgx101ChatMedia.openSheet(this, chat.id);
@@ -6233,10 +6237,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
 
     if ((!tdlib.isChannel(chat.id) || (status != null && !TD.isLeft(status))) && !tdlib.isSelfChat(chat.id)) {
-      ids.append(R.id.btn_mute);
-      strings.append(tdlib.chatNotificationsEnabled(chat.id) ? R.string.Mute : R.string.Unmute);
-      // TGx101 (user 2026-10-08 23:5x): this chat's own notification settings (sound, vibration, LED, priority) from ⋮
-      ids.append(R.id.btn_tgx101ChatNotifications);
+      // TGx101 (user 2026-11-26, mockup «Меню чата и Ночь» approved): one «Notifications ›» — mute, mute for a while and
+      // this chat's settings open as the menu's second page (were two rows: «Mute» and «Notifications»)
+      ids.append(R.id.btn_tgx101NotifMenu);
       strings.append(R.string.Notifications);
     }
 
@@ -6348,7 +6351,73 @@ public class MessagesController extends ViewController<MessagesController.Argume
     boolean tgx101HadMedia = ids.indexOf(R.id.btn_tgx101ChatMedia) != -1;
     Tgx101BarOrder.applyToChatMenu(ids, strings);
     org.thunderdog.challegram.Tgx101Diag.mark("chat menu: " + ids.size() + " items, channel " + tdlib.isChannel(chat.id) + ", media " + tgx101HadMedia + " → " + (ids.indexOf(R.id.btn_tgx101ChatMedia) != -1));
-    showMore(ids.get(), strings.get(), 0);
+    int notifAt = ids.indexOf(R.id.btn_tgx101NotifMenu);
+    if (notifAt > 0) { // «Notifications ›» first, as on the mockup (after Saved Messages' «as chats», which is first too)
+      int[] srcIds = ids.get().clone();
+      String[] srcStrings = strings.get();
+      ids.clear();
+      strings.clear();
+      int top = srcIds[0] == R.id.btn_tgx101SavedByChats ? 1 : 0;
+      for (int i = 0; i < top; i++) { ids.append(srcIds[i]); strings.append(srcStrings[i]); }
+      ids.append(srcIds[notifAt]); strings.append(srcStrings[notifAt]);
+      for (int i = top; i < srcIds.length; i++) if (i != notifAt) { ids.append(srcIds[i]); strings.append(srcStrings[i]); }
+    }
+    tgx101MenuIds = ids.get().clone();
+    tgx101MenuTitles = strings.get().clone();
+    tgx101MenuIcons = new int[tgx101MenuIds.length];
+    for (int i = 0; i < tgx101MenuIds.length; i++) tgx101MenuIcons[i] = tgx101ChatMenuIcon(tgx101MenuIds[i]);
+    showMore(tgx101MenuIds, tgx101MenuTitles, tgx101MenuIcons, 0);
+  }
+
+  // TGx101 (user 2026-11-26 «наше окно… простыня», mockup approved): the ⋮ menu with icons; «Notifications ›» as a page
+  private int[] tgx101MenuIds, tgx101MenuIcons;
+  private String[] tgx101MenuTitles;
+
+  private int tgx101ChatMenuIcon (int id) {
+    if (id == R.id.btn_tgx101NotifMenu) return tdlib.chatNotificationsEnabled(chat.id) ? R.drawable.baseline_notifications_24 : R.drawable.baseline_notifications_off_24;
+    if (id == R.id.btn_clearChatHistory) return R.drawable.baseline_delete_sweep_24;
+    if (id == R.id.btn_tgx101AutoDelete) return R.drawable.baseline_auto_delete_24;
+    if (id == R.id.btn_exportChat) return R.drawable.baseline_file_download_24;
+    if (id == R.id.btn_attachFromMenu) return R.drawable.deproko_baseline_attach_26;
+    if (id == R.id.btn_removeChatFromList || id == R.id.btn_removeChatFromListAndStop || id == R.id.btn_removeChatFromListOrClearHistory) return R.drawable.baseline_exit_to_app_24;
+    if (id == R.id.btn_returnToChat) return R.drawable.baseline_person_add_24;
+    if (id == R.id.btn_manageGroup) return R.drawable.baseline_settings_24;
+    if (id == R.id.btn_shareMyContact) return R.drawable.baseline_share_24;
+    if (id == R.id.btn_botHelp) return R.drawable.baseline_help_24;
+    if (id == R.id.btn_botSettings) return R.drawable.baseline_settings_24;
+    if (id == R.id.btn_savedMessagesTags) return R.drawable.baseline_bookmark_24;
+    if (id == R.id.menu_btn_tgx101SavedSettings) return R.drawable.baseline_settings_24;
+    if (id == R.id.btn_deleteThread) return R.drawable.baseline_delete_24;
+    if (id == R.id.btn_sendScreenshotNotification) return R.drawable.baseline_info_24;
+    return Tgx101BarOrder.chatIconOf(Tgx101BarOrder.chatKeyOf(id));
+  }
+
+  /** a tap in the ⋮ menu that changes its page instead of closing it; true — handled */
+  public boolean tgx101MenuPage (int id, org.thunderdog.challegram.navigation.HeaderView header) {
+    if (chat == null || tgx101MenuIds == null) return false;
+    if (id == R.id.btn_tgx101NotifMenu) {
+      boolean enabled = tdlib.chatNotificationsEnabled(chat.id);
+      IntList ids = new IntList(5);
+      StringList strings = new StringList(5);
+      IntList icons = new IntList(5);
+      ids.append(R.id.btn_tgx101NotifBack); strings.append(R.string.Tgx101MenuBack); icons.append(R.drawable.baseline_arrow_back_24);
+      if (enabled) {
+        ids.append(R.id.btn_mute); strings.append(R.string.Tgx101MuteFor); icons.append(R.drawable.baseline_notifications_paused_24);
+      }
+      ids.append(R.id.btn_tgx101ChatNotifications); strings.append(R.string.Tgx101NotifCustomize); icons.append(R.drawable.baseline_tune_24);
+      if (enabled) {
+        ids.append(R.id.btn_tgx101NotifOff); strings.append(R.string.Tgx101NotifOff); icons.append(R.drawable.baseline_notifications_off_24);
+      } else {
+        ids.append(R.id.btn_tgx101NotifOn); strings.append(R.string.EnableNotifications); icons.append(R.drawable.baseline_notifications_active_24);
+      }
+      header.tgx101SwapMore(ids.get(), strings.get(), icons.get(), true);
+      return true;
+    }
+    if (id == R.id.btn_tgx101NotifBack) {
+      header.tgx101SwapMore(tgx101MenuIds, tgx101MenuTitles, tgx101MenuIcons, false);
+      return true;
+    }
+    return false;
   }
 
   // TGx101: the ⋮ «Proxy» — switch it on/off at once, or open the list of proxies

@@ -6759,6 +6759,9 @@
   <string name="Tgx101RearRounds">Video messages start with the main camera</string>
   <string name="Tgx101HidePhone">Hide my phone number in the side menu</string>
   <string name="Tgx101ShowPeerIds">Show ID in profiles</string>
+  <string name="Tgx101MuteFor">Mute for…</string>
+  <string name="Tgx101NotifCustomize">Customize</string>
+  <string name="Tgx101NotifOff">Turn off notifications</string>
   <string name="Tgx101ContactMessage">Message</string>
   <string name="Tgx101ContactVoiceCall">Audio call</string>
   <string name="Tgx101ContactVideoCall">Video call</string>

@@ -66,7 +66,7 @@ import me.vkryl.core.StringUtils;
 import tgx.td.Td;
 
 public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
-  public static final int ITEM_HEIGHT = 48;
+  public static final int ITEM_HEIGHT = 44; // TGx101 (user 2026-11-26 «простыня»): 48 → 44, the text 16 → 15
   public static final int PADDING = 8;
 
   public static final float START_SCALE = .56f;
@@ -216,7 +216,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     menuItem.setId(id);
     menuItem.setOnClickListener(listener);
     menuItem.setText(title);
-    org.thunderdog.challegram.unsorted.Settings.tgx101StyleRow(menuItem, 16f);
+    org.thunderdog.challegram.unsorted.Settings.tgx101StyleRow(menuItem, 15f);
     Drawable drawable = icon != 0 ? Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(icon)) : null;
     menuItem.setGravity(Gravity.CENTER_VERTICAL | Lang.gravity());
     menuItem.setVisibility(View.VISIBLE);
@@ -409,7 +409,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     TextView menuItem = new NoScrollTextView(getContext());
     menuItem.setId(id);
     menuItem.setTypeface(Fonts.getRobotoRegular());
-    menuItem.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+    menuItem.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
     if (forcedTheme != null) {
       menuItem.setTextColor(forcedTheme.getColor(ColorId.text));
     } else {
@@ -446,7 +446,7 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
       }
     }
     // TGx101 (user 2026-11-24 screenshot: «Удалить» stayed small at a big text): rows grow with the text
-    org.thunderdog.challegram.unsorted.Settings.tgx101StyleRow(menuItem, 16f);
+    org.thunderdog.challegram.unsorted.Settings.tgx101StyleRow(menuItem, 15f);
     menuItem.getLayoutParams().height = tgx101RowHeight();
     Views.setClickable(menuItem);
     RippleSupport.setTransparentSelector(menuItem);
