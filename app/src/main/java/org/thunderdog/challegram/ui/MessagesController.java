@@ -428,8 +428,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
         items.add(0, new HapticMenuHelper.MenuItem(R.id.btn_tgx101SendUntranslate, Lang.getString(R.string.Tgx101SendUntranslate), R.drawable.baseline_undo_24));
       } else {
         String lang = tgx101SendTranslateLanguage();
-        HapticMenuHelper.MenuItem tr = new HapticMenuHelper.MenuItem(R.id.btn_tgx101SendTranslate, Lang.getString(R.string.Tgx101SendTranslate),
-          Lang.getString(R.string.Tgx101SendTranslateTo, Lang.getLanguageName(lang, lang)), R.drawable.baseline_translate_24);
+        // the hold menu shows no second line: the language goes into the title (user 2026-11-25 «нет языка»)
+        HapticMenuHelper.MenuItem tr = new HapticMenuHelper.MenuItem(R.id.btn_tgx101SendTranslate,
+          Lang.getString(R.string.Tgx101SendTranslate) + " " + Lang.getString(R.string.Tgx101SendTranslateTo, Lang.getLanguageName(lang, lang)), R.drawable.baseline_translate_24);
         tr.tgx101OnLongClick = v -> {
           UI.post(this::tgx101PickSendTranslateLanguage, 150);
           return true;
