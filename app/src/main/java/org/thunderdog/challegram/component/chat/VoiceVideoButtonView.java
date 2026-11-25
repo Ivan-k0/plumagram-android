@@ -272,21 +272,25 @@ public class VoiceVideoButtonView extends View implements FactorAnimator.Target,
     }
   }
 
+  private Tgx101RoundCameraPills tgx101Pills;
+
   private void tgx101AskCamera () {
-    org.thunderdog.challegram.navigation.ViewController<?> c = UI.getCurrentStackItem(getContext());
-    org.thunderdog.challegram.util.HapticMenuHelper menu = new org.thunderdog.challegram.util.HapticMenuHelper(view -> {
-      java.util.List<org.thunderdog.challegram.util.HapticMenuHelper.MenuItem> items = new java.util.ArrayList<>();
-      items.add(new org.thunderdog.challegram.util.HapticMenuHelper.MenuItem(org.thunderdog.challegram.R.id.btn_tgx101RoundFront, org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101RoundFront), org.thunderdog.challegram.R.drawable.baseline_camera_front_24));
-      items.add(new org.thunderdog.challegram.util.HapticMenuHelper.MenuItem(org.thunderdog.challegram.R.id.btn_tgx101RoundRear, org.thunderdog.challegram.core.Lang.getString(org.thunderdog.challegram.R.string.Tgx101RoundRear), org.thunderdog.challegram.R.drawable.baseline_camera_rear_24));
-      return items;
-    }, (view, parentView, item) -> {
-      boolean front = view.getId() == org.thunderdog.challegram.R.id.btn_tgx101RoundFront;
-      org.thunderdog.challegram.Tgx101Diag.mark("round: camera picked " + (front ? "front" : "rear"));
-      UI.getContext(getContext()).getRecordAudioVideoController().tgx101StartRoundWithCamera(this, front);
-      return true;
-    }, c != null ? c.getThemeListeners() : null, null);
-    org.thunderdog.challegram.tool.Tgx101Haptics.play(org.thunderdog.challegram.tool.Tgx101Haptics.CLICK);
-    menu.openMenu(this);
+    // TGx101 (user 2026-11-25, variant А): pills above the button — the finger slides to one and lets go
+    if (tgx101Pills != null && !tgx101Pills.isFinished()) tgx101Pills.dismiss();
+    tgx101Pills = Tgx101RoundCameraPills.show(this, new Tgx101RoundCameraPills.Callback() {
+      @Override
+      public void onPicked (boolean front) {
+        tgx101Pills = null;
+        org.thunderdog.challegram.Tgx101Diag.mark("round: camera picked " + (front ? "front" : "rear"));
+        UI.getContext(getContext()).getRecordAudioVideoController().tgx101StartRoundWithCamera(VoiceVideoButtonView.this, front);
+      }
+
+      @Override
+      public void onDismissed () {
+        tgx101Pills = null;
+        org.thunderdog.challegram.Tgx101Diag.mark("round: camera pills closed");
+      }
+    });
   }
 
   private void performTap () {
@@ -305,6 +309,10 @@ public class VoiceVideoButtonView extends View implements FactorAnimator.Target,
   public boolean onTouchEvent (MotionEvent e) {
     if (!hasTouchControls) {
       return false;// e.getAction() != MotionEvent.ACTION_DOWN || (getAlpha() > 0f && getVisibility() == View.VISIBLE);
+    }
+
+    if (tgx101Pills != null && e.getAction() != MotionEvent.ACTION_DOWN && tgx101Pills.onAnchorTouch(e)) {
+      return true;
     }
 
     switch (e.getAction()) {
