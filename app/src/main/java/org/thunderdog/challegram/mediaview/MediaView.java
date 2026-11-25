@@ -1050,7 +1050,11 @@ public class MediaView extends FrameLayoutFix {
           boolean horizontal = Math.abs(dx) > Math.abs(dy), left = gDownX < width / 3f, right = gDownX > width * 2f / 3f;
           // seeking only from the middle third (user 2026-10-22 «область свайпа для перемотки сделать меньше», it was the
           // middle 48 %): a sideways swipe from either outer third pages the media — the same thirds as the double tap
-          boolean fromEdge = gDownX < width / 3f || gDownX > width * 2f / 3f;
+          // (user 2026-11-25, mockup «Зоны перемотки» А, «только для варианта с жестом перемотки»): on its side the seek
+          // starts from the middle half — the thumb began a little off the middle third and the video paged instead;
+          // upright, and the double tap, keep the thirds
+          float edge = getMeasuredWidth() > getMeasuredHeight() ? .25f : 1f / 3f;
+          boolean fromEdge = gDownX < width * edge || gDownX > width * (1f - edge);
           boolean pass;
           if (horizontal) {
             pass = fromEdge || !gestureOn(org.thunderdog.challegram.unsorted.Settings.GESTURE_SEEK);
