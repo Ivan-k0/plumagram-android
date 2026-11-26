@@ -35,7 +35,7 @@ import org.thunderdog.challegram.tool.UI;
  * Assumes portrait recording; does nothing when the display is rotated.
  */
 public class RoundStabilizer implements SensorEventListener {
-  private static final float ZOOM = 1.1f;
+  private static final float ZOOM = 1.15f; // TGx101 (user 2026-11-26 «да, увеличь»): sideways the correction hit the margin on 48 % of frames
   private static final float MAX_SHIFT = ZOOM - 1f;
   // NDC shift per radian: 1 / tan(half of the square's field of view, ~50 degrees).
   // 2.0 → 3.2 (2026-11-26 fit: the correction was ~1.6× too weak; 4:3 gets 2.4)
