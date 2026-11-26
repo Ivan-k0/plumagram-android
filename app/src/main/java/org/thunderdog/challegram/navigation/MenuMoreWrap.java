@@ -221,18 +221,9 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     menuItem.setGravity(Gravity.CENTER_VERTICAL | Lang.gravity());
     menuItem.setVisibility(View.VISIBLE);
     if (drawable != null) {
-      drawable.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.icon)));
-      if (themeProvider != null) {
-        themeProvider.addThemeFilterListener(drawable, ColorId.icon);
-      }
-      if (Drawables.needMirror(icon)) {
-        // TODO
-      }
-      if (Lang.rtl()) {
-        menuItem.setCompoundDrawablesWithIntrinsicBounds(null, null, drawable, null);
-      } else {
-        menuItem.setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null);
-      }
+      drawable = drawable.mutate();
+      drawable.setColorFilter(Paints.getColorFilter(tgx101IconColor(null)));
+      tgx101SetIcon(menuItem, drawable);
     } else {
       menuItem.setCompoundDrawablesWithIntrinsicBounds(null, null, null, null);
     }
@@ -429,22 +420,9 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     menuItem.setCompoundDrawablePadding(Screen.dp(18f));
     icon = iconRes != 0 ? Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(iconRes)) : icon;
     if (icon != null) {
-      if (forcedTheme != null) {
-        icon.setColorFilter(Paints.getColorFilter(forcedTheme.getColor(ColorId.icon)));
-      } else {
-        icon.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.icon)));
-        if (themeListeners != null) {
-          themeListeners.addThemeFilterListener(icon, ColorId.icon);
-        }
-      }
-      if (Drawables.needMirror(iconRes)) {
-        // TODO
-      }
-      if (Lang.rtl()) {
-        menuItem.setCompoundDrawablesWithIntrinsicBounds(null, null, icon, null);
-      } else {
-        menuItem.setCompoundDrawablesWithIntrinsicBounds(icon, null, null, null);
-      }
+      icon = icon.mutate();
+      icon.setColorFilter(Paints.getColorFilter(tgx101IconColor(forcedTheme)));
+      tgx101SetIcon(menuItem, icon);
     }
     // TGx101 (user 2026-11-24 screenshot: «Удалить» stayed small at a big text): rows grow with the text
     org.thunderdog.challegram.unsorted.Settings.tgx101StyleRow(menuItem, 15f);
@@ -455,6 +433,27 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     menuItem.measure(MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED), MeasureSpec.makeMeasureSpec(0, MeasureSpec.UNSPECIFIED));
     menuItem.setTag(menuItem.getMeasuredWidth());
     return menuItem;
+  }
+
+  // TGx101 (user 2026-11-27 «значки мелковаты… вот размер у эталона»): the menu's icons 30 dp (they were the outlined
+  // 24 dp, thin and grey) and lighter — between the icon and the text colour
+  public static int tgx101IconSize () {
+    return Screen.dp(29f);
+  }
+
+  public static int tgx101IconColor (@Nullable ThemeDelegate theme) {
+    int icon = theme != null ? theme.getColor(ColorId.icon) : Theme.getColor(ColorId.icon);
+    int text = theme != null ? theme.getColor(ColorId.text) : Theme.getColor(ColorId.text);
+    return ColorUtils.fromToArgb(icon, text, .5f);
+  }
+
+  /** the icon on the row's start side at the menu's size; keeps a drawable on the end side as it is */
+  public static void tgx101SetIcon (TextView row, Drawable icon) {
+    int size = tgx101IconSize();
+    icon.setBounds(0, 0, size, size);
+    Drawable[] d = row.getCompoundDrawables();
+    if (Lang.rtl()) row.setCompoundDrawables(d[0] != null && d[0] != icon ? d[0] : null, null, icon, null);
+    else row.setCompoundDrawables(icon, null, null, null);
   }
 
   private static int tgx101RowHeight () {

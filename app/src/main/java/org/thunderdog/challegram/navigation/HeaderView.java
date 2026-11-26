@@ -1248,8 +1248,9 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
         android.graphics.drawable.Drawable[] d = item.getCompoundDrawables();
         android.graphics.drawable.Drawable arrow = org.thunderdog.challegram.tool.Drawables.get(getResources(), R.drawable.round_keyboard_arrow_right_24).mutate();
         arrow.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconLight)));
-        if (Lang.rtl()) item.setCompoundDrawablesWithIntrinsicBounds(arrow, null, d[2], null);
-        else item.setCompoundDrawablesWithIntrinsicBounds(d[0], null, arrow, null);
+        arrow.setBounds(0, 0, arrow.getIntrinsicWidth(), arrow.getIntrinsicHeight());
+        if (Lang.rtl()) item.setCompoundDrawables(arrow, null, d[2], null);
+        else item.setCompoundDrawables(d[0], null, arrow, null);
         if (item.getTag() instanceof Integer && !Boolean.TRUE.equals(item.getTag(R.id.btn_tgx101NotifMenu))) {
           item.setTag((Integer) item.getTag() + Screen.dp(32f)); // room for the arrow in the card's width
           item.setTag(R.id.btn_tgx101NotifMenu, Boolean.TRUE);
@@ -1260,8 +1261,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       android.graphics.drawable.Drawable drawable = org.thunderdog.challegram.tool.Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(icons[k])).mutate();
       drawable.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconNegative)));
       item.setTextColor(Theme.getColor(ColorId.textNegative));
-      if (Lang.rtl()) item.setCompoundDrawablesWithIntrinsicBounds(null, null, drawable, null);
-      else item.setCompoundDrawablesWithIntrinsicBounds(drawable, null, null, null);
+      MenuMoreWrap.tgx101SetIcon(item, drawable);
     }
   }
 
