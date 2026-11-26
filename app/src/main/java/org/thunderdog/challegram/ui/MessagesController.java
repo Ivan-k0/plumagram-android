@@ -6406,7 +6406,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (id == R.id.btn_savedMessagesTags) return R.drawable.baseline_bookmark_24;
     if (id == R.id.menu_btn_tgx101SavedSettings) return R.drawable.baseline_settings_24;
     if (id == R.id.btn_deleteThread) return R.drawable.baseline_delete_24;
-    if (id == R.id.btn_tgx101DeleteMine) return R.drawable.baseline_delete_sweep_24;
+    if (id == R.id.btn_tgx101DeleteMine) return R.drawable.baseline_backspace_24; // «стереть своё» — not the clear-history broom (user 2026-11-27 «иконку придумай другую»)
     if (id == R.id.btn_sendScreenshotNotification) return R.drawable.baseline_info_24;
     return Tgx101BarOrder.chatIconOf(Tgx101BarOrder.chatKeyOf(id));
   }
