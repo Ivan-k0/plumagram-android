@@ -3510,6 +3510,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       if (chat.videoChat != null && chat.videoChat.groupCallId != 0) {
         Tgx101GroupCallController.join(this, chat.id, chat.videoChat.groupCallId, null);
       }
+    } else if (id == R.id.btn_tgx101DeleteMine) {
+      if (chat != null) tgx101DeleteMine(chat.id);
     } else if (id == R.id.btn_tgx101AutoDelete) {
       tgx101ShowAutoDelete();
     } else if (id == R.id.btn_tgx101ShowTopics) {
@@ -6335,6 +6337,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
       strings.append(R.string.Tgx101VoiceChatStart);
     }
 
+    // TGx101 (task from 4PDA 2026-11-26 «как массово удалить все свои отправленные сообщения в заданном канале»): every
+    // message of mine in this chat (its comments / a group), for everyone
+    if (!areScheduledOnly() && messageThread == null && !tdlib.isSelfChat(chat.id) && !isSecretChat()) {
+      ids.append(R.id.btn_tgx101DeleteMine);
+      strings.append(R.string.Tgx101DeleteMine);
+    }
+
     // TGx101 (user 2026-10-15 «дать возможность включать и выключать автоудаление»): right in the chat menu
     if (!areScheduledOnly() && messageThread == null && !tdlib.isSelfChat(chat.id) && tdlib.canChangeMessageAutoDeleteTime(chat.id)) {
       ids.append(R.id.btn_tgx101AutoDelete);
@@ -6397,6 +6406,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (id == R.id.btn_savedMessagesTags) return R.drawable.baseline_bookmark_24;
     if (id == R.id.menu_btn_tgx101SavedSettings) return R.drawable.baseline_settings_24;
     if (id == R.id.btn_deleteThread) return R.drawable.baseline_delete_24;
+    if (id == R.id.btn_tgx101DeleteMine) return R.drawable.baseline_delete_sweep_24;
     if (id == R.id.btn_sendScreenshotNotification) return R.drawable.baseline_info_24;
     return Tgx101BarOrder.chatIconOf(Tgx101BarOrder.chatKeyOf(id));
   }
@@ -6434,6 +6444,64 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (sendButton == null || sendButton.getVisibility() != View.VISIBLE || !sendButton.isEnabled()) return false;
     org.thunderdog.challegram.Tgx101Diag.mark("input: Ctrl+Enter → send");
     return sendButton.performClick();
+  }
+
+  /** Every message of mine in the chat, deleted for everyone: counted first, asked, then removed a hundred at a time */
+  private void tgx101DeleteMine (long chatId) {
+    TdApi.MessageSender me = new TdApi.MessageSenderUser(tdlib.myUserId());
+    tdlib.client().send(new TdApi.SearchChatMessages(chatId, null, "", me, 0, 0, 1, null), result -> runOnUiThreadOptional(() -> {
+      if (!(result instanceof TdApi.FoundChatMessages) || ((TdApi.FoundChatMessages) result).totalCount <= 0) {
+        UI.showToast(R.string.Tgx101DeleteMineNone, android.widget.Toast.LENGTH_SHORT);
+        return;
+      }
+      int total = ((TdApi.FoundChatMessages) result).totalCount;
+      showOptions(Lang.getString(R.string.Tgx101DeleteMineConfirm, Lang.plural(R.string.xMessages, total), tdlib.chatTitle(chatId)),
+        new int[] {R.id.btn_delete, R.id.btn_cancel},
+        new String[] {Lang.getString(R.string.Tgx101DeleteMineGo), Lang.getString(R.string.Cancel)},
+        new int[] {OptionColor.RED, OptionColor.NORMAL},
+        new int[] {R.drawable.baseline_delete_sweep_24, R.drawable.baseline_cancel_24},
+        (v, optionId) -> {
+          if (optionId == R.id.btn_delete) {
+            org.thunderdog.challegram.Tgx101Diag.mark("delete mine: " + total + " in " + chatId);
+            UI.showToast(Lang.getString(R.string.Tgx101DeleteMineStarted, total), android.widget.Toast.LENGTH_SHORT);
+            tgx101DeleteMineStep(chatId, me, 0, 0, total);
+          }
+          return true;
+        });
+    }));
+  }
+
+  private void tgx101DeleteMineStep (long chatId, TdApi.MessageSender me, long fromMessageId, int done, int total) {
+    tdlib.client().send(new TdApi.SearchChatMessages(chatId, null, "", me, fromMessageId, 0, 100, null), result -> {
+      if (!(result instanceof TdApi.FoundChatMessages)) {
+        UI.post(() -> UI.showToast(Lang.getString(R.string.Tgx101DeleteMineDone, done), android.widget.Toast.LENGTH_LONG));
+        return;
+      }
+      TdApi.FoundChatMessages found = (TdApi.FoundChatMessages) result;
+      if (found.messages.length == 0) {
+        org.thunderdog.challegram.Tgx101Diag.mark("delete mine: done " + done);
+        UI.post(() -> UI.showToast(Lang.getString(R.string.Tgx101DeleteMineDone, done), android.widget.Toast.LENGTH_LONG));
+        return;
+      }
+      long[] ids = new long[found.messages.length];
+      for (int i = 0; i < ids.length; i++) ids[i] = found.messages[i].id;
+      final long next = found.nextFromMessageId != 0 ? found.nextFromMessageId : ids[ids.length - 1];
+      tdlib.client().send(new TdApi.DeleteMessages(chatId, ids, true), deleted -> {
+        if (deleted instanceof TdApi.Error) {
+          // can't for everyone (a deleted account, old messages…): at least here
+          tdlib.client().send(new TdApi.DeleteMessages(chatId, ids, false), tdlib.silentHandler());
+        }
+        int nowDone = done + ids.length;
+        if (nowDone % 500 < ids.length && nowDone < total) {
+          UI.post(() -> UI.showToast(Lang.getString(R.string.Tgx101DeleteMineProgress, nowDone, total), android.widget.Toast.LENGTH_SHORT));
+        }
+        if (found.nextFromMessageId == 0) {
+          UI.post(() -> UI.showToast(Lang.getString(R.string.Tgx101DeleteMineDone, nowDone), android.widget.Toast.LENGTH_LONG));
+          return;
+        }
+        tgx101DeleteMineStep(chatId, me, next, nowDone, total);
+      });
+    });
   }
 
   /** a tap in the ⋮ menu that changes its page instead of closing it; true — handled */

@@ -202,7 +202,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       AnimatorUtils.DECELERATE_INTERPOLATOR,
       MessagesRecyclerView.ITEM_ANIMATOR_DURATION + 50L);
     this.reactionsCounterDrawable = new ReactionsCounterDrawable(reactionsAnimator);
-    this.counter = new Counter.Builder().callback(this).build();
+    this.counter = new Counter.Builder().backgroundPadding(6.5f).callback(this).build(); // TGx101 (user 2026-11-26 «смотри цифры, в эталоне правильнее»): roomier pill
     this.mentionCounter = new Counter.Builder()
       .drawable(R.drawable.baseline_at_16, 16f, 0f, Gravity.CENTER)
       .callback(this)
@@ -244,7 +244,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       AnimatorUtils.DECELERATE_INTERPOLATOR,
       MessagesRecyclerView.ITEM_ANIMATOR_DURATION + 50L);
     this.reactionsCounterDrawable = new ReactionsCounterDrawable(reactionsAnimator);
-    this.counter = new Counter.Builder().callback(this).build();
+    this.counter = new Counter.Builder().backgroundPadding(6.5f).callback(this).build(); // TGx101 (user 2026-11-26 «смотри цифры, в эталоне правильнее»): roomier pill
     this.mentionCounter = new Counter.Builder()
       .drawable(R.drawable.baseline_at_16, 16f, 0f, Gravity.CENTER)
       .callback(this)
@@ -1012,7 +1012,9 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
 
     reactionsCounter.setCount(hasReactions ? Tdlib.CHAT_MARKED_AS_UNREAD : 0, !notificationsEnabled(), allowAnimation && needAnimateChanges());
     mentionCounter.setCount(hasMentions ? Tdlib.CHAT_MARKED_AS_UNREAD : 0, false, allowAnimation && needAnimateChanges());
-    counter.setCount(hasMentions && unreadCount == 1 ? 0 : unreadCount, !notificationsEnabled(), allowAnimation && needAnimateChanges());
+    int tgx101Count = hasMentions && unreadCount == 1 ? 0 : unreadCount;
+    // … and the number whole, «1634», not «1 634»
+    counter.setCount(tgx101Count, !notificationsEnabled(), tgx101Count > 0 ? String.valueOf(tgx101Count) : null, allowAnimation && needAnimateChanges());
   }
 
   public boolean needAnimateChanges () {

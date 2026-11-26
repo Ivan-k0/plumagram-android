@@ -1632,6 +1632,13 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ThemeNightViolet, "Фиолетовая ночь");
     RU.put(R.string.Tgx101ChatsFlat, "Список чатов без полосок, закреп — значком справа");
     RU.put(R.string.Tgx101ChatsTags, "Плашки папок у чатов");
+    RU.put(R.string.Tgx101DeleteMine, "Удалить мои сообщения");
+    RU.put(R.string.Tgx101DeleteMineConfirm, "Удалить все ваши сообщения (%1$s) в «%2$s» у всех? Это нельзя отменить.");
+    RU.put(R.string.Tgx101DeleteMineGo, "Удалить мои сообщения");
+    RU.put(R.string.Tgx101DeleteMineNone, "Здесь нет ваших сообщений");
+    RU.put(R.string.Tgx101DeleteMineStarted, "Удаляю сообщения: %1$d…");
+    RU.put(R.string.Tgx101DeleteMineProgress, "Удалено %1$d из %2$d");
+    RU.put(R.string.Tgx101DeleteMineDone, "Готово: удалено сообщений — %1$d");
     RU.put(R.string.Tgx101MessageOnline, "Точка «в сети» у аватарок в чатах");
     RU.put(R.string.Tgx101NotifSilent, "Без звука");
     RU.put(R.string.Tgx101NotifSound, "Со звуком");
