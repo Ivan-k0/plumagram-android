@@ -303,10 +303,10 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
     } else {
       invalidate();
     }
-  }, TGX101_FOLD_CURVE, TGX101_FOLD_MS); // TGx101 (user 2026-11-27 «сделай анимацию плавнее»): 200 → 340 ms, a soft curve
+  }, TGX101_FOLD_CURVE, TGX101_FOLD_MS); // TGx101 (user 2026-11-27 «сделай анимацию плавнее»): 200 → 500 ms, a soft curve (reference measured 487–520 ms)
 
   // a voice's transcription opening / folding: the height and the text together, slower, eased out
-  private static final long TGX101_FOLD_MS = 340L;
+  private static final long TGX101_FOLD_MS = 500L;
   private static final android.view.animation.Interpolator TGX101_FOLD_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.25f, .1f, .1f, 1f);
 
   @NonNull
