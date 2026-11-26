@@ -421,6 +421,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101RoundRememberCamera(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HidePhone) {
           view.getToggler().setRadioEnabled(Settings.instance().needHidePhoneNumber(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101MessageOnline) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101MessageOnlineDot(), isUpdate);
         } else if (itemId == R.id.btn_tgx101ShowPeerIds) {
           view.getToggler().setRadioEnabled(Settings.instance().showPeerIds(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HideChannelReactions) {
@@ -750,6 +752,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101HidePhone, 0, R.string.Tgx101HidePhone),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101ShowPeerIds, 0, R.string.Tgx101ShowPeerIds),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101MessageOnline, 0, R.string.Tgx101MessageOnline),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101BottomGap, 0, R.string.Tgx101BottomGap),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1454,7 +1458,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       || id == R.id.btn_tgx101AiOpen || id == R.id.btn_tgx101BirdOpen) return TGX101_SECTION_FEATURES;
     if (id == R.id.btn_pullToSearch) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
-    if (id == R.id.btn_tgx101ChatMenuOrder || id == R.id.btn_tgx101ShowPeerIds) return 2;
+    if (id == R.id.btn_tgx101ChatMenuOrder || id == R.id.btn_tgx101ShowPeerIds || id == R.id.btn_tgx101MessageOnline) return 2;
     if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuBlur || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuBlocks || id == R.id.btn_tgx101MessageMenuBlockIcons || id == R.id.btn_tgx101MenuOutlinedIcons || id == R.id.btn_tgx101EmojiEffects || id == R.id.btn_tgx101MessageMenuOrder
       || id == R.id.btn_tgx101TapMode || id == R.id.btn_tgx101Gestures) return 2;
     // quick replies to a call by message — with the calls (user 2026-10-22 «быстрые ответы на звонок перенести в «Звонки»»)
@@ -1861,6 +1865,8 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101RoundAskCamera(toggleResult);
     } else if (id == R.id.btn_tgx101HidePhone) {
       Settings.instance().setHidePhoneNumber(toggleResult);
+    } else if (id == R.id.btn_tgx101MessageOnline) {
+      Settings.instance().setTgx101MessageOnlineDot(toggleResult);
     } else if (id == R.id.btn_tgx101ShowPeerIds) {
       // TGx101 (user 2026-11-25): the ID in profiles out of the testers' menu — the same switch
       Settings.instance().setExperimentEnabled(Settings.EXPERIMENT_FLAG_SHOW_PEER_IDS, toggleResult);

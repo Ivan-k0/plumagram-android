@@ -5390,6 +5390,15 @@ public class Settings {
   }
 
   // TGx101 (user 2026-10-20 «давать на выбор при каждом кружке — при нажатии на запись выпадает меню, с какой камеры»)
+  // TGx101 (user 2026-11-26 «индикатор должен отключаться»): the online dot on avatars by the messages
+  public boolean tgx101MessageOnlineDot () {
+    return pmc.getBoolean("tgx101_msg_online", true);
+  }
+
+  public void setTgx101MessageOnlineDot (boolean on) {
+    pmc.putBoolean("tgx101_msg_online", on);
+  }
+
   public boolean tgx101RoundAskCamera () {
     return pmc.getBoolean("tgx101_round_ask_cam", true);
   }
