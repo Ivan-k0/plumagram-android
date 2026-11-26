@@ -6429,6 +6429,13 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
   }
 
+  /** Ctrl+Enter on a hardware keyboard: what the send button would do now (send, or save the edit) */
+  public boolean tgx101SendByKeyboard () {
+    if (sendButton == null || sendButton.getVisibility() != View.VISIBLE || !sendButton.isEnabled()) return false;
+    org.thunderdog.challegram.Tgx101Diag.mark("input: Ctrl+Enter → send");
+    return sendButton.performClick();
+  }
+
   /** a tap in the ⋮ menu that changes its page instead of closing it; true — handled */
   public boolean tgx101MenuPage (int id, org.thunderdog.challegram.navigation.HeaderView header) {
     if (chat == null || tgx101MenuIds == null) return false;

@@ -133,6 +133,17 @@ import tgx.td.ChatId;
 import tgx.td.Td;
 
 public class InputView extends NoClipEditText implements InlineSearchContext.Callback, InlineResultsWrap.PickListener, RtlCheckListener, FinalNewLineFilter.Callback, CustomEmojiSurfaceProvider, Destroyable {
+  // TGx101 (request 2026-11-26 «отправку сообщений по Ctrl+Enter… для андроида с физ. клавой»): Ctrl+Enter sends (or
+  // saves an edit), as the send button does; Enter alone stays a new line unless «Send by Enter» is on
+  @Override
+  public boolean onKeyDown (int keyCode, android.view.KeyEvent event) {
+    if ((keyCode == android.view.KeyEvent.KEYCODE_ENTER || keyCode == android.view.KeyEvent.KEYCODE_NUMPAD_ENTER)
+      && event.isCtrlPressed() && controller != null && getText() != null && getText().toString().trim().length() > 0) {
+      if (controller.tgx101SendByKeyboard()) return true;
+    }
+    return super.onKeyDown(keyCode, event);
+  }
+
   // TGx101: before Android 13, back reaches the focused field before the keyboard: close an open pop-up menu first
   @Override
   public boolean onKeyPreIme (int keyCode, android.view.KeyEvent event) {
