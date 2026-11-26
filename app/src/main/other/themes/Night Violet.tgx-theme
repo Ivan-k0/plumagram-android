@@ -25,7 +25,7 @@ bubbleOut_background, messageSwipeBackground: #5B4BA8
 bubbleOut_chatCorrectChosenFilling, bubbleOut_chatCorrectFilling, bubbleOut_chatVerticalLine, bubbleOut_inlineIcon, bubbleOut_inlineOutline, bubbleOut_inlineText, bubbleOut_messageAuthor, bubbleOut_textLink, bubbleOut_ticks, messageCorrectChosenFilling, messageCorrectFilling: #C7BDFF
 bubbleOut_file, bubbleOut_waveformActive, file, bubbleIn_fillingPositive, bubbleIn_fillingPositive_overlay, bubbleOut_fillingPositive, bubbleOut_fillingPositive_overlay: #8774E1
 bubbleOut_progress, bubbleOut_separator, bubbleOut_time: #B9AEE6
-bubbleOut_textLinkPressHighlight: #86CAFF40
+bubbleOut_textLinkPressHighlight: #C7BDFF40
 bubbleOut_waveformInactive, waveformInactive: #8478B8
 chatKeyboardButton: #221E2E
 chatListIcon, chatListMute, togglerInactive: #8B85A2
