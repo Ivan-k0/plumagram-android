@@ -6764,6 +6764,7 @@
   <string name="Tgx101NotifOff">Turn off notifications</string>
   <string name="Tgx101ThemeNightDeep">Deep Night</string>
   <string name="Tgx101ThemeLavender">Lavender</string>
+  <string name="Tgx101ThemeNightViolet">Violet Night</string>
   <string name="Tgx101MessageOnline">Online dot on avatars in chats</string>
   <string name="Tgx101NotifSilent">Silent</string>
   <string name="Tgx101NotifSound">With sound</string>

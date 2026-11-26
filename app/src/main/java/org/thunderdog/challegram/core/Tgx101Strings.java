@@ -1629,6 +1629,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101NotifOff, "Выключить уведомления");
     RU.put(R.string.Tgx101ThemeNightDeep, "Глубокая ночь");
     RU.put(R.string.Tgx101ThemeLavender, "Лаванда");
+    RU.put(R.string.Tgx101ThemeNightViolet, "Фиолетовая ночь");
     RU.put(R.string.Tgx101MessageOnline, "Точка «в сети» у аватарок в чатах");
     RU.put(R.string.Tgx101NotifSilent, "Без звука");
     RU.put(R.string.Tgx101NotifSound, "Со звуком");

@@ -189,6 +189,7 @@ themeNightBlue: #456A93
 themeOrange: #FB8C00
 themePink: #F06292
 themeLavender: #8774E1
+themeNightViolet: #5B4BA8
 themeRed: #E52929
 themeWhiteBlack: #B0BEC5
 togglerActiveBackground, togglerPositiveBackground: #A1D5F7

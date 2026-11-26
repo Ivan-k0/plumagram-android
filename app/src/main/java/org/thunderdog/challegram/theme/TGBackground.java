@@ -247,6 +247,7 @@ public class TGBackground {
       case ThemeId.NIGHT_BLACK:
       case ThemeId.NIGHT_BLUE:
       case ThemeId.NIGHT_DEEP:
+      case ThemeId.NIGHT_VIOLET:
         return 0; // Disabled by default
 
       case ThemeId.BLUE:

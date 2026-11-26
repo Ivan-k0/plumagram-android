@@ -571,5 +571,6 @@
     <item name="bubbleOut_blockQuoteLine" porterDuff="true" fallback="bubbleOut_time"/>
 
     <item name="themeLavender" />
+    <item name="themeNightViolet" />
   </colors>
 </xml>

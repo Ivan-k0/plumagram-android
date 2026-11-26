@@ -100,6 +100,8 @@ public class ThemeManager implements FactorAnimator.Target, GlobalAccountListene
         return R.string.ThemeNightBlue;
       case ThemeId.NIGHT_DEEP:
         return R.string.Tgx101ThemeNightDeep;
+      case ThemeId.NIGHT_VIOLET:
+        return R.string.Tgx101ThemeNightViolet;
       case ThemeId.BLACK_WHITE:
         return R.string.ThemeBlackWhite;
       case ThemeId.CUSTOM:
@@ -148,6 +150,7 @@ public class ThemeManager implements FactorAnimator.Target, GlobalAccountListene
       ThemeId.LAVENDER,
       ThemeId.CYAN,
       ThemeId.NIGHT_DEEP,
+      ThemeId.NIGHT_VIOLET,
       ThemeId.NIGHT_BLUE,
       ThemeId.NIGHT_BLACK,
       ThemeId.BLACK_WHITE,
@@ -162,6 +165,7 @@ public class ThemeManager implements FactorAnimator.Target, GlobalAccountListene
       ThemeId.LAVENDER,
       ThemeId.CYAN,
       ThemeId.NIGHT_DEEP,
+      ThemeId.NIGHT_VIOLET,
       ThemeId.NIGHT_BLUE,
       ThemeId.NIGHT_BLACK
     };
@@ -509,6 +513,7 @@ public class ThemeManager implements FactorAnimator.Target, GlobalAccountListene
       case ThemeId.BLACK_WHITE:
       case ThemeId.NIGHT_BLUE:
       case ThemeId.NIGHT_DEEP:
+      case ThemeId.NIGHT_VIOLET:
       case ThemeId.BLUE:
       case ThemeId.CYAN:
       case ThemeId.GREEN:
@@ -639,6 +644,7 @@ public class ThemeManager implements FactorAnimator.Target, GlobalAccountListene
       case ThemeId.NIGHT_BLACK:
       case ThemeId.NIGHT_BLUE:
       case ThemeId.NIGHT_DEEP:
+      case ThemeId.NIGHT_VIOLET:
       case ThemeId.BLACK_WHITE:
       case ThemeId.WHITE_BLACK:
       case ThemeId.RED:
