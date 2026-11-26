@@ -690,7 +690,26 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
   private float seekFactor;
 
+  // TGx101 (user 2026-11-26 «полосочка, которая бежит под закрепом, бежит рывками — сделай плавнее»): the position comes a
+  // few times a second; between updates the line goes on at the measured rate (at most 0.6 s ahead, still on pause)
+  private long tgx101SeekTime;
+  private float tgx101SeekRate; // per ms
+
+  private float tgx101ShownSeek () {
+    if (!isAudioPlaying || tgx101SeekRate <= 0f || tgx101SeekTime == 0) return seekFactor;
+    long dt = Math.min(600, android.os.SystemClock.uptimeMillis() - tgx101SeekTime);
+    return Math.min(1f, seekFactor + tgx101SeekRate * dt);
+  }
+
   public void setSeekFactor (float seekFactor) { // 0f -> 1f length of the player seek
+    long now = android.os.SystemClock.uptimeMillis();
+    if (tgx101SeekTime != 0 && seekFactor > this.seekFactor && now - tgx101SeekTime < 2000 && now > tgx101SeekTime) {
+      float rate = (seekFactor - this.seekFactor) / (now - tgx101SeekTime);
+      tgx101SeekRate = tgx101SeekRate > 0f ? tgx101SeekRate * .6f + rate * .4f : rate;
+    } else if (seekFactor < this.seekFactor || now - tgx101SeekTime >= 2000) {
+      tgx101SeekRate = 0f; // a seek back or a long gap: measure again
+    }
+    tgx101SeekTime = now;
     if (this.seekFactor != seekFactor) {
       final int oldWidth = (int) ((float) width * this.seekFactor);
       this.seekFactor = seekFactor;
@@ -788,7 +807,9 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
     c.drawRect(0, playerTop, rectWidth, shownBottom, Paints.fillingPaint(playerFillingColor));
     if (seekFactor != 0f) {
-      c.drawRect(0, shownBottom - (Screen.dp(1f) + 1) - (int) (Screen.dp(1f) * tgx101BarCollapse), (int) (width * seekFactor), shownBottom, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha, seekColor)));
+      float shownSeek = tgx101ShownSeek();
+      c.drawRect(0, shownBottom - (Screen.dp(1f) + 1) - (int) (Screen.dp(1f) * tgx101BarCollapse), width * shownSeek, shownBottom, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha, seekColor)));
+      if (shownSeek != seekFactor) invalidateOngoingBar(); // the next frame — the line glides between the updates
     }
     if (tgx101BarCollapse >= 1f) return;
 

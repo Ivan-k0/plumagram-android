@@ -18,7 +18,7 @@ bubble_date, bubble_date_noWallpaper, bubble_overlay: #12101A66
 bubble_messageSelection, bubbleIn_pressed: #00000020
 bubble_messageSelectionNoWallpaper: #0000002A
 bubbleIn_progress, chatSendButton, controlActive, inputActive, profileSectionActive, profileSectionActiveContent, progress, promo, textNeutral, textSearchQueryHighlight, togglerActive, togglerPositive: #8774E1
-bubbleIn_text, bubbleOut_text, drawerText, headerButtonIcon, headerLightIcon, headerLightText, introSectionActive, iv_blockQuoteLine, iv_header, iv_pageTitle, iv_text, iv_textCode, iv_textMarked, iv_textReference, playerButton, text, themeBlackWhite, unreadText: #FFF
+bubbleIn_text, bubbleOut_text, drawerText, headerButtonIcon, headerLightIcon, headerLightText, introSectionActive, iv_blockQuoteLine, iv_header, iv_pageTitle, iv_text, iv_textCode, iv_textMarked, iv_textReference, playerButton, text, themeBlackWhite, unreadText: #F7F5FF
 bubbleIn_textLink, circleButtonActive, circleButtonRegular, circleButtonTheme, headerButton, iv_textLink, iv_textMarkedLink, messageAuthor, notificationLink, snackbarUpdate, textLink: #8774E1
 bubbleIn_textLinkPressHighlight, iv_textLinkPressHighlight, textLinkPressHighlight: #61A9E144
 bubbleOut_background, messageSwipeBackground: #5B4BA8

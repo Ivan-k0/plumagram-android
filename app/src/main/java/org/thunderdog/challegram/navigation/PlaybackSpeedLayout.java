@@ -92,6 +92,10 @@ public class PlaybackSpeedLayout extends MenuMoreWrapAbstract implements View.On
   private int currentSpeed;
   private float value;
 
+  private final android.graphics.Rect tgx101Pad = new android.graphics.Rect();
+  private final RectF tgx101Card = new RectF(), tgx101Shadow = new RectF();
+  private final Path tgx101Clip = new Path();
+
   public interface Listener {
     void onChange (int speed, boolean isFinal);
   }
@@ -107,6 +111,7 @@ public class PlaybackSpeedLayout extends MenuMoreWrapAbstract implements View.On
 
     backgroundDrawable = ViewSupport.getDrawableFilter(getContext(), R.drawable.bg_popup_fixed, new PorterDuffColorFilter(Theme.getColor(ColorId.filling), PorterDuff.Mode.MULTIPLY));
     backgroundDrawable.getPadding(tmpRect);
+    tgx101Pad.set(tmpRect);
     setPadding(tmpRect.left, tmpRect.top, tmpRect.right, tmpRect.bottom);
 
     slider = new Slider(context);
@@ -118,11 +123,13 @@ public class PlaybackSpeedLayout extends MenuMoreWrapAbstract implements View.On
     addItem(slider);
 
     shadowView1 = new ShadowView(getContext());
+    shadowView1.setAlpha(0f); // TGx101 (user 2026-11-26 «окно переработать в нашем стиле, современно»): a flat band, no shadows
     shadowView1.setSimpleBottomTransparentShadow(false);
     shadowView1.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(6f)));
     addView(shadowView1);
 
     shadowView2 = new ShadowView(getContext());
+    shadowView2.setAlpha(0f);
     shadowView2.setSimpleTopShadow(true);
     shadowView2.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(6f)));
     addView(shadowView2);
@@ -454,7 +461,7 @@ public class PlaybackSpeedLayout extends MenuMoreWrapAbstract implements View.On
       super(context);
 
       setTypeface(Fonts.getRobotoRegular());
-      setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+      setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
 
       setGravity(Gravity.CENTER_VERTICAL | Lang.gravity());
       setSingleLine(true);
@@ -493,12 +500,12 @@ public class PlaybackSpeedLayout extends MenuMoreWrapAbstract implements View.On
 
     private boolean inFillingMode;
     private int getTextColor () {
-      return Theme.getColor(inFillingMode ? ColorId.fillingPositiveContent : ColorId.text);
+      return Theme.getColor(inFillingMode ? ColorId.circleButtonRegularIcon : ColorId.text);
     }
 
     @Override
     protected void onDraw (Canvas canvas) {
-      final int color = ColorUtils.fromToArgb(Theme.getColor(ColorId.fillingPositive), Theme.getColor(ColorId.fillingNegative), isRed.getFloatValue());
+      final int color = ColorUtils.fromToArgb(Theme.getColor(ColorId.circleButtonRegular), Theme.getColor(ColorId.fillingNegative), isRed.getFloatValue()); // TGx101: our accent
       final float position = getMeasuredWidth() * value.getFactor();
       final Layout layout = getLayout();
       if (layout == null) {
@@ -549,7 +556,7 @@ public class PlaybackSpeedLayout extends MenuMoreWrapAbstract implements View.On
       this.isSelected = new BoolAnimator(this, AnimatorUtils.DECELERATE_INTERPOLATOR, 180L);
 
       setTypeface(Fonts.getRobotoRegular());
-      setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
+      setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
 
       setGravity(Gravity.CENTER_VERTICAL | Lang.gravity());
       setSingleLine(true);
@@ -571,7 +578,7 @@ public class PlaybackSpeedLayout extends MenuMoreWrapAbstract implements View.On
     }
 
     public void setDrawable (@DrawableRes int drawableRes) {
-      drawable = Drawables.get(getResources(), drawableRes);
+      drawable = Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(drawableRes));
     }
 
     @Override
@@ -632,23 +639,28 @@ public class PlaybackSpeedLayout extends MenuMoreWrapAbstract implements View.On
     final boolean needClip = fadeFactor != 0f;
 
     tmpRect.set(0, 0, getMeasuredWidth(), MathUtils.fromTo(getMeasuredHeight(), Screen.dp(48 + 8 * 2), fadeFactor));
-    backgroundDrawable.setBounds(tmpRect);
-    backgroundDrawable.draw(canvas);
-
-    int s = -1;
-    if (needClip) {
-      s = Views.save(canvas);
-      canvas.clipRect(tmpRect);
+    // TGx101 (user 2026-11-26 «вот это окно переработать в нашем стиле, современно»): the rounded card of our menus; the
+    // slider and the rows clipped to it; a flat band between them instead of the shadows
+    float r = Screen.dp(18f);
+    tgx101Card.set(tmpRect.left + tgx101Pad.left, tmpRect.top + tgx101Pad.top, tmpRect.right - tgx101Pad.right, tmpRect.bottom - tgx101Pad.bottom);
+    for (int i = 3; i >= 1; i--) {
+      float g = Screen.dp(i * 1.5f);
+      tgx101Shadow.set(tgx101Card.left - g, tgx101Card.top - g * .5f, tgx101Card.right + g, tgx101Card.bottom + g * 1.5f);
+      canvas.drawRoundRect(tgx101Shadow, r + g, r + g, Paints.fillingPaint(ColorUtils.alphaColor(.035f, 0xff000000)));
     }
+    canvas.drawRoundRect(tgx101Card, r, r, Paints.fillingPaint(Theme.headerFloatBackgroundColor()));
 
-    canvas.drawRect(Screen.dp(8), Screen.dp(8 + 48), getMeasuredWidth() - Screen.dp(8), Screen.dp(8 + 48 + 12),
-      Paints.fillingPaint(ColorUtils.alphaColor(1f - fadeFactor, Theme.backgroundColor())));
+    int s = Views.save(canvas);
+    tgx101Clip.reset();
+    tgx101Clip.addRoundRect(tgx101Card, r, r, Path.Direction.CW);
+    canvas.clipPath(tgx101Clip);
+
+    canvas.drawRect(tgx101Card.left, Screen.dp(8 + 48), tgx101Card.right, Screen.dp(8 + 48 + 12),
+      Paints.fillingPaint(ColorUtils.alphaColor((1f - fadeFactor) * (Theme.isDark() ? .22f : .06f), 0xff000000)));
 
     super.dispatchDraw(canvas);
 
-    if (needClip) {
-      Views.restore(canvas, s);
-    }
+    Views.restore(canvas, s);
   }
 
   @Override
