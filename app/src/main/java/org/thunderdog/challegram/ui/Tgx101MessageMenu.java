@@ -2156,6 +2156,22 @@ public final class Tgx101MessageMenu {
     if (icon == R.drawable.baseline_unarchive_24) return R.drawable.tgx101_o_unarchive_24;
     if (icon == R.drawable.baseline_share_arrow_24) return R.drawable.tgx101_o_forward_24;
     if (icon == R.drawable.baseline_share_24) return R.drawable.tgx101_o_share_24;
+    // (user 2026-11-27 «все иконки одинакового размера… половина с контурами половина залитая»): the chat ⋮ menu's rest
+    if (icon == R.drawable.baseline_call_24) return R.drawable.tgx101_o_phone_24;
+    if (icon == R.drawable.baseline_videocam_24) return R.drawable.tgx101_o_videocam_24;
+    if (icon == R.drawable.baseline_delete_sweep_24) return R.drawable.tgx101_o_clear_history_24;
+    if (icon == R.drawable.baseline_backspace_24) return R.drawable.tgx101_o_erase_24;
+    if (icon == R.drawable.baseline_auto_delete_24) return R.drawable.tgx101_o_auto_delete_24;
+    if (icon == R.drawable.baseline_exit_to_app_24) return R.drawable.tgx101_o_exit_24;
+    if (icon == R.drawable.baseline_logout_24) return R.drawable.tgx101_o_exit_24;
+    if (icon == R.drawable.deproko_baseline_attach_26) return R.drawable.tgx101_o_attach_24;
+    if (icon == R.drawable.baseline_arrow_back_24) return R.drawable.tgx101_o_arrow_back_24;
+    if (icon == R.drawable.baseline_volume_off_24) return R.drawable.tgx101_o_volume_off_24;
+    if (icon == R.drawable.baseline_volume_up_24) return R.drawable.tgx101_o_volume_up_24;
+    if (icon == R.drawable.baseline_notifications_paused_24) return R.drawable.tgx101_o_notifications_paused_24;
+    if (icon == R.drawable.baseline_notifications_active_24) return R.drawable.tgx101_o_notifications_active_24;
+    if (icon == R.drawable.baseline_tune_24) return R.drawable.tgx101_o_tune_24;
+    if (icon == R.drawable.baseline_help_24) return R.drawable.tgx101_o_help_24;
     // ⋮ and ⋯ stay the solid dots everywhere (user 2026-11-25 «точки верни как было. везде»)
     return icon;
   }

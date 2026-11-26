@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- TGx101 (user 2026-11-27 «все иконки должны быть одинакового размера… половина с контурами половина залитая»): the ⋮ menu in the same thin outline as the 23.11 set -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
+  <path android:fillColor="#00000000" android:strokeColor="#FF000000" android:strokeWidth="1.5" android:strokeLineCap="round" android:strokeLineJoin="round" android:pathData="M6.5,16.5 V11 A5.5,5.5 0 0 1 17.5,11 V16.5 L19,18 H5 Z M10,20.5 H14 M3.5,9.5 A8,8 0 0 1 5.5,5 M20.5,9.5 A8,8 0 0 0 18.5,5"/>
+</vector>
