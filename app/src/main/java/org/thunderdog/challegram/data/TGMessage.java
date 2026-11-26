@@ -3753,11 +3753,20 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
 
   private org.thunderdog.challegram.data.Tgx101Peek.Painter tgx101PeekAvatar;
 
+  /** TGx101 (user 2026-11-26 «индикатор онлайн в чатах нужно добавить»): the green dot of a sender who is online, on
+   *  their avatar by the messages in groups (as in the chat list) */
+  private void tgx101DrawOnline (Canvas c, AvatarReceiver avatarReceiver) {
+    if (sender == null || !sender.isUser() || tdlib.isSelfUserId(sender.getUserId()) || isOutgoing()) return;
+    if (!tdlib.cache().isOnline(sender.getUserId())) return;
+    DrawAlgorithms.drawOnline(c, avatarReceiver, 1f, Theme.getColor(ColorId.chatBackground), Theme.getColor(ColorId.online));
+  }
+
   private void tgx101DrawAvatar (Canvas c, AvatarReceiver avatarReceiver) {
     int peek = org.thunderdog.challegram.data.Tgx101Peek.strengthInside(msg.chatId, org.thunderdog.challegram.data.Tgx101Peek.PART_AVATAR);
     if (peek <= 0) {
       if (avatarReceiver.needPlaceholder()) avatarReceiver.drawPlaceholder(c);
       avatarReceiver.draw(c);
+      tgx101DrawOnline(c, avatarReceiver);
       return;
     }
     if (tgx101PeekAvatar == null) tgx101PeekAvatar = new org.thunderdog.challegram.data.Tgx101Peek.Painter();
