@@ -3722,6 +3722,16 @@ public class Settings {
     return _chatListTextScale;
   }
 
+  /** TGx101: the chat lists lay their rows out again (a look of the list changed) */
+  public void tgx101NotifyChatListLook () {
+    if (chatListModeListeners != null) {
+      int mode = getChatListMode();
+      for (ChatListModeChangeListener listener : chatListModeListeners) {
+        listener.onChatListModeChanged(mode);
+      }
+    }
+  }
+
   public void setChatListTextSize (int size) {
     if (size != getChatListTextSize()) {
       pmc.putInt(KEY_TGX101_CHAT_LIST_TEXT_SIZE, size);
@@ -5391,6 +5401,24 @@ public class Settings {
 
   // TGx101 (user 2026-10-20 «давать на выбор при каждом кружке — при нажатии на запись выпадает меню, с какой камеры»)
   // TGx101 (user 2026-11-26 «индикатор должен отключаться»): the online dot on avatars by the messages
+  // TGx101 (user 2026-11-26 «подогнать под стиль эталона… дать возможность это отключать»): the chat list without lines
+  // between chats and between the pinned and the rest, a pin on the right; folder tags under… by the name
+  public boolean tgx101ChatListFlat () {
+    return pmc.getBoolean("tgx101_chats_flat", true);
+  }
+
+  public void setTgx101ChatListFlat (boolean on) {
+    pmc.putBoolean("tgx101_chats_flat", on);
+  }
+
+  public boolean tgx101ChatFolderTags () {
+    return pmc.getBoolean("tgx101_chats_tags", true);
+  }
+
+  public void setTgx101ChatFolderTags (boolean on) {
+    pmc.putBoolean("tgx101_chats_tags", on);
+  }
+
   public boolean tgx101MessageOnlineDot () {
     return pmc.getBoolean("tgx101_msg_online", true);
   }

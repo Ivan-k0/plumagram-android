@@ -109,6 +109,11 @@ public final class Tgx101BarOrder {
     CHAT_LEAVE = "leave", // TGx101 (user 2026-10-16): «Leave» / «Delete chat» on its own, not among «the rest»
     CHAT_EXPORT = "export"; // TGx101 (user 2026-11-26 «экспорт чата нужно дать возможность отключать»): out of «the rest»
   private static final String[] CHAT_OFF_BY_DEFAULT = {CHAT_PROXY};
+  /** TGx101 (user 2026-11-26, screenshot of MagiX → ⋮ items «вот так для всех по умолчанию меню чата сделай»): the ⋮ menu
+   *  of everyone who hasn't set it up — «Notifications ›» and «Leave» are fixed on top / at the bottom anyway */
+  public static final String CHAT_NEW_INSTALL = CHAT_CALL + "," + CHAT_VIDEO_CALL + "," + CHAT_SEARCH + "," + CHAT_DATE + "," + CHAT_TRANSLATE + ","
+    + CHAT_LINKED + "," + CHAT_VOICE_CHAT + "," + CHAT_OTHER + "," + CHAT_EXPORT + "," + CHAT_SCHEDULED + "," + CHAT_MEDIA + ","
+    + "-" + CHAT_TOPICS + ",-" + CHAT_BACKGROUND + ",-" + CHAT_PINNED + ",-" + CHAT_REPORT + ",-" + CHAT_PASSCODE + ",-" + CHAT_PROXY;
 
   public static final String QUOTE = "quote", COPY = "copy", SELECT_ALL = "selectAll", EDITOR = "editor",
     CUT = "cut", PASTE = "paste", APPS = "apps";
@@ -422,6 +427,7 @@ public final class Tgx101BarOrder {
   public static List<String> getOrder (int bar) {
     List<String> result = new ArrayList<>();
     String saved = Settings.instance().getTgx101BarOrder(bar);
+    if (saved == null && bar == BAR_CHAT_MENU) saved = CHAT_NEW_INSTALL;
     if (saved != null) {
       for (String entry : saved.split(",")) {
         String key = entry.startsWith("-") ? entry.substring(1) : entry;

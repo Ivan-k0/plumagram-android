@@ -329,7 +329,9 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
             int adapterPosition = parent.getChildAdapterPosition(view);
             if (adapterPosition != RecyclerView.NO_POSITION) {
               TGChat nextChat = context.adapter.getChatByItemPosition(adapterPosition + 1);
-              boolean needSplit = nextChat != null && (chat.isArchive() != nextChat.isArchive() || chat.isPinnedOrSpecial() != nextChat.isPinnedOrSpecial());
+              boolean flat = org.thunderdog.challegram.unsorted.Settings.instance().tgx101ChatListFlat();
+              boolean needSplit = nextChat != null && (chat.isArchive() != nextChat.isArchive() || (!flat && chat.isPinnedOrSpecial() != nextChat.isPinnedOrSpecial()));
+              if (flat) needSeparator = false; // (user 2026-11-26): no lines between chats
               boolean needShadowTop = adapterPosition > 0 && context.adapter.getItemViewType(adapterPosition - 1) == ChatsAdapter.VIEW_TYPE_SUGGESTED_CHATS;
 
               if (needShadowTop) {
@@ -470,10 +472,11 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
       TGChat next = context.adapter.getChatByItemPosition(position + 1);
       // TGx101: the stories' row belongs with the archive — one block, the gap after both
       boolean currentBlock = current.isArchive() || current.tgx101IsStoriesRow(), nextBlock = next != null && (next.isArchive() || next.tgx101IsStoriesRow());
-      if (next != null && (currentBlock != nextBlock || (!currentBlock && current.isPinnedOrSpecial() != next.isPinnedOrSpecial()))) {
+      boolean flat = org.thunderdog.challegram.unsorted.Settings.instance().tgx101ChatListFlat();
+      if (next != null && (currentBlock != nextBlock || (!flat && !currentBlock && current.isPinnedOrSpecial() != next.isPinnedOrSpecial()))) {
         outRect.bottom = Screen.dp(12f);
       } else {
-        outRect.bottom = Screen.separatorSize();
+        outRect.bottom = flat ? 0 : Screen.separatorSize();
       }
 
       outRect.top = 0;
@@ -1249,6 +1252,8 @@ public class ChatsController extends TelegramViewController<ChatsController.Argu
     ChatView.updateTextScale(); // TGx101: MagiX text size
     if (adapter != null) {
       adapter.checkChatListMode();
+      adapter.notifyAllChanged(); // TGx101: tags / pins / lines of the flat list
+      adapter.invalidateAttachedItemDecorations();
     }
   }
 

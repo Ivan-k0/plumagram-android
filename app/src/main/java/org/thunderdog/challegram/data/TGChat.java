@@ -319,12 +319,16 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
 
   private float listTextScale = Settings.instance().getChatListTextScale();
 
+  private int tgx101Look = -1;
+
   public void checkChatListMode () {
     int newMode = Settings.instance().getChatListMode();
     float newScale = Settings.instance().getChatListTextScale(); // TGx101: MagiX text size
-    if (listMode != newMode || listTextScale != newScale) {
+    int look = (Settings.instance().tgx101ChatListFlat() ? 1 : 0) | (Settings.instance().tgx101ChatFolderTags() ? 2 : 0);
+    if (listMode != newMode || listTextScale != newScale || tgx101Look != look) {
       listMode = newMode;
       listTextScale = newScale;
+      tgx101Look = look;
       currentWidth = 0;
       if (avatarPlaceholder != null) {
         setAvatar();
@@ -1131,6 +1135,8 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       int reactionsWidth = reactionsCounterDrawable.getTargetWidth();
       avail -= reactionsWidth + (reactionsWidth > 0 ? Screen.dp(3) : 0);
     }
+    tgx101LayoutTags();
+    if (tgx101TagsWidth > 0) avail -= tgx101TagsWidth + Screen.dp(6f);
 
     if (changed || lastAvailWidth != avail) {
       lastAvailWidth = avail;
@@ -1343,7 +1349,59 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
     return reactionsCounterDrawable.getMinimumWidth();
   }
 
+  // TGx101 (user 2026-11-26): folder tags by the title — the folders this chat is in, but not the one being shown
+  // («если папка каналы — там этой плашки быть не должно… если папка все, кастомная или личные — будет плашка»)
+  private String[] tgx101Tags;
+  private int[] tgx101TagWidths;
+  private int tgx101TagsWidth;
+
+  public String[] tgx101Tags () { return tgx101Tags; }
+  public int[] tgx101TagWidths () { return tgx101TagWidths; }
+
+  public static android.text.TextPaint tgx101TagPaint () {
+    if (tgx101TagPaint == null) {
+      tgx101TagPaint = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+      tgx101TagPaint.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+    }
+    tgx101TagPaint.setTextSize(Screen.dp(10.5f));
+    return tgx101TagPaint;
+  }
+  private static android.text.TextPaint tgx101TagPaint;
+
+  private void tgx101LayoutTags () {
+    tgx101Tags = null;
+    tgx101TagWidths = null;
+    tgx101TagsWidth = 0;
+    if (chat == null || chat.chatLists == null || !org.thunderdog.challegram.unsorted.Settings.instance().tgx101ChatFolderTags()) return;
+    int current = chatList instanceof TdApi.ChatListFolder ? ((TdApi.ChatListFolder) chatList).chatFolderId : 0;
+    java.util.List<String> names = new java.util.ArrayList<>();
+    for (TdApi.ChatList list : chat.chatLists) {
+      if (!(list instanceof TdApi.ChatListFolder)) continue;
+      int id = ((TdApi.ChatListFolder) list).chatFolderId;
+      if (id == current) continue;
+      TdApi.ChatFolderInfo info = tdlib.chatFolderInfo(id);
+      if (info == null || info.name == null || info.name.text == null || StringUtils.isEmpty(info.name.text.text)) continue;
+      names.add(info.name.text.text.toUpperCase(java.util.Locale.ROOT));
+      if (names.size() == 2) break;
+    }
+    if (names.isEmpty()) return;
+    android.text.TextPaint p = tgx101TagPaint();
+    tgx101Tags = names.toArray(new String[0]);
+    tgx101TagWidths = new int[tgx101Tags.length];
+    for (int i = 0; i < tgx101Tags.length; i++) {
+      tgx101TagWidths[i] = (int) Math.ceil(p.measureText(tgx101Tags[i])) + Screen.dp(12f);
+      tgx101TagsWidth += tgx101TagWidths[i] + (i > 0 ? Screen.dp(4f) : 0);
+    }
+  }
+
+  /** a pinned chat with nothing unread shows a pin on the right (the flat chat list) */
+  public boolean tgx101ShowPin () {
+    return isPinned() && !isArchive() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101ChatListFlat()
+      && counter.getScaledWidth(0) < 1f && mentionCounter.getScaledWidth(0) < 1f && reactionsCounter.getScaledWidth(0) < 1f;
+  }
+
   private int getCounterAddWidth () {
+    if (tgx101ShowPin()) return Screen.dp(26f);
     return Math.round(
       counter.getScaledWidth(ChatView.getTimePaddingLeft()) +
       mentionCounter.getScaledWidth(ChatView.getTimePaddingLeft()) +

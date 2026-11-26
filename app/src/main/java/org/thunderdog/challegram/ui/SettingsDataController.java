@@ -421,6 +421,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
           view.getToggler().setRadioEnabled(Settings.instance().tgx101RoundRememberCamera(), isUpdate);
         } else if (itemId == R.id.btn_tgx101HidePhone) {
           view.getToggler().setRadioEnabled(Settings.instance().needHidePhoneNumber(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101ChatsFlat) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101ChatListFlat(), isUpdate);
+        } else if (itemId == R.id.btn_tgx101ChatsTags) {
+          view.getToggler().setRadioEnabled(Settings.instance().tgx101ChatFolderTags(), isUpdate);
         } else if (itemId == R.id.btn_tgx101MessageOnline) {
           view.getToggler().setRadioEnabled(Settings.instance().tgx101MessageOnlineDot(), isUpdate);
         } else if (itemId == R.id.btn_tgx101ShowPeerIds) {
@@ -696,6 +700,10 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
         new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101NextChannelSwipe, 0, R.string.Tgx101NextChannelSwipe),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_VALUED_SETTING_COMPACT, R.id.btn_pullToSearch, 0, R.string.Tgx101PullAction),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101ChatsFlat, 0, R.string.Tgx101ChatsFlat),
+        new ListItem(ListItem.TYPE_SEPARATOR_FULL),
+        new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101ChatsTags, 0, R.string.Tgx101ChatsTags),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
         new ListItem(ListItem.TYPE_CUSTOM - TGX101_PILLS, R.id.btn_tgx101FloatingInput, 0, R.string.Tgx101InputStyle),
         new ListItem(ListItem.TYPE_SEPARATOR_FULL),
@@ -1456,7 +1464,7 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
     if (id == R.id.btn_tgx101Filters || id == R.id.btn_tgx101HideBlocked || id == R.id.btn_tgx101CompactBubbles || id == R.id.btn_tgx101RememberChatPlace) return 2;
     if (id == R.id.btn_tgx101SavedSettingsOpen || id == R.id.btn_tgx101AiAll || id == R.id.btn_tgx101AiCompose || id == R.id.btn_tgx101AiSummary || id == R.id.btn_tgx101AiMissed || id == R.id.btn_tgx101AiSort || id == R.id.btn_tgx101Peek
       || id == R.id.btn_tgx101AiOpen || id == R.id.btn_tgx101BirdOpen) return TGX101_SECTION_FEATURES;
-    if (id == R.id.btn_pullToSearch) return 0;
+    if (id == R.id.btn_pullToSearch || id == R.id.btn_tgx101ChatsFlat || id == R.id.btn_tgx101ChatsTags) return 0;
     if (id == R.id.btn_tgx101StoriesMode || id == R.id.btn_tgx101StoriesFolders) return 1;
     if (id == R.id.btn_tgx101ChatMenuOrder || id == R.id.btn_tgx101ShowPeerIds || id == R.id.btn_tgx101MessageOnline) return 2;
     if (id == R.id.btn_tgx101SwipeActions || id == R.id.btn_tgx101Haptics || id == R.id.btn_tgx101MenuBlur || id == R.id.btn_tgx101MenuHidesKeyboard || id == R.id.btn_tgx101LongPressMenu || id == R.id.btn_tgx101MenuAtFinger || id == R.id.btn_tgx101MessageMenu || id == R.id.btn_tgx101MessageMenuHand || id == R.id.btn_tgx101MessageMenuBlocks || id == R.id.btn_tgx101MessageMenuBlockIcons || id == R.id.btn_tgx101MenuOutlinedIcons || id == R.id.btn_tgx101EmojiEffects || id == R.id.btn_tgx101MessageMenuOrder
@@ -1865,6 +1873,12 @@ public class SettingsDataController extends RecyclerViewController<SettingsDataC
       Settings.instance().setTgx101RoundAskCamera(toggleResult);
     } else if (id == R.id.btn_tgx101HidePhone) {
       Settings.instance().setHidePhoneNumber(toggleResult);
+    } else if (id == R.id.btn_tgx101ChatsFlat) {
+      Settings.instance().setTgx101ChatListFlat(toggleResult);
+      Settings.instance().tgx101NotifyChatListLook();
+    } else if (id == R.id.btn_tgx101ChatsTags) {
+      Settings.instance().setTgx101ChatFolderTags(toggleResult);
+      Settings.instance().tgx101NotifyChatListLook();
     } else if (id == R.id.btn_tgx101MessageOnline) {
       Settings.instance().setTgx101MessageOnlineDot(toggleResult);
     } else if (id == R.id.btn_tgx101ShowPeerIds) {

@@ -1672,6 +1672,8 @@
   <item name="btn_tgx101NotifOn" type="id"/>
   <item name="btn_tgx101NotifSound" type="id"/>
   <item name="btn_tgx101MessageOnline" type="id"/>
+  <item name="btn_tgx101ChatsFlat" type="id"/>
+  <item name="btn_tgx101ChatsTags" type="id"/>
   <item name="btn_tgx101MenuProfileText" type="id"/>
   <item name="btn_tgx101MenuProfileMedia" type="id"/>
   <item name="btn_tgx101MenuProfileVoice" type="id"/>

@@ -948,6 +948,30 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
 
   }
 
+  private Drawable tgx101Pin;
+  private final android.graphics.RectF tgx101TagRect = new android.graphics.RectF();
+
+  /** TGx101: the folder tags at the end of the title line, just before the time */
+  private void tgx101DrawTags (Canvas c, int chatListMode, boolean rtl, int viewWidth) {
+    String[] tags = chat.tgx101Tags();
+    int[] widths = chat.tgx101TagWidths();
+    if (tags == null || widths == null) return;
+    android.text.TextPaint p = TGChat.tgx101TagPaint();
+    int accent = Theme.getColor(ColorId.textNeutral);
+    float right = chat.getTimeLeft() - Screen.dp(6f);
+    float h = Screen.dp(16f);
+    float cy = getTitleTop(chatListMode) - Screen.dp(4.5f);
+    for (int i = 0; i < tags.length; i++) {
+      float left = right - widths[i];
+      float l = rtl ? viewWidth - right : left, r = rtl ? viewWidth - left : right;
+      tgx101TagRect.set(l, cy - h / 2f, r, cy + h / 2f);
+      c.drawRoundRect(tgx101TagRect, Screen.dp(4f), Screen.dp(4f), Paints.fillingPaint(ColorUtils.alphaColor(.16f, accent)));
+      p.setColor(accent);
+      c.drawText(tags[i], tgx101TagRect.left + Screen.dp(6f), cy - (p.ascent() + p.descent()) / 2f, p);
+      right = left - Screen.dp(4f);
+    }
+  }
+
   @Override
   protected void onDraw (Canvas c) {
     tgx101Draws++;
@@ -975,6 +999,7 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
     }
 
     c.drawText(chat.getTime(), (rtl ? viewWidth - chat.getTimeLeft() - chat.getTimeWidth() : chat.getTimeLeft()), getTitleTop(chatListMode), timePaint);
+    tgx101DrawTags(c, chatListMode, rtl, viewWidth);
 
     Text title = chat.getTitle();
     if (title != null) {
@@ -1060,6 +1085,18 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
     Counter mentionCounter = chat.getMentionCounter();
     mentionCounter.draw(c, counterRight - counterRadius, counterCenterY, Gravity.RIGHT, 1f, this, ColorId.badgeText);
     counterRight -= mentionCounter.getScaledWidth(getTimePaddingLeft());
+
+    if (chat.tgx101ShowPin()) {
+      // TGx101 (user 2026-11-26 «справа нарисовать иконочку закреп»): a pinned chat with nothing unread
+      if (tgx101Pin == null) tgx101Pin = Drawables.get(getResources(), R.drawable.deproko_baseline_pin_24);
+      if (tgx101Pin != null) {
+        int size = Screen.dp(18f);
+        float cx = rtl ? viewWidth - (counterRight - counterRadius) : counterRight - counterRadius;
+        tgx101Pin.setBounds((int) (cx - size / 2f), (int) (counterCenterY - size / 2f), (int) (cx + size / 2f), (int) (counterCenterY + size / 2f));
+        tgx101Pin.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconLight)));
+        tgx101Pin.draw(c);
+      }
+    }
 
     Counter reactionCounter = chat.getReactionsCounter();
     reactionCounter.draw(c, counterRight - counterRadius, counterCenterY, Gravity.RIGHT, 1f, this, chat.notificationsEnabled() ? ColorId.badgeText : ColorId.badgeMutedText);
