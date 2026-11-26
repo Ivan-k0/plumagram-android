@@ -1206,6 +1206,74 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     }
   }
 
+  /**
+   * TGx101 (user 2026-11-27 «кнопки из ещё меняют соседние кнопки незаметно»): the open ⋮ menu changes some rows in place —
+   * a row that stays doesn't move, a changed one fades from the old to the new where it stands, added rows open the card
+   * below. {@code page} is {ids, titles, icons}
+   */
+  public void tgx101MorphMore (Object[] page) {
+    if (moreWrap == null || onMoreItemClick == null) return;
+    final int[] ids = (int[]) page[0];
+    final String[] titles = (String[]) page[1];
+    final int[] icons = (int[]) page[2];
+    final MenuMoreWrap wrap = moreWrap;
+    final float scale = org.thunderdog.challegram.U.getAnimationScale(getContext()) > 0f ? org.thunderdog.challegram.U.getAnimationScale(getContext()) : 1f;
+    final long duration = (long) (220 / scale);
+    final android.view.animation.Interpolator curve = androidx.core.view.animation.PathInterpolatorCompat.create(.2f, 0f, 0f, 1f);
+    final int fromHeight = wrap.getHeight();
+    final int oldCount = wrap.getChildCount();
+    final int[] oldIds = new int[oldCount];
+    for (int k = 0; k < oldCount; k++) oldIds[k] = wrap.getChildAt(k).getId();
+    // the rows that change, as pictures over the card, fading out where they stand
+    android.view.ViewParent parent = wrap.getParent();
+    if (parent instanceof android.view.ViewGroup) {
+      final android.view.ViewGroup group = (android.view.ViewGroup) parent;
+      for (int k = 0; k < oldCount; k++) {
+        if (k < ids.length && ids[k] == oldIds[k]) continue;
+        View child = wrap.getChildAt(k);
+        if (child.getWidth() <= 0 || child.getHeight() <= 0) continue;
+        try {
+          android.graphics.Bitmap shot = android.graphics.Bitmap.createBitmap(child.getWidth(), child.getHeight(), android.graphics.Bitmap.Config.ARGB_8888);
+          child.draw(new android.graphics.Canvas(shot));
+          final android.widget.ImageView ghost = new android.widget.ImageView(getContext());
+          ghost.setImageBitmap(shot);
+          ghost.setScaleType(android.widget.ImageView.ScaleType.MATRIX);
+          group.addView(ghost, new android.widget.FrameLayout.LayoutParams(child.getWidth(), child.getHeight()));
+          ghost.setX(wrap.getX() + child.getLeft());
+          ghost.setY(wrap.getY() + child.getTop());
+          if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) ghost.setTranslationZ(wrap.getTranslationZ() + 1f);
+          ghost.animate().alpha(0f).setDuration((long) (duration * .4f)).setInterpolator(curve).withEndAction(() -> group.removeView(ghost)).start();
+        } catch (Throwable ignored) { }
+      }
+    }
+    wrap.setMinimumWidth(wrap.getWidth()); // the card doesn't narrow — it may widen for a longer row
+    ThemeListenerList themeListenerList = navigation != null ? navigation.getThemeListeners() : null;
+    tgx101FillMore(ids, titles, icons, onMoreItemClick, themeListenerList);
+    for (int k = 0; k < wrap.getChildCount(); k++) {
+      if (k < oldCount && k < ids.length && ids[k] == oldIds[k]) continue;
+      View child = wrap.getChildAt(k);
+      child.animate().cancel();
+      child.setAlpha(0f);
+      child.animate().alpha(1f).setStartDelay((long) (duration * .4f)).setDuration((long) (duration * .6f)) /* the old word is gone first — no «Голосовой дате» in between */.setInterpolator(curve).start();
+    }
+    wrap.measure(View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED), View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+    final int toHeight = wrap.getItemsHeight();
+    if (fromHeight > 0 && toHeight != fromHeight) {
+      wrap.tgx101SetForcedHeight(fromHeight);
+      android.animation.ValueAnimator h = android.animation.ValueAnimator.ofInt(fromHeight, toHeight);
+      h.setDuration(duration);
+      h.setInterpolator(curve);
+      h.addUpdateListener(va -> wrap.tgx101SetForcedHeight((Integer) va.getAnimatedValue()));
+      h.addListener(new android.animation.AnimatorListenerAdapter() {
+        @Override
+        public void onAnimationEnd (android.animation.Animator animation) {
+          wrap.tgx101SetForcedHeight(-1);
+        }
+      });
+      h.start();
+    }
+  }
+
   private void tgx101FillMore (int[] ids, String[] titles, int[] icons, View.OnClickListener onItemClick, @Nullable ThemeListenerList themeListeners) {
     int size = ids.length;
     int childCount = moreWrap.getChildCount();
@@ -1255,6 +1323,13 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
           item.setTag((Integer) item.getTag() + Screen.dp(32f)); // room for the arrow in the card's width
           item.setTag(R.id.btn_tgx101NotifMenu, Boolean.TRUE);
         }
+        continue;
+      }
+      if ((id == R.id.btn_tgx101ChatMore || id == R.id.btn_tgx101ChatMoreBack) && icons != null && icons[k] != 0) {
+        // (user 2026-11-27 «"ещё" можно чуть выделить… можно иконку сделать цветную»): the accent icon, the usual text
+        android.graphics.drawable.Drawable drawable = org.thunderdog.challegram.tool.Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(icons[k])).mutate();
+        drawable.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconActive)));
+        MenuMoreWrap.tgx101SetIcon(item, drawable);
         continue;
       }
       if (!danger || icons == null || icons[k] == 0) continue;

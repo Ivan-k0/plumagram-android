@@ -107,8 +107,16 @@ public final class Tgx101BarOrder {
     CHAT_TOPICS = "topics", CHAT_REPORT = "report", CHAT_PASSCODE = "passcode", CHAT_PROXY = "proxy", CHAT_OTHER = "other",
     CHAT_MEDIA = "media", // «Медиа в этом канале» (user 2026-10-27)
     CHAT_LEAVE = "leave", // TGx101 (user 2026-10-16): «Leave» / «Delete chat» on its own, not among «the rest»
-    CHAT_EXPORT = "export"; // TGx101 (user 2026-11-26 «экспорт чата нужно дать возможность отключать»): out of «the rest»
-  private static final String[] CHAT_OFF_BY_DEFAULT = {CHAT_PROXY};
+    CHAT_EXPORT = "export", // TGx101 (user 2026-11-26 «экспорт чата нужно дать возможность отключать»): out of «the rest»
+    CHAT_DELETE_MINE = "deleteMine"; // (user 2026-11-27 «удалить мои сообщения выключаемая кнопка. по умолчанию выключена»)
+  private static final String[] CHAT_OFF_BY_DEFAULT = {CHAT_PROXY, CHAT_DELETE_MINE};
+  /** (user 2026-11-27): a ⋮ entry saved as "+key" is in «More…» — a row in the middle of the menu that shows them in place */
+  public static final String CHAT_MORE_PREFIX = "+";
+
+  /** the key of a saved entry without its «off» ("-") or «in More» ("+") mark */
+  public static String bareKey (String entry) {
+    return entry.startsWith("-") || entry.startsWith(CHAT_MORE_PREFIX) ? entry.substring(1) : entry;
+  }
   /** TGx101 (user 2026-11-26, screenshot of MagiX → ⋮ items «вот так для всех по умолчанию меню чата сделай»): the ⋮ menu
    *  of everyone who hasn't set it up — «Notifications ›» and «Leave» are fixed on top / at the bottom anyway */
   public static final String CHAT_NEW_INSTALL = CHAT_CALL + "," + CHAT_VIDEO_CALL + "," + CHAT_SEARCH + "," + CHAT_DATE + "," + CHAT_TRANSLATE + ","
@@ -133,7 +141,7 @@ public final class Tgx101BarOrder {
     // (user 2026-11-20 «ночной режим вообще убери из меню — в боковом уже есть кнопка ☀»): no «Night mode» row for anyone
     {DRAWER_GAZETA, DRAWER_STORY, DRAWER_CONTACTS, DRAWER_CALLS, DRAWER_SAVED, DRAWER_SAVED_BY_CHATS, DRAWER_SETTINGS, DRAWER_PROXY, DRAWER_PEEK, DRAWER_PLAYER, DRAWER_STORAGE},
     {CHAT_CALL, CHAT_VIDEO_CALL, CHAT_SEARCH, CHAT_DATE, CHAT_SAVED_BY_CHATS, CHAT_BACKGROUND, CHAT_MUTE, CHAT_NOTIFICATIONS, CHAT_MEDIA, CHAT_TRANSLATE,
-      CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_EXPORT, CHAT_OTHER, CHAT_PROXY, CHAT_LEAVE},
+      CHAT_PINNED, CHAT_LINKED, CHAT_SCHEDULED, CHAT_VOICE_CHAT, CHAT_TOPICS, CHAT_REPORT, CHAT_PASSCODE, CHAT_EXPORT, CHAT_DELETE_MINE, CHAT_OTHER, CHAT_PROXY, CHAT_LEAVE},
     {TAB_GAZETA, TAB_CONTACTS, TAB_CALLS, TAB_SETTINGS, TAB_PROFILE}
   };
 
@@ -259,6 +267,7 @@ public final class Tgx101BarOrder {
     if (id == R.id.btn_setPasscode) return CHAT_PASSCODE;
     if (id == R.id.btn_tgx101ChatProxy) return CHAT_PROXY;
     if (id == R.id.btn_exportChat) return CHAT_EXPORT;
+    if (id == R.id.btn_tgx101DeleteMine) return CHAT_DELETE_MINE;
     if (id == R.id.btn_removeChatFromList || id == R.id.btn_removeChatFromListAndStop || id == R.id.btn_removeChatFromListOrClearHistory || id == R.id.btn_returnToChat) return CHAT_LEAVE; // «Join» stands where «Leave» would
     return CHAT_OTHER;
   }
@@ -285,6 +294,7 @@ public final class Tgx101BarOrder {
       case CHAT_PROXY: return R.string.Proxy;
       case CHAT_LEAVE: return R.string.Tgx101ChatMenuLeave;
       case CHAT_EXPORT: return R.string.ChatExport;
+      case CHAT_DELETE_MINE: return R.string.Tgx101DeleteMine;
       case CHAT_OTHER: default: return R.string.Tgx101ChatMenuOther;
     }
   }
@@ -310,6 +320,7 @@ public final class Tgx101BarOrder {
       case CHAT_PASSCODE: return R.drawable.baseline_lock_24;
       case CHAT_PROXY: return R.drawable.baseline_security_24;
       case CHAT_EXPORT: return R.drawable.baseline_file_download_24;
+      case CHAT_DELETE_MINE: return R.drawable.baseline_backspace_24;
       case CHAT_OTHER: default: return R.drawable.baseline_more_horiz_24;
     }
   }
@@ -322,6 +333,12 @@ public final class Tgx101BarOrder {
 
   /** Sorts the ⋮ menu's (id, title) pairs into the user's order and drops the hidden entries */
   public static void applyToChatMenu (me.vkryl.core.collection.IntList ids, org.thunderdog.challegram.util.StringList strings) {
+    applyToChatMenu(ids, strings, null, null);
+  }
+
+  /** The same, and the entries put into «More…» go to {@code moreIds} / {@code moreStrings} (dropped when those are null) */
+  public static void applyToChatMenu (me.vkryl.core.collection.IntList ids, org.thunderdog.challegram.util.StringList strings,
+                                      @androidx.annotation.Nullable me.vkryl.core.collection.IntList moreIds, @androidx.annotation.Nullable org.thunderdog.challegram.util.StringList moreStrings) {
     List<String> order = getOrder(BAR_CHAT_MENU);
     int n = ids.size();
     int[] srcIds = ids.get().clone(); // a copy: IntList.get() hands out its own array, which the appends below overwrite (log 2026-10-28 01:27: «media true → false»)
@@ -344,12 +361,15 @@ public final class Tgx101BarOrder {
     }
     for (String entry : order) {
       if (entry.startsWith("-")) continue;
-      if (CHAT_SAVED_BY_CHATS.equals(entry)) continue;
-      if (isChatFixed(entry.startsWith("-") ? entry.substring(1) : entry)) continue;
+      boolean more = entry.startsWith(CHAT_MORE_PREFIX);
+      String key = bareKey(entry);
+      if (CHAT_SAVED_BY_CHATS.equals(key)) continue;
+      if (isChatFixed(key)) continue;
+      if (more && moreIds == null) continue;
       for (int i = 0; i < n; i++) {
-        if (chatKeyOf(srcIds[i]).equals(entry)) {
-          ids.append(srcIds[i]);
-          strings.append(srcStrings[i]);
+        if (chatKeyOf(srcIds[i]).equals(key)) {
+          (more ? moreIds : ids).append(srcIds[i]);
+          (more ? moreStrings : strings).append(srcStrings[i]);
         }
       }
     }
@@ -430,18 +450,19 @@ public final class Tgx101BarOrder {
     if (saved == null && bar == BAR_CHAT_MENU) saved = CHAT_NEW_INSTALL;
     if (saved != null) {
       for (String entry : saved.split(",")) {
-        String key = entry.startsWith("-") ? entry.substring(1) : entry;
+        if (bar != BAR_CHAT_MENU && entry.startsWith(CHAT_MORE_PREFIX)) continue;
+        String key = bareKey(entry);
         if (bar == BAR_DRAWER && isDrawerSpacer(key)) {
           if (!entry.startsWith("-") && !result.contains(key)) result.add(key); // a space or a divider is in the menu or gone
           continue;
         }
-        if (indexOf(KEYS[bar], key) != -1 && !result.contains(key) && !result.contains("-" + key)) {
+        if (indexOf(KEYS[bar], key) != -1 && !result.contains(key) && !result.contains("-" + key) && !result.contains(CHAT_MORE_PREFIX + key)) {
           result.add(entry);
         }
       }
     }
     for (String key : KEYS[bar]) {
-      if (!result.contains(key) && !result.contains("-" + key)) {
+      if (!result.contains(key) && !result.contains("-" + key) && !result.contains(CHAT_MORE_PREFIX + key)) {
         boolean off = (bar == BAR_SWIPE && indexOf(SWIPE_OFF_BY_DEFAULT, key) != -1) || (bar == BAR_CHAT_MENU && indexOf(CHAT_OFF_BY_DEFAULT, key) != -1)
           || (bar == BAR_CAPSULE && indexOf(CAPSULE_OFF_BY_DEFAULT, key) != -1)
           || (bar == BAR_DRAWER && indexOf(DRAWER_OFF_BY_DEFAULT, key) != -1);

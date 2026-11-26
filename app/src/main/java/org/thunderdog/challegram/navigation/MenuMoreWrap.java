@@ -526,6 +526,9 @@ public class MenuMoreWrap extends MenuMoreWrapAbstract implements Animated {
     // TGx101 (user 2026-11-24, screenshot at the largest text: the words ran off the left edge, their start and icons
     // gone): never wider than the screen with a margin — a row that doesn't fit runs (tgx101StyleRow's marquee)
     int screenCap = org.thunderdog.challegram.tool.Screen.currentWidth() - org.thunderdog.challegram.tool.Screen.dp(16f);
+    // (2026-11-27 screenshot: after «More…» the longest row «Автоудаление сообщений» ran as a marquee, «…ление сообщений»
+    // — it fitted to a fraction of a pixel short) a little room, so the longest row always fits
+    maxWidth += Screen.dp(2f);
     int width = Math.max(getMinimumWidth(), maxWidth + padding + padding);
     if (width > screenCap) {
       width = screenCap;

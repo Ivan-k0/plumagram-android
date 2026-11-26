@@ -6367,7 +6367,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     ids.append(R.id.btn_tgx101ChatProxy);
     strings.append(R.string.Proxy);
     boolean tgx101HadMedia = ids.indexOf(R.id.btn_tgx101ChatMedia) != -1;
-    Tgx101BarOrder.applyToChatMenu(ids, strings);
+    IntList moreIds = new IntList(4);
+    StringList moreStrings = new StringList(4);
+    Tgx101BarOrder.applyToChatMenu(ids, strings, moreIds, moreStrings);
     org.thunderdog.challegram.Tgx101Diag.mark("chat menu: " + ids.size() + " items, channel " + tdlib.isChannel(chat.id) + ", media " + tgx101HadMedia + " → " + (ids.indexOf(R.id.btn_tgx101ChatMedia) != -1));
     int notifAt = ids.indexOf(R.id.btn_tgx101NotifMenu);
     if (notifAt > 0) { // «Notifications ›» first, as on the mockup (after Saved Messages' «as chats», which is first too)
@@ -6380,6 +6382,23 @@ public class MessagesController extends ViewController<MessagesController.Argume
       ids.append(srcIds[notifAt]); strings.append(srcStrings[notifAt]);
       for (int i = top; i < srcIds.length; i++) if (i != notifAt) { ids.append(srcIds[i]); strings.append(srcStrings[i]); }
     }
+    // (user 2026-11-27): «More…» in the middle of the plain rows — not among «Notifications ›» on top / «Leave» at the bottom
+    tgx101MoreIds = moreIds.get().clone();
+    tgx101MoreTitles = moreStrings.get().clone();
+    if (tgx101MoreIds.length > 0) {
+      int[] srcIds = ids.get().clone();
+      String[] srcStrings = strings.get();
+      int from = 0, to = srcIds.length;
+      while (from < to && (srcIds[from] == R.id.btn_tgx101SavedByChats || srcIds[from] == R.id.btn_tgx101NotifMenu)) from++;
+      if (to > from && Tgx101BarOrder.CHAT_LEAVE.equals(Tgx101BarOrder.chatKeyOf(srcIds[to - 1]))) to--;
+      int at = from + (to - from) / 2;
+      ids.clear();
+      strings.clear();
+      for (int i = 0; i <= srcIds.length; i++) {
+        if (i == at) { ids.append(R.id.btn_tgx101ChatMore); strings.append(Lang.getString(R.string.Tgx101ChatMenuMore)); }
+        if (i < srcIds.length) { ids.append(srcIds[i]); strings.append(srcStrings[i]); }
+      }
+    }
     tgx101MenuIds = ids.get().clone();
     tgx101MenuTitles = strings.get().clone();
     tgx101MenuIcons = new int[tgx101MenuIds.length];
@@ -6388,8 +6407,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
   // TGx101 (user 2026-11-26 «наше окно… простыня», mockup approved): the ⋮ menu with icons; «Notifications ›» as a page
-  private int[] tgx101MenuIds, tgx101MenuIcons;
-  private String[] tgx101MenuTitles;
+  private int[] tgx101MenuIds, tgx101MenuIcons, tgx101MoreIds;
+  private String[] tgx101MenuTitles, tgx101MoreTitles;
 
   private int tgx101ChatMenuIcon (int id) {
     if (id == R.id.btn_tgx101NotifMenu) return tdlib.chatNotificationsEnabled(chat.id) ? R.drawable.baseline_notifications_24 : R.drawable.baseline_notifications_off_24;
@@ -6406,7 +6425,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     if (id == R.id.btn_savedMessagesTags) return R.drawable.baseline_bookmark_24;
     if (id == R.id.menu_btn_tgx101SavedSettings) return R.drawable.baseline_settings_24;
     if (id == R.id.btn_deleteThread) return R.drawable.baseline_delete_24;
-    if (id == R.id.btn_tgx101DeleteMine) return R.drawable.baseline_backspace_24; // «стереть своё» — not the clear-history broom (user 2026-11-27 «иконку придумай другую»)
+    if (id == R.id.btn_tgx101DeleteMine) return R.drawable.baseline_backspace_24;
+    if (id == R.id.btn_tgx101ChatMore) return R.drawable.baseline_more_horiz_24;
+    if (id == R.id.btn_tgx101ChatMoreBack) return R.drawable.baseline_arrow_back_24; // «стереть своё» — not the clear-history broom (user 2026-11-27 «иконку придумай другую»)
     if (id == R.id.btn_sendScreenshotNotification) return R.drawable.baseline_info_24;
     return Tgx101BarOrder.chatIconOf(Tgx101BarOrder.chatKeyOf(id));
   }
@@ -6532,8 +6553,55 @@ public class MessagesController extends ViewController<MessagesController.Argume
       header.tgx101SwapMore(tgx101MenuIds, tgx101MenuTitles, tgx101MenuIcons, false);
       return true;
     }
+    if (id == R.id.btn_tgx101ChatMore && tgx101MoreIds != null && tgx101MoreIds.length > 0) {
+      header.tgx101MorphMore(tgx101MoreOpened());
+      return true;
+    }
+    if (id == R.id.btn_tgx101ChatMoreBack) {
+      header.tgx101MorphMore(new Object[] {tgx101MenuIds, tgx101MenuTitles, tgx101MenuIcons});
+      return true;
+    }
     return false;
   }
+
+  /**
+   * (user 2026-11-27 «при нажатии на кнопку ещё она превращается в стрелочку "назад", а снизу и сверху кнопки из ещё меняют
+   * соседние кнопки незаметно. только соседние поровну выше и ниже»): the opened menu — «More…» turned «Back» in its place,
+   * the extra rows over its nearest neighbours, half above and half below; when the neighbours run out, the rest are added
+   */
+  private Object[] tgx101MoreOpened () {
+    int[] base = tgx101MenuIds;
+    int m = -1;
+    for (int i = 0; i < base.length; i++) if (base[i] == R.id.btn_tgx101ChatMore) m = i;
+    int from = 0, to = base.length;
+    while (from < to && (base[from] == R.id.btn_tgx101SavedByChats || base[from] == R.id.btn_tgx101NotifMenu)) from++;
+    if (to > from && Tgx101BarOrder.CHAT_LEAVE.equals(Tgx101BarOrder.chatKeyOf(base[to - 1]))) to--;
+    int k = tgx101MoreIds.length;
+    int above = Math.min((k + 1) / 2, m - from), below = Math.min(k - above, to - 1 - m);
+    above = Math.min(k - below, m - from); // the side with fewer neighbours gives its share to the other
+    int extra = k - above - below; // more than the neighbours: added under the last one below
+    java.util.List<Integer> ids = new java.util.ArrayList<>();
+    java.util.List<String> titles = new java.util.ArrayList<>();
+    int e = 0;
+    for (int i = 0; i < base.length; i++) {
+      if (i >= m - above && i < m) { ids.add(tgx101MoreIds[e]); titles.add(tgx101MoreTitles[e]); e++; continue; }
+      if (i == m) { ids.add(R.id.btn_tgx101ChatMoreBack); titles.add(Lang.getString(R.string.Tgx101MenuBack)); continue; }
+      if (i > m && i <= m + below) {
+        ids.add(tgx101MoreIds[e]); titles.add(tgx101MoreTitles[e]); e++;
+        if (i == m + below) for (int x = 0; x < extra; x++) { ids.add(tgx101MoreIds[e]); titles.add(tgx101MoreTitles[e]); e++; }
+        continue;
+      }
+      ids.add(base[i]); titles.add(tgx101MenuTitles[i]);
+    }
+    if (below == 0 && extra > 0) { // no neighbours below: the rest go right under «Back»
+      int at = ids.indexOf(R.id.btn_tgx101ChatMoreBack) + 1;
+      for (int x = 0; x < extra; x++) { ids.add(at + x, tgx101MoreIds[e]); titles.add(at + x, tgx101MoreTitles[e]); e++; }
+    }
+    int[] outIds = new int[ids.size()], outIcons = new int[ids.size()];
+    for (int i = 0; i < outIds.length; i++) { outIds[i] = ids.get(i); outIcons[i] = tgx101ChatMenuIcon(outIds[i]); }
+    return new Object[] {outIds, titles.toArray(new String[0]), outIcons};
+  }
+
 
   // TGx101: the ⋮ «Proxy» — switch it on/off at once, or open the list of proxies
   private void tgx101ShowChatProxy () {

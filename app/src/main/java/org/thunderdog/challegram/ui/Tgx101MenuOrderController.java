@@ -249,12 +249,16 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
     List<ListItem> items = new ArrayList<>();
     items.add(new ListItem(ListItem.TYPE_EMPTY_OFFSET_SMALL));
     if (mode() == MODE_SWIPE) items.add(new ListItem(ListItem.TYPE_CUSTOM - CUSTOM_PREVIEW));
-    for (int section = 0; section < 2; section++) {
+    // (user 2026-11-27 «кнопку "ещё" куда можно было бы добавлять доп кнопки»): the ⋮ menu has a middle section, «In More…»
+    final boolean chatMore = mode() == MODE_CHAT_MENU;
+    final int sectionCount = chatMore ? 3 : 2, offSection = sectionCount - 1;
+    for (int section = 0; section < sectionCount; section++) {
       List<ListItem> rows = new ArrayList<>();
       for (String entry : swipe) {
         boolean hidden = entry.startsWith("-");
-        if (hidden != (section == 1)) continue;
-        String key = hidden ? entry.substring(1) : entry;
+        int entrySection = hidden ? offSection : chatMore && entry.startsWith(Tgx101BarOrder.CHAT_MORE_PREFIX) ? 1 : 0;
+        if (entrySection != section) continue;
+        String key = Tgx101BarOrder.bareKey(entry);
         if (mode() == MODE_CHAT_MENU && Tgx101BarOrder.isChatFixed(key)) continue; // always there: «Notifications» on top, «Leave» at the bottom
         if (mode() == MODE_DRAWER && Tgx101BarOrder.isDrawerSpacer(key)) {
           // (user 2026-11-20): a space or a divider — no switch, it is moved, or tapped / swiped away
@@ -265,7 +269,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
         }
         rows.add(new ListItem(ListItem.TYPE_RADIO_SETTING, R.id.btn_tgx101SwipeItem, iconOf(key), nameOf(key)).setData(entry));
       }
-      int title = section == 1 ? R.string.Tgx101SwipeSectionOff : mode() == MODE_SWIPE ? R.string.Tgx101SwipeSectionOn : R.string.Tgx101BarSectionOn;
+      int title = section == offSection ? R.string.Tgx101SwipeSectionOff : section == 1 ? R.string.Tgx101ChatMenuSectionMore : mode() == MODE_SWIPE ? R.string.Tgx101SwipeSectionOn : R.string.Tgx101BarSectionOn;
       CharSequence titleText = Lang.getString(title);
       if (mode() == MODE_CAPSULE && section == 0) {
         // «After Chats · 3 of 3»
@@ -419,8 +423,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
   }
 
   private static String keyOf (ListItem item) {
-    String entry = (String) item.getData();
-    return entry.startsWith("-") ? entry.substring(1) : entry;
+    return Tgx101BarOrder.bareKey((String) item.getData());
   }
 
   /** The preview follows the list as it is now — also in the middle of a drag */
@@ -472,6 +475,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       for (int section = 0; section < sections.size(); section++) {
         for (ListItem row : sections.get(section)) {
           String key = keyOf(row);
+          int offSection = mode() == MODE_CHAT_MENU ? 2 : 1;
           if (section > 0 && Tgx101BarOrder.isDrawerSpacer(key)) {
             continue; // a space or a divider dragged into «Off» is gone
           }
@@ -480,7 +484,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
             rebuild();
             return;
           }
-          list.add(section > 0 ? "-" + key : key);
+          list.add(section >= offSection ? "-" + key : section == 1 ? Tgx101BarOrder.CHAT_MORE_PREFIX + key : key);
         }
       }
       if (!checkCapsuleCount(list)) {
@@ -691,7 +695,7 @@ public class Tgx101MenuOrderController extends RecyclerViewController<Tgx101Menu
       List<String> list = new ArrayList<>(Tgx101BarOrder.getOrder(bar()));
       int index = list.indexOf(entry);
       if (index != -1) {
-        list.set(index, entry.startsWith("-") ? entry.substring(1) : "-" + entry);
+        list.set(index, entry.startsWith("-") ? entry.substring(1) : "-" + Tgx101BarOrder.bareKey(entry));
         if (!checkCapsuleCount(list)) {
           adapter.updateValuedSettingById(R.id.btn_tgx101SwipeItem);
           return;

@@ -1668,6 +1668,8 @@
   <item name="btn_tgx101ShowPeerIds" type="id"/>
   <item name="btn_tgx101NotifMenu" type="id"/>
   <item name="btn_tgx101NotifBack" type="id"/>
+  <item name="btn_tgx101ChatMore" type="id"/>
+  <item name="btn_tgx101ChatMoreBack" type="id"/>
   <item name="btn_tgx101NotifOff" type="id"/>
   <item name="btn_tgx101NotifOn" type="id"/>
   <item name="btn_tgx101NotifSound" type="id"/>
