@@ -81,9 +81,45 @@ public class RoundStabilizer implements SensorEventListener {
     gyroscope = sensorManager != null ? sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE) : null;
   }
 
+  // TGx101 (user 2026-11-26 «да, делай» — the gyroscope's timing to the frames): in diagnostic builds a round writes its
+  // gyroscope samples and the corrections given to each encoded frame to Android/data/…/files/tgx101-gyro.csv; the offset
+  // that fits best is worked out from it and set below (frames are matched to the gyroscope this much later / earlier)
+  static final long TGX101_OFFSET_NS = 0L;
+  private static final boolean TGX101_LOG = org.thunderdog.challegram.BuildConfig.TGX101_DIAG && !org.thunderdog.challegram.BuildConfig.TGX101_TEST;
+  private StringBuilder tgx101Log;
+
+  private void tgx101LogLine (String line) {
+    StringBuilder b = tgx101Log;
+    if (b == null || b.length() > 4_000_000) return;
+    synchronized (b) {
+      b.append(line).append('\n');
+    }
+  }
+
+  private void tgx101FlushLog () {
+    StringBuilder b = tgx101Log;
+    tgx101Log = null;
+    if (b == null || b.length() == 0) return;
+    try {
+      java.io.File dir = org.thunderdog.challegram.unsorted.AppContext.get().getExternalFilesDir(null);
+      if (dir == null) return;
+      java.io.File file = new java.io.File(dir, "tgx101-gyro.csv");
+      String text;
+      synchronized (b) { text = b.toString(); }
+      try (java.io.FileWriter w = new java.io.FileWriter(file, false)) {
+        w.write(text);
+      }
+      org.thunderdog.challegram.Tgx101Diag.mark("round: gyro log " + text.length() / 1024 + " KB → " + file.getName());
+    } catch (Throwable ignored) { }
+  }
+
   public void start () {
     if (started || gyroscope == null) {
       return;
+    }
+    if (TGX101_LOG) {
+      tgx101Log = new StringBuilder(1 << 16);
+      tgx101LogLine("kind,t,a,b,c,d,front,shiftPerRadian=" + shiftPerRadian + ",follow=" + FOLLOW_SECONDS + ",edge=" + EDGE_PULL + ",limit=" + limitTilt + ",offset=" + TGX101_OFFSET_NS);
     }
     WindowManager windowManager = (WindowManager) org.thunderdog.challegram.unsorted.AppContext.get().getSystemService(Context.WINDOW_SERVICE);
     isPortrait = windowManager == null || windowManager.getDefaultDisplay().getRotation() == Surface.ROTATION_0;
@@ -100,6 +136,7 @@ public class RoundStabilizer implements SensorEventListener {
       sensorManager.unregisterListener(this);
       started = false;
     }
+    tgx101FlushLog();
   }
 
   public boolean isActive () {
@@ -108,6 +145,7 @@ public class RoundStabilizer implements SensorEventListener {
 
   @Override
   public void onSensorChanged (SensorEvent event) {
+    if (tgx101Log != null) tgx101LogLine("g," + event.timestamp + "," + event.values[0] + "," + event.values[1] + "," + event.values[2] + ",,");
     if (lastTimestampNs != 0) {
       float dt = (event.timestamp - lastTimestampNs) / 1_000_000_000f;
       if (dt > 0 && dt < 0.1f) {
@@ -152,7 +190,8 @@ public class RoundStabilizer implements SensorEventListener {
       return;
     }
     float[] angles = new float[3];
-    long lagNs = anglesAt(toSensorClock(frameTimestampNs), angles);
+    long sensorTime = toSensorClock(frameTimestampNs) + TGX101_OFFSET_NS;
+    long lagNs = anglesAt(sensorTime, angles);
     float ax = angles[0], ay = angles[1], az = angles[2];
     // Tilting the top towards the user makes the rear camera look up (scene moves down)
     // and the front camera look down (scene moves up).
@@ -168,6 +207,9 @@ public class RoundStabilizer implements SensorEventListener {
     Matrix.rotateM(stabilization, 0, (float) Math.toDegrees(roll), 0, 0, 1);
     Matrix.scaleM(stabilization, 0, ZOOM, ZOOM, 1);
     Matrix.multiplyMM(out, 0, stabilization, 0, base, 0);
+    if (debugOut != null && tgx101Log != null) {
+      tgx101LogLine("f," + sensorTime + "," + shiftX + "," + shiftY + "," + roll + "," + frameTimestampNs + "," + (isFrontFacing ? 1 : 0));
+    }
     if (debugOut != null) {
       debugOut[0] = shiftX;
       debugOut[1] = shiftY;
