@@ -1374,12 +1374,16 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
     tgx101TagsWidth = 0;
     if (chat == null || chat.chatLists == null || !org.thunderdog.challegram.unsorted.Settings.instance().tgx101ChatFolderTags()) return;
     int current = chatList instanceof TdApi.ChatListFolder ? ((TdApi.ChatListFolder) chatList).chatFolderId : 0;
+    // (user 2026-11-26 «если папка каналы — плашки быть не должно, если папка группы — их не будет»): none at all inside a
+    // «Groups» / «Channels» folder; the tags themselves are only those folders — what kind of chat it is
+    if (current != 0 && tgx101IsTypeFolder(tdlib.chatFolderInfo(current))) return;
     java.util.List<String> names = new java.util.ArrayList<>();
     for (TdApi.ChatList list : chat.chatLists) {
       if (!(list instanceof TdApi.ChatListFolder)) continue;
       int id = ((TdApi.ChatListFolder) list).chatFolderId;
       if (id == current) continue;
       TdApi.ChatFolderInfo info = tdlib.chatFolderInfo(id);
+      if (!tgx101IsTypeFolder(info)) continue;
       if (info == null || info.name == null || info.name.text == null || StringUtils.isEmpty(info.name.text.text)) continue;
       names.add(info.name.text.text.toUpperCase(java.util.Locale.ROOT));
       if (names.size() == 2) break;
@@ -1392,6 +1396,12 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       tgx101TagWidths[i] = (int) Math.ceil(p.measureText(tgx101Tags[i])) + Screen.dp(12f);
       tgx101TagsWidth += tgx101TagWidths[i] + (i > 0 ? Screen.dp(4f) : 0);
     }
+  }
+
+  private static boolean tgx101IsTypeFolder (@androidx.annotation.Nullable TdApi.ChatFolderInfo info) {
+    if (info == null || info.icon == null || info.icon.name == null) return false;
+    String n = info.icon.name;
+    return "Groups".equals(n) || "Channels".equals(n) || "Bots".equals(n);
   }
 
   /** a pinned chat with nothing unread shows a pin on the right (the flat chat list) */
