@@ -2557,6 +2557,7 @@ public class ThemeListController extends RecyclerViewController<ThemeListControl
       ColorId.themeOrange,
       ColorId.themeGreen,
       ColorId.themePink,
+      ColorId.themeLavender,
       ColorId.themeCyan,
       ColorId.themeNightBlue,
       ColorId.themeNightBlack,

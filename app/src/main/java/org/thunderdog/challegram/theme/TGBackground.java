@@ -257,6 +257,7 @@ public class TGBackground {
       case ThemeId.GREEN:
         return ID_CATS_GREEN;
       case ThemeId.PINK:
+      case ThemeId.LAVENDER:
         return ID_CATS_PINK;
       case ThemeId.RED:
       case ThemeId.ORANGE:

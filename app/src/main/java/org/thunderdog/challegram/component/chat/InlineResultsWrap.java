@@ -207,6 +207,11 @@ public class InlineResultsWrap extends FrameLayoutFix implements View.OnClickLis
         int top = detectRecyclerTopEdge();
         int width = getMeasuredWidth();
         android.graphics.Paint fill = Paints.fillingPaint(adapter.useDarkMode() ? Theme.getColor(ColorId.filling, ThemeId.NIGHT_BLACK) : Theme.fillingColor());
+        if (tgx101CapsuleRadius > 0 && tgx101Alpha != null && !adapter.useDarkMode()) {
+          // TGx101 (user 2026-11-26 «на файлах полоска в поле ввода отличается… обычно темнее»): the see-through filling of
+          // the field and its reply bar, not a solid one
+          fill.setColor(me.vkryl.core.ColorUtils.alphaColor(tgx101Alpha.get(), Theme.fillingColor()));
+        }
         if (tgx101CapsuleRadius > 0) {
           // TGx101: the top of the floating input capsule — rounded on top, the input below goes on straight
           float r = Math.min(tgx101CapsuleRadius, (getMeasuredHeight() - top) / 2f);
@@ -286,6 +291,14 @@ public class InlineResultsWrap extends FrameLayoutFix implements View.OnClickLis
 
   // TGx101: attached files above the floating input capsule — same side gaps, rounded top, no shadow line
   private int tgx101CapsuleRadius;
+
+  public interface Tgx101Alpha { float get (); }
+  private Tgx101Alpha tgx101Alpha;
+
+  public void tgx101SetCapsuleAlpha (Tgx101Alpha alpha) {
+    tgx101Alpha = alpha;
+    invalidate();
+  }
   private final android.graphics.Path tgx101Path = new android.graphics.Path();
   private final float[] tgx101Radii = new float[8];
 

@@ -17910,6 +17910,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
       };
       if (floatingLook) { // user 2026-10-07 11:47 «А должно быть так»: the attached file is one capsule with the input, like a reply
         attachedFiles.tgx101SetCapsule(Screen.dp(FLOATING_INPUT_SIDE), Screen.dp(FLOATING_INPUT_RADIUS));
+        attachedFiles.tgx101SetCapsuleAlpha(() -> tgx101FieldAlpha(Build.VERSION.SDK_INT >= Build.VERSION_CODES.S));
       }
       attachedFilesAnimator = new CustomItemAnimator(AnimatorUtils.DECELERATE_INTERPOLATOR, 150L);
       attachedFiles.getRecyclerView().setItemAnimator(null);

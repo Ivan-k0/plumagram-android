@@ -71,6 +71,7 @@ public class ThemeManager implements FactorAnimator.Target, GlobalAccountListene
       case ThemeId.GREEN:
       case ThemeId.ORANGE:
       case ThemeId.PINK:
+      case ThemeId.LAVENDER:
       case ThemeId.RED:
         return true;
     }
@@ -111,6 +112,8 @@ public class ThemeManager implements FactorAnimator.Target, GlobalAccountListene
         return R.string.ThemeOrange;
       case ThemeId.PINK:
         return R.string.ThemePink;
+      case ThemeId.LAVENDER:
+        return R.string.Tgx101ThemeLavender;
       case ThemeId.WHITE_BLACK:
         return R.string.ThemeWhiteBlack;
     }
@@ -124,6 +127,7 @@ public class ThemeManager implements FactorAnimator.Target, GlobalAccountListene
       ThemeId.ORANGE,
       ThemeId.GREEN,
       ThemeId.PINK,
+      ThemeId.LAVENDER,
       ThemeId.CYAN,
     };
     List<ThemeInfo> themes = new ArrayList<>(accentThemeIds.length);
@@ -141,6 +145,7 @@ public class ThemeManager implements FactorAnimator.Target, GlobalAccountListene
       ThemeId.ORANGE,
       ThemeId.GREEN,
       ThemeId.PINK,
+      ThemeId.LAVENDER,
       ThemeId.CYAN,
       ThemeId.NIGHT_DEEP,
       ThemeId.NIGHT_BLUE,
@@ -154,6 +159,7 @@ public class ThemeManager implements FactorAnimator.Target, GlobalAccountListene
       ThemeId.ORANGE,
       ThemeId.GREEN,
       ThemeId.PINK,
+      ThemeId.LAVENDER,
       ThemeId.CYAN,
       ThemeId.NIGHT_DEEP,
       ThemeId.NIGHT_BLUE,
@@ -509,6 +515,7 @@ public class ThemeManager implements FactorAnimator.Target, GlobalAccountListene
       case ThemeId.NIGHT_BLACK:
       case ThemeId.ORANGE:
       case ThemeId.PINK:
+      case ThemeId.LAVENDER:
       case ThemeId.RED:
       case ThemeId.WHITE_BLACK:
       case ThemeId.CLASSIC:
@@ -638,6 +645,7 @@ public class ThemeManager implements FactorAnimator.Target, GlobalAccountListene
       case ThemeId.ORANGE:
       case ThemeId.GREEN:
       case ThemeId.PINK:
+      case ThemeId.LAVENDER:
       case ThemeId.CYAN:
       case ThemeId.CLASSIC:
         return savedThemeId;

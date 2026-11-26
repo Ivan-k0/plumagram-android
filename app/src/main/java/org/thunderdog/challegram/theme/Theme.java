@@ -252,6 +252,8 @@ public class Theme {
         return ColorId.themeOrange;
       case ThemeId.PINK:
         return ColorId.themePink;
+      case ThemeId.LAVENDER:
+        return ColorId.themeLavender;
       case ThemeId.RED:
         return ColorId.themeRed;
       case ThemeId.WHITE_BLACK:

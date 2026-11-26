@@ -1,0 +1,20 @@
+!
+id: 13
+name: "Lavender"
+time: 1795650000
+tinted: true
+@
+parentTheme: 1
+#
+badge, bubbleIn_progress, bubbleIn_textLink, bubbleOut_chatCorrectChosenFilling, bubbleOut_chatCorrectFilling, bubbleOut_chatVerticalLine, bubbleOut_inlineOutline, bubbleOut_textLink, bubbleOut_ticks, bubbleOut_ticksRead, bubbleOut_waveformActive, chatListVerify, circleButtonActive, circleButtonRegular, circleButtonTheme, headerBarCallActive, inlineOutline, inputActive, iv_textLink, iv_textMarkedLink, messageCorrectChosenFilling, messageCorrectFilling, messageSwipeBackground, messageVerticalLine, progress, seekDone, sliderActive, snackbarUpdate, textLink, textNeutral, ticks, ticksRead, togglerActive, unreadText, waveformActive, bubbleOut_fillingPositive, bubbleIn_fillingPositive, bubbleIn_fillingPositive_overlay, bubbleOut_fillingPositive_overlay, fillingPositive: #8774E1
+bubbleIn_textLinkPressHighlight, bubbleOut_textLinkPressHighlight, iv_textLinkPressHighlight, iv_textMarkedLinkPressHighlight, textLinkPressHighlight, tooltip_textLinkPressHighlight: #8774E140
+bubbleOut_background, unread: #EEEAFE
+bubbleOut_file, controlActive, file, playerButtonActive, profileSectionActive, profileSectionActiveContent, promo, textSearchQueryHighlight, tooltip_textLink, avatarArchive, avatarSavedMessages, avatarSavedMessages_big, avatarReplies, avatarReplies_big: #9C8BEA
+bubbleOut_inlineIcon, bubbleOut_inlineText, bubbleOut_progress, bubbleOut_separator, bubbleOut_time, chatSendButton, checkActive, headerBackground, iconActive, inlineIcon, inlineText, notification, notificationLink, notificationPlayer, passcode: #7B68D8
+bubbleOut_messageAuthor, chatListAction, messageAuthor, online: #6A56C9
+bubbleOut_waveformInactive, textSelectionHighlight, togglerActiveBackground, waveformInactive: #D6CEF8
+messageSelection: #8774E110
+headerBadgeFailed: #ffd307
+seekReady: #E3DCFB
+bubble_messageSelection, bubble_messageSelectionNoWallpaper: #7B68D833
+bubbleOut_fillingActive: #8774E11A
