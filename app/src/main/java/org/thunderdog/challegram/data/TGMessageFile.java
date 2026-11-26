@@ -94,7 +94,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
       this.caption = new ReplaceAnimator<>(animator -> {
         files.measure(needAnimateChanges());
         invalidate();
-      }, AnimatorUtils.DECELERATE_INTERPOLATOR, TEXT_CROSS_FADE_DURATION_MS);
+      }, TGX101_FOLD_CURVE, TGX101_FOLD_MS);
       updateCaption(false);
     }
 
@@ -303,7 +303,11 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
     } else {
       invalidate();
     }
-  }, AnimatorUtils.DECELERATE_INTERPOLATOR, 200l);
+  }, TGX101_FOLD_CURVE, TGX101_FOLD_MS); // TGx101 (user 2026-11-27 «сделай анимацию плавнее»): 200 → 340 ms, a soft curve
+
+  // a voice's transcription opening / folding: the height and the text together, slower, eased out
+  private static final long TGX101_FOLD_MS = 340L;
+  private static final android.view.animation.Interpolator TGX101_FOLD_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.25f, .1f, .1f, 1f);
 
   @NonNull
   private CaptionedFile newFile (TGMessage context, TdApi.Message message) {
@@ -679,7 +683,12 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
       for (ListAnimator.Entry<TextWrapper> caption : entry.item.caption) {
         int right = useBubbles() ? startX + getContentWidth() : startX + Math.max(entry.item.component.getWidth(), caption.item.getWidth());
         int captionTop = contentStartY + entry.item.component.getHeight() + Screen.dp(TEXT_MARGIN);
+        // TGx101 (user 2026-11-27 video «у нас это сломалось»): a folding transcription faded over the messages below —
+        // the file's height folds faster than its text fades; the text is cut at the file's current (animated) bottom
+        int tgx101Clip = Views.save(c);
+        c.clipRect(startX - Screen.dp(8f), contentStartY, right + Screen.dp(8f), rectF.bottom);
         caption.item.draw(c, startX, right, 0, captionTop, null, entry.getVisibility() * caption.getVisibility() * alpha, view.getTextMediaReceiver());
+        Views.restore(c, tgx101Clip);
         if (tgx101Dots && caption.item == entry.item.captionWrapper) {
           // (user 2026-11-10): the transcription on its way — the dots hop over the blank where its text will be
           float a = entry.getVisibility() * caption.getVisibility() * alpha;
@@ -1025,7 +1034,7 @@ public class TGMessageFile extends TGMessage implements Tgx101Transcription.List
   @Override
   public void onTranscriptionChanged (long chatId, long messageId) {
     if (chatId != getChatId() || isDestroyed()) return;
-    if (messageId == tgx101FollowTopId) manager().tgx101KeepMessageTop(messageId, TEXT_CROSS_FADE_DURATION_MS + 100);
+    if (messageId == tgx101FollowTopId) manager().tgx101KeepMessageTop(messageId, TGX101_FOLD_MS + 100);
     boolean changed = false;
     for (CaptionedFile file : filesList) {
       if (file.messageId == messageId) {
