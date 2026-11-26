@@ -576,7 +576,9 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
 
   @Override
   protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
-    super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(getViewHeight(getChatListMode()), MeasureSpec.EXACTLY));
+    int height = getViewHeight(getChatListMode());
+    if (chat != null && !chat.isArchive() && chat.tgx101HasTags()) height += TGChat.tgx101TagsRowHeight(); // the folder tags' line
+    super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
     layoutReceiver();
     if (chat != null && chat.checkLayout(getMeasuredWidth())) {
       requestContent();
@@ -957,20 +959,21 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
     int[] widths = chat.tgx101TagWidths();
     if (tags == null || widths == null) return;
     android.text.TextPaint p = TGChat.tgx101TagPaint();
-    int accent = Theme.getColor(ColorId.textNeutral);
-    float right = chat.getTimeLeft() - Screen.dp(6f);
-    if (chat.showViews()) right -= chat.getViewCounter().getScaledWidth(Screen.dp(3));
-    else if (chat.isSending() || chat.isOutgoing()) right -= getTimePaddingLeft() + Screen.dp(20f); // left of the ticks
+    int[] colors = chat.tgx101TagColors();
+    // under the text, from the left, as on the reference
+    float left = getLeftPadding(chatListMode);
     float h = Screen.dp(16f);
-    float cy = getTitleTop(chatListMode) - Screen.dp(4.5f);
+    float cy = getMeasuredHeight() - TGChat.tgx101TagsRowHeight() / 2f - Screen.dp(5f);
+    boolean dark = Theme.isDark();
     for (int i = 0; i < tags.length; i++) {
-      float left = right - widths[i];
+      int color = colors != null && i < colors.length ? colors[i] : Theme.getColor(ColorId.textNeutral);
+      float right = left + widths[i];
       float l = rtl ? viewWidth - right : left, r = rtl ? viewWidth - left : right;
       tgx101TagRect.set(l, cy - h / 2f, r, cy + h / 2f);
-      c.drawRoundRect(tgx101TagRect, Screen.dp(4f), Screen.dp(4f), Paints.fillingPaint(ColorUtils.alphaColor(.16f, accent)));
-      p.setColor(accent);
+      c.drawRoundRect(tgx101TagRect, Screen.dp(4f), Screen.dp(4f), Paints.fillingPaint(ColorUtils.alphaColor(dark ? .22f : .16f, color)));
+      p.setColor(dark ? ColorUtils.fromToArgb(color, 0xffffffff, .25f) : color);
       c.drawText(tags[i], tgx101TagRect.left + Screen.dp(6f), cy - (p.ascent() + p.descent()) / 2f, p);
-      right = left - Screen.dp(4f);
+      left = right + Screen.dp(4f);
     }
   }
 

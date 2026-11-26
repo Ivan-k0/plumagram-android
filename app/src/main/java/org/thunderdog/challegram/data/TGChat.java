@@ -1135,8 +1135,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       int reactionsWidth = reactionsCounterDrawable.getTargetWidth();
       avail -= reactionsWidth + (reactionsWidth > 0 ? Screen.dp(3) : 0);
     }
-    tgx101LayoutTags();
-    if (tgx101TagsWidth > 0) avail -= tgx101TagsWidth + Screen.dp(6f);
+    tgx101LayoutTags(); // (user 2026-11-26 «можем их размещать снизу как у эталона?»): a line of their own under the text
 
     if (changed || lastAvailWidth != avail) {
       lastAvailWidth = avail;
@@ -1352,7 +1351,16 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   // TGx101 (user 2026-11-26): folder tags by the title — the folders this chat is in, but not the one being shown
   // («если папка каналы — там этой плашки быть не должно… если папка все, кастомная или личные — будет плашка»)
   private String[] tgx101Tags;
-  private int[] tgx101TagWidths;
+  private int[] tgx101TagWidths, tgx101TagColors;
+  public int[] tgx101TagColors () { return tgx101TagColors; }
+
+  /** the row is taller by this to hold the tags under the text */
+  public static int tgx101TagsRowHeight () { return Screen.dp(22f); }
+
+  public boolean tgx101HasTags () {
+    tgx101LayoutTags();
+    return tgx101Tags != null;
+  }
   private int tgx101TagsWidth;
 
   public String[] tgx101Tags () { return tgx101Tags; }
@@ -1378,6 +1386,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
     // «Groups» / «Channels» folder; the tags themselves are only those folders — what kind of chat it is
     if (current != 0 && tgx101IsTypeFolder(tdlib.chatFolderInfo(current))) return;
     java.util.List<String> names = new java.util.ArrayList<>();
+    java.util.List<Integer> colors = new java.util.ArrayList<>();
     for (TdApi.ChatList list : chat.chatLists) {
       if (!(list instanceof TdApi.ChatListFolder)) continue;
       int id = ((TdApi.ChatListFolder) list).chatFolderId;
@@ -1386,11 +1395,16 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       if (!tgx101IsTypeFolder(info)) continue;
       if (info == null || info.name == null || info.name.text == null || StringUtils.isEmpty(info.name.text.text)) continue;
       names.add(info.name.text.text.toUpperCase(java.util.Locale.ROOT));
+      // (user 2026-11-26 «плашки группы и каналы нужны разных цветов»)
+      String kind = info.icon.name;
+      colors.add("Channels".equals(kind) ? 0xffff9800 : "Bots".equals(kind) ? 0xff9c7cf4 : 0xff4caf50);
       if (names.size() == 2) break;
     }
     if (names.isEmpty()) return;
     android.text.TextPaint p = tgx101TagPaint();
     tgx101Tags = names.toArray(new String[0]);
+    tgx101TagColors = new int[colors.size()];
+    for (int i = 0; i < tgx101TagColors.length; i++) tgx101TagColors[i] = colors.get(i);
     tgx101TagWidths = new int[tgx101Tags.length];
     for (int i = 0; i < tgx101Tags.length; i++) {
       tgx101TagWidths[i] = (int) Math.ceil(p.measureText(tgx101Tags[i])) + Screen.dp(12f);
