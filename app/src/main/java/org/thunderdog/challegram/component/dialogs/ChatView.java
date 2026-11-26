@@ -577,6 +577,8 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
   @Override
   protected void onMeasure (int widthMeasureSpec, int heightMeasureSpec) {
     int height = getViewHeight(getChatListMode());
+    // (user 2026-11-26 «посмотри как у них компактно»): the flat list is a bit lower, the tags' line short
+    if (chat != null && !chat.isArchive() && !chat.tgx101IsStoriesRow() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101ChatListFlat()) height -= Screen.dp(TGX101_FLAT_TRIM); // the archive / stories rows keep theirs (their folding counts on it)
     if (chat != null && !chat.isArchive() && chat.tgx101HasTags()) height += TGChat.tgx101TagsRowHeight(); // the folder tags' line
     super.onMeasure(widthMeasureSpec, MeasureSpec.makeMeasureSpec(height, MeasureSpec.EXACTLY));
     layoutReceiver();
@@ -951,6 +953,7 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
   }
 
   private Drawable tgx101Pin;
+  public static final float TGX101_FLAT_TRIM = 6f;
   private final android.graphics.RectF tgx101TagRect = new android.graphics.RectF();
 
   /** TGx101: the folder tags at the end of the title line, just before the time */
@@ -963,7 +966,7 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
     // under the text, from the left, as on the reference
     float left = getLeftPadding(chatListMode);
     float h = Screen.dp(16f);
-    float cy = getMeasuredHeight() - TGChat.tgx101TagsRowHeight() / 2f - Screen.dp(5f);
+    float cy = getMeasuredHeight() - Screen.dp(12f);
     boolean dark = Theme.isDark();
     for (int i = 0; i < tags.length; i++) {
       int color = colors != null && i < colors.length ? colors[i] : Theme.getColor(ColorId.textNeutral);
@@ -1004,6 +1007,19 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
     }
 
     c.drawText(chat.getTime(), (rtl ? viewWidth - chat.getTimeLeft() - chat.getTimeWidth() : chat.getTimeLeft()), getTitleTop(chatListMode), timePaint);
+    if (chat.tgx101ShowPin()) {
+      // TGx101 (user 2026-11-26 «привести к эталону»): a small pin just left of the time
+      if (tgx101Pin == null) tgx101Pin = Drawables.get(getResources(), R.drawable.deproko_baseline_pin_24);
+      if (tgx101Pin != null) {
+        int size = Screen.dp(14f);
+        float cx = chat.getTimeLeft() - Screen.dp(3f) - size / 2f;
+        if (rtl) cx = viewWidth - cx;
+        float cy = getTitleTop(chatListMode) - Screen.dp(4.5f);
+        tgx101Pin.setBounds((int) (cx - size / 2f), (int) (cy - size / 2f), (int) (cx + size / 2f), (int) (cy + size / 2f));
+        tgx101Pin.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconLight)));
+        tgx101Pin.draw(c);
+      }
+    }
     tgx101DrawTags(c, chatListMode, rtl, viewWidth);
 
     Text title = chat.getTitle();
@@ -1090,18 +1106,6 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
     Counter mentionCounter = chat.getMentionCounter();
     mentionCounter.draw(c, counterRight - counterRadius, counterCenterY, Gravity.RIGHT, 1f, this, ColorId.badgeText);
     counterRight -= mentionCounter.getScaledWidth(getTimePaddingLeft());
-
-    if (chat.tgx101ShowPin()) {
-      // TGx101 (user 2026-11-26 «справа нарисовать иконочку закреп»): a pinned chat with nothing unread
-      if (tgx101Pin == null) tgx101Pin = Drawables.get(getResources(), R.drawable.deproko_baseline_pin_24);
-      if (tgx101Pin != null) {
-        int size = Screen.dp(18f);
-        float cx = rtl ? viewWidth - (counterRight - counterRadius) : counterRight - counterRadius;
-        tgx101Pin.setBounds((int) (cx - size / 2f), (int) (counterCenterY - size / 2f), (int) (cx + size / 2f), (int) (counterCenterY + size / 2f));
-        tgx101Pin.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconLight)));
-        tgx101Pin.draw(c);
-      }
-    }
 
     Counter reactionCounter = chat.getReactionsCounter();
     reactionCounter.draw(c, counterRight - counterRadius, counterCenterY, Gravity.RIGHT, 1f, this, chat.notificationsEnabled() ? ColorId.badgeText : ColorId.badgeMutedText);

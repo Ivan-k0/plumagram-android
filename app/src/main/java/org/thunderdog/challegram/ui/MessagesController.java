@@ -12698,6 +12698,9 @@ public class MessagesController extends ViewController<MessagesController.Argume
     // (user 2026-11-18 «нужно тонкое разделение между цитатой и полем ввода, мы раньше её убрали»): with a reply / edit /
     // forward bar over the field the hairline comes back between them, fading in and out with the bar
     float tgx101Quote = replyBarView != null && replyBarView.getVisibility() == View.VISIBLE ? MathUtils.clamp(getReplyOffset() / (float) Screen.dp(48f)) : 0f;
+    // (user 2026-11-26 «на файлах полоска в поле ввода отличается… обычно темнее» — the thin line): the same hairline under
+    // the attached files' strip
+    if (attachedFiles != null && hasAttachedFiles()) tgx101Quote = Math.max(tgx101Quote, MathUtils.clamp(attachedFiles.getVisibleFactor()));
     if (tgx101Quote > 0f) {
       c.drawRect(0, top, w, top + Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(me.vkryl.core.ColorUtils.alphaColor(tgx101Quote, Theme.separatorColor())));
     }
@@ -17744,6 +17747,10 @@ public class MessagesController extends ViewController<MessagesController.Argume
 
     if (attachedFiles != null) {
       attachedFiles.setHidden(!hasAttachedFiles, animated);
+    }
+    if (bottomWrap != null) { // the hairline under the files' strip follows it
+      bottomWrap.invalidate();
+      bottomWrap.postDelayed(bottomWrap::invalidate, 320);
     }
 
     setCustomCaptionPlaceholder(hasAttachedFiles ? Lang.getString(R.string.Caption) : null);

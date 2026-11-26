@@ -1136,6 +1136,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       avail -= reactionsWidth + (reactionsWidth > 0 ? Screen.dp(3) : 0);
     }
     tgx101LayoutTags(); // (user 2026-11-26 «можем их размещать снизу как у эталона?»): a line of their own under the text
+    if (tgx101ShowPin()) avail -= tgx101PinWidth();
 
     if (changed || lastAvailWidth != avail) {
       lastAvailWidth = avail;
@@ -1300,7 +1301,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
 
   private void layoutTime () {
     timeLeft = currentWidth - ChatView.getTimePaddingRight() - timeWidth;
-    checkRight = timeLeft - ChatView.getTimePaddingLeft();
+    checkRight = timeLeft - ChatView.getTimePaddingLeft() - (tgx101ShowPin() ? tgx101PinWidth() : 0); // the pin stands by the time
     reactionsRight = checkRight - ChatView.getTimePaddingLeft();
   }
 
@@ -1355,7 +1356,7 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
   public int[] tgx101TagColors () { return tgx101TagColors; }
 
   /** the row is taller by this to hold the tags under the text */
-  public static int tgx101TagsRowHeight () { return Screen.dp(22f); }
+  public static int tgx101TagsRowHeight () { return Screen.dp(15f); }
 
   public boolean tgx101HasTags () {
     tgx101LayoutTags();
@@ -1392,12 +1393,14 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
       int id = ((TdApi.ChatListFolder) list).chatFolderId;
       if (id == current) continue;
       TdApi.ChatFolderInfo info = tdlib.chatFolderInfo(id);
-      if (!tgx101IsTypeFolder(info)) continue;
+      if (info == null || (info.colorId < 0 && !tgx101IsTypeFolder(info))) continue; // as the reference: folders with a colour (and the kinds)
       if (info == null || info.name == null || info.name.text == null || StringUtils.isEmpty(info.name.text.text)) continue;
       names.add(info.name.text.text.toUpperCase(java.util.Locale.ROOT));
       // (user 2026-11-26 «плашки группы и каналы нужны разных цветов»)
-      String kind = info.icon.name;
-      colors.add("Channels".equals(kind) ? 0xffff9800 : "Bots".equals(kind) ? 0xff9c7cf4 : 0xff4caf50);
+      String kind = info.icon != null ? info.icon.name : null;
+      int[] palette = {0xffe55858, 0xfff0a23f, 0xff9c7cf4, 0xff4caf50, 0xff26b5d6, 0xff3d95e3, 0xffe56cb4};
+      colors.add(info.colorId >= 0 && info.colorId < palette.length ? palette[info.colorId]
+        : "Channels".equals(kind) ? 0xffff9800 : "Bots".equals(kind) ? 0xff9c7cf4 : 0xff4caf50);
       if (names.size() == 2) break;
     }
     if (names.isEmpty()) return;
@@ -1418,14 +1421,16 @@ public class TGChat implements TdlibStatusManager.HelperTarget, ContentPreview.R
     return "Groups".equals(n) || "Channels".equals(n) || "Bots".equals(n);
   }
 
-  /** a pinned chat with nothing unread shows a pin on the right (the flat chat list) */
+  /** (user 2026-11-26 «привести к эталону»): a pinned chat shows a small pin just left of its time (the flat chat list) */
   public boolean tgx101ShowPin () {
-    return isPinned() && !isArchive() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101ChatListFlat()
-      && counter.getScaledWidth(0) < 1f && mentionCounter.getScaledWidth(0) < 1f && reactionsCounter.getScaledWidth(0) < 1f;
+    return isPinned() && !isArchive() && org.thunderdog.challegram.unsorted.Settings.instance().tgx101ChatListFlat();
+  }
+
+  public static int tgx101PinWidth () {
+    return Screen.dp(16f);
   }
 
   private int getCounterAddWidth () {
-    if (tgx101ShowPin()) return Screen.dp(26f);
     return Math.round(
       counter.getScaledWidth(ChatView.getTimePaddingLeft()) +
       mentionCounter.getScaledWidth(ChatView.getTimePaddingLeft()) +
