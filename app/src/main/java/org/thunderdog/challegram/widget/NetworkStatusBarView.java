@@ -68,7 +68,37 @@ public class NetworkStatusBarView extends FrameLayoutFix implements Destroyable,
 
     int color = Theme.getColor(Config.STATUS_BAR_TEXT_COLOR_ID);
 
-    progressView = new ProgressComponentView(context);
+    // TGx101 (user 2026-11-26 «приложение ест под 40 % процессора, когда норма 20 %»; journal: while «Connecting…» the app
+    // redrew 60–120 times a second at 22–55 % of a core, all from this spinner — each of its frames redraws the window with
+    // its blurred glass): the spinner turns at ~25 frames a second
+    progressView = new ProgressComponentView(context) {
+      private long tgx101Last;
+      private boolean tgx101Pending;
+      private final Runnable tgx101Later = () -> {
+        tgx101Pending = false;
+        tgx101Last = android.os.SystemClock.uptimeMillis();
+        super.invalidate();
+      };
+
+      @Override
+      public void invalidate () {
+        long now = android.os.SystemClock.uptimeMillis();
+        long wait = 40 - (now - tgx101Last);
+        if (wait <= 0) {
+          tgx101Last = now;
+          super.invalidate();
+        } else if (!tgx101Pending) {
+          tgx101Pending = true;
+          postDelayed(tgx101Later, wait);
+        }
+      }
+
+      @Override
+      @SuppressWarnings("deprecation")
+      public void invalidate (android.graphics.Rect dirty) {
+        invalidate();
+      }
+    };
     progressView.initSmall(1f);
     progressView.setProgressColor(color);
     progressView.setLayoutParams(new LinearLayout.LayoutParams(Screen.dp(24f), ViewGroup.LayoutParams.MATCH_PARENT));
