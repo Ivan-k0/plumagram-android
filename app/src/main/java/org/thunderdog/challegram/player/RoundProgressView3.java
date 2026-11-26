@@ -66,7 +66,8 @@ public class RoundProgressView3 extends View {
     final int viewHeight = getMeasuredHeight();
     final float progress = visualProgress;
 
-    final int defaultColor = 0xFFFFFFFF;
+    // TGx101 (user 2026-11-26 «когда светлая тема, бежит белая полоска, её вообще не видно»): the accent in a light theme
+    final int defaultColor = Theme.isDark() ? 0xFFFFFFFF : Theme.getColor(ColorId.circleButtonRegular);
     final int fillingColor = ColorUtils.fromToArgb(defaultColor, Theme.getColor(ColorId.fillingPositive), editFactor);
 
     strokePaintDefault.setStrokeWidth(Screen.dp(STROKE_WIDTH));
