@@ -959,6 +959,8 @@ public class ChatView extends BaseView implements org.thunderdog.challegram.Tgx1
     android.text.TextPaint p = TGChat.tgx101TagPaint();
     int accent = Theme.getColor(ColorId.textNeutral);
     float right = chat.getTimeLeft() - Screen.dp(6f);
+    if (chat.showViews()) right -= chat.getViewCounter().getScaledWidth(Screen.dp(3));
+    else if (chat.isSending() || chat.isOutgoing()) right -= getTimePaddingLeft() + Screen.dp(20f); // left of the ticks
     float h = Screen.dp(16f);
     float cy = getTitleTop(chatListMode) - Screen.dp(4.5f);
     for (int i = 0; i < tags.length; i++) {
