@@ -6769,7 +6769,7 @@
   <string name="Tgx101ChatsTags">Folder tags in the chat list</string>
   <string name="Tgx101DeleteMine">Delete my messages</string>
   <string name="Tgx101DeleteMineConfirm">Delete all your messages here (%1$s) in «%2$s» for everyone? This can\'t be undone.</string>
-  <string name="Tgx101DeleteMineGo">Delete my messages</string>
+  <string name="Tgx101DeleteMineGo">Delete</string>
   <string name="Tgx101DeleteMineNone">You have no messages here</string>
   <string name="Tgx101DeleteMineStarted">Deleting %1$d messages…</string>
   <string name="Tgx101DeleteMineProgress">Deleted %1$d of %2$d</string>

@@ -1634,7 +1634,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101ChatsTags, "Плашки папок у чатов");
     RU.put(R.string.Tgx101DeleteMine, "Удалить мои сообщения");
     RU.put(R.string.Tgx101DeleteMineConfirm, "Удалить все ваши сообщения (%1$s) в «%2$s» у всех? Это нельзя отменить.");
-    RU.put(R.string.Tgx101DeleteMineGo, "Удалить мои сообщения");
+    RU.put(R.string.Tgx101DeleteMineGo, "Удалить");
     RU.put(R.string.Tgx101DeleteMineNone, "Здесь нет ваших сообщений");
     RU.put(R.string.Tgx101DeleteMineStarted, "Удаляю сообщения: %1$d…");
     RU.put(R.string.Tgx101DeleteMineProgress, "Удалено %1$d из %2$d");
