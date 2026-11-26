@@ -170,6 +170,35 @@ public class TdlibNotificationHelper implements Iterable<TdlibNotificationGroup>
 
   private boolean haveRebuilt;
 
+  /** TGx101 (user 2026-11-26 «на законченные звонки видео или аудио не должно ничего приходить»): the «Call, 0:42»
+   *  message a finished call leaves gives no notification (a missed call still does) */
+  private void tgx101DropFinishedCalls (TdApi.UpdateNotificationGroup update) {
+    if (update.addedNotifications == null || update.addedNotifications.length == 0) return;
+    List<TdApi.Notification> kept = null;
+    for (int i = 0; i < update.addedNotifications.length; i++) {
+      TdApi.Notification n = update.addedNotifications[i];
+      boolean drop = false;
+      if (n.type.getConstructor() == TdApi.NotificationTypeNewMessage.CONSTRUCTOR) {
+        TdApi.Message m = ((TdApi.NotificationTypeNewMessage) n.type).message;
+        if (m.content.getConstructor() == TdApi.MessageCall.CONSTRUCTOR) {
+          TdApi.CallDiscardReason reason = ((TdApi.MessageCall) m.content).discardReason;
+          drop = reason == null || reason.getConstructor() != TdApi.CallDiscardReasonMissed.CONSTRUCTOR;
+        }
+      }
+      if (drop) {
+        if (kept == null) {
+          kept = new ArrayList<>();
+          for (int j = 0; j < i; j++) kept.add(update.addedNotifications[j]);
+        }
+        tdlib.client().send(new TdApi.RemoveNotification(update.notificationGroupId, n.id), tdlib.okHandler());
+        org.thunderdog.challegram.Tgx101Diag.mark("notification: finished call dropped");
+      } else if (kept != null) {
+        kept.add(n);
+      }
+    }
+    if (kept != null) update.addedNotifications = kept.toArray(new TdApi.Notification[0]);
+  }
+
   public void updateGroup (TdApi.UpdateNotificationGroup update) {
     if (!accept(update.type))
       return;
@@ -181,6 +210,7 @@ public class TdlibNotificationHelper implements Iterable<TdlibNotificationGroup>
         isSilent = true;
       }
     }
+    tgx101DropFinishedCalls(update);
     TdlibNotificationGroup group = findNotificationGroup(update.notificationGroupId);
     if (group != null) {
       List<TdlibNotification> addedNotifications, removedNotifications;
