@@ -38,7 +38,8 @@ public class RoundStabilizer implements SensorEventListener {
   private static final float ZOOM = 1.1f;
   private static final float MAX_SHIFT = ZOOM - 1f;
   // NDC shift per radian: 1 / tan(half of the square's field of view, ~50 degrees).
-  private static final float SHIFT_PER_RADIAN_16_9 = 2.0f;
+  // 2.0 → 3.2 (2026-11-26 fit: the correction was ~1.6× too weak; 4:3 gets 2.4)
+  private static final float SHIFT_PER_RADIAN_16_9 = 3.2f;
   // TGx101 (user 2026-11-26 recording from a 4:3 frame: shake up instead of down): the same tilt moves the picture less
   // when the circle shows more of the scene — the shift per radian follows the frame (a 4:3 one is a third wider)
   private float shiftPerRadian = SHIFT_PER_RADIAN_16_9;
@@ -84,7 +85,9 @@ public class RoundStabilizer implements SensorEventListener {
   // TGx101 (user 2026-11-26 «да, делай» — the gyroscope's timing to the frames): in diagnostic builds a round writes its
   // gyroscope samples and the corrections given to each encoded frame to Android/data/…/files/tgx101-gyro.csv; the offset
   // that fits best is worked out from it and set below (frames are matched to the gyroscope this much later / earlier)
-  static final long TGX101_OFFSET_NS = 0L;
+  // fitted 2026-11-26 from a shaken round (gyro log + its video): the frames match the gyroscope 22 ms later; with that
+  // the residual shake fell ~15 % sideways and ~25 % up-down
+  static final long TGX101_OFFSET_NS = 22_000_000L;
   private static final boolean TGX101_LOG = org.thunderdog.challegram.BuildConfig.TGX101_DIAG && !org.thunderdog.challegram.BuildConfig.TGX101_TEST;
   private StringBuilder tgx101Log;
 
