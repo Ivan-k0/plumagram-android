@@ -3536,7 +3536,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     } else {
       // let go: where it is, kept inside the screen; past the edge — hidden there as before
       targetX = shouldBeHidden ? (hideLeft ? hiddenLeftX : hiddenRightX) : Math.max(leftX, Math.min(rightX, pipX));
-      targetXFactor = shouldBeHidden ? (hideLeft ? -2f : 2f) : (fullX - offsetX) != 0 ? targetX / ((fullX - offsetX) * Math.max(.01f, pipFactor)) : 1f;
+      // (2026-11-28, recording: the window reached the place, jumped to the edge and slid there again) the free place stays
+      // an offset from the corner it belongs to — no corner factors worked out from it
+      targetXFactor = shouldBeHidden ? (hideLeft ? -2f : 2f) : Math.abs(this.pipXFactor) == 2f ? Math.signum(this.pipXFactor) : this.pipXFactor; // out of hiding: that edge's corner
     }
 
     setPipHidden(Math.abs(targetXFactor) == 2f, targetXFactor == -2f);
@@ -3549,8 +3551,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       targetYFactor = targetY == topY ? -1f : 1f;
     } else {
       targetY = Math.max(topY, Math.min(bottomY, pipY));
-      float span = targetY < 0 ? (fullY - offsetTopY) : (fullY - offsetBottomY);
-      targetYFactor = span != 0 ? targetY / (span * Math.max(.01f, pipFactor)) : 1f;
+      targetYFactor = this.pipYFactor;
     }
 
     if (pipPositionAnimator == null) {
@@ -3570,14 +3571,21 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
     toPipXFactor = targetXFactor;
     toPipYFactor = targetYFactor;
+    tgx101PipFreeDrop = !tgx101Fling && Math.abs(targetXFactor) != 2f && targetXFactor == this.pipXFactor && targetYFactor == this.pipYFactor;
 
     pipPositionAnimator.animateTo(1f);
   }
 
+  private boolean tgx101PipFreeDrop;
+
   private void applyPipPosition () {
+    // the free place: on an axis whose corner stays the same, the offset stays as the animation left it (it is the place
+    // itself); a new corner — the offset goes, the corner's own place is the target
+    tgx101PipFreeDrop = false;
+    pipAddX = toPipXFactor == pipXFactor ? toPipAddX : 0;
+    pipAddY = toPipYFactor == pipYFactor ? toPipAddY : 0;
     pipXFactor = toPipXFactor;
     pipYFactor = toPipYFactor;
-    pipAddX = pipAddY = 0;
     savePipFactors();
   }
 
