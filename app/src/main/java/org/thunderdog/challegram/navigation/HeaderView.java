@@ -263,9 +263,10 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
       tgx101ThawUntil = android.os.SystemClock.uptimeMillis() + 600;
       postDelayed(() -> {
         if (tgx101OffsetFrozen) return;
-        int pending = tgx101PendingOffset;
         tgx101PendingOffset = -1;
-        if (pending > 0) setHeaderOffset(pending);
+        // (2026-11-28, own recording: after coming back the header jumped 19 px up or down half a second later) the last
+        // inset seen while hidden is the camera cutout's, not the status bar's — the root's inset now is the settled one
+        if (rootView != null) setHeaderOffset(rootView.getTopInset());
       }, 650);
     }
   }
