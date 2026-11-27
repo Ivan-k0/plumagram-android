@@ -3556,11 +3556,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       targetX = shouldBeHidden ? (hideLeft ? hiddenLeftX : hiddenRightX) : Math.abs(leftX + pipWidth / 2 - currentX) < Math.abs(rightX + pipWidth / 2 - currentX) ? leftX : rightX;
       targetXFactor = shouldBeHidden ? (hideLeft ? -2f : 2f) : targetX == leftX ? -1f : 1f;
     } else {
-      // let go: where it is, kept inside the screen; past the edge — hidden there as before
-      targetX = shouldBeHidden ? (hideLeft ? hiddenLeftX : hiddenRightX) : Math.max(leftX, Math.min(rightX, pipX));
+      // let go: (user 2026-11-28 «он лезет на центр, а не липнет к краям») sideways to the nearer edge, the height kept
+      // where it was let go; past the edge — hidden there as before
+      targetX = shouldBeHidden ? (hideLeft ? hiddenLeftX : hiddenRightX) : Math.abs(leftX + pipWidth / 2 - currentX) < Math.abs(rightX + pipWidth / 2 - currentX) ? leftX : rightX;
       // (2026-11-28, recording: the window reached the place, jumped to the edge and slid there again) the free place stays
       // an offset from the corner it belongs to — no corner factors worked out from it
-      targetXFactor = shouldBeHidden ? (hideLeft ? -2f : 2f) : Math.abs(this.pipXFactor) == 2f ? Math.signum(this.pipXFactor) : this.pipXFactor; // out of hiding: that edge's corner
+      targetXFactor = shouldBeHidden ? (hideLeft ? -2f : 2f) : targetX == leftX ? -1f : 1f;
     }
 
     setPipHidden(Math.abs(targetXFactor) == 2f, targetXFactor == -2f);
