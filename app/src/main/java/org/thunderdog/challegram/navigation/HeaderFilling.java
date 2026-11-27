@@ -1365,6 +1365,18 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PinnedHeader();
   }
 
+  /** the call bar's soft icon colours: green for the handset, blue for the microphone — muted, and readable on the header */
+  /** kind: 0 — blue (microphone), 1 — green (handset, on), 2 — red (handset, hung up) */
+  private static int tgx101SoftCallColor (int background, int kind) {
+    float lum = (0.299f * android.graphics.Color.red(background) + 0.587f * android.graphics.Color.green(background) + 0.114f * android.graphics.Color.blue(background)) / 255f;
+    boolean light = lum > .6f;
+    switch (kind) {
+      case 1: return light ? 0xff3f9a62 : 0xff8fd8a8;
+      case 2: return light ? 0xffc0504d : 0xfff2a5a2;
+      default: return light ? 0xff4a7fb8 : 0xffa9cdf2;
+    }
+  }
+
   /** a green that stands out on the header's colour in any theme: lighter on a dark header, deeper on a light one */
   private static int tgx101ReadableGreen (int background) {
     float lum = (0.299f * android.graphics.Color.red(background) + 0.587f * android.graphics.Color.green(background) + 0.114f * android.graphics.Color.blue(background)) / 255f;
@@ -1419,14 +1431,22 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     Paint iconPaint = onHeader ? Paints.getPorterDuffPaint(fg) : Paints.whitePorterDuffPaint();
 
     // Mute button
+    // (user 2026-11-27 «во время звонка трубку красить в зелёный, но не ярко; микрофон — в синий, тоже не ярко»)
+    // (same, «микрофон нажимаешь — из синего становится перечёркнутым серым»): blue → grey with the cross as it's muted
+    final int micGrey = ColorUtils.alphaColor(.55f, fg);
+    final int micColor = ColorUtils.fromToArgb(tgx101SoftCallColor(backgroundColor, 0), micGrey, callMuteFactor);
+    if (onHeader) iconPaint = Paints.getPorterDuffPaint(micColor);
     iconPaint.setAlpha((int) (255f * dropShadowAlpha * callActiveFactor * (1f - callIncomingFactor)));
     // (user 2026-11-04 «закрыть справа на всех подобных окнах: звонок, музыка, голосовое»): the microphone left, hanging up right
     int cx = Screen.dp(18f);
     int cy = playerTop + Screen.dp(6f);
     Drawables.draw(c, micIcon, cx, cy, iconPaint);
-    DrawAlgorithms.drawCross(c, cx + micIcon.getMinimumWidth() / 2, cy + micIcon.getMinimumHeight() / 2, callMuteFactor, ColorUtils.color(iconPaint.getAlpha(), fg), playerFillingColor);
+    DrawAlgorithms.drawCross(c, cx + micIcon.getMinimumWidth() / 2, cy + micIcon.getMinimumHeight() / 2, callMuteFactor, ColorUtils.color(iconPaint.getAlpha(), onHeader ? micGrey : fg), playerFillingColor);
 
     // Call button
+    // the handset: soft green while the call is on, softly red once it's hung up (user 2026-11-27 «трубка положена —
+    // аккуратненько в красный»)
+    if (onHeader) iconPaint = Paints.getPorterDuffPaint(ColorUtils.fromToArgb(tgx101SoftCallColor(backgroundColor, 2), tgx101SoftCallColor(backgroundColor, 1), callActiveFactor));
     iconPaint.setAlpha((int) (255f * dropShadowAlpha));
     cx = width - Screen.dp(12f) - hangIcon.getMinimumWidth();
     cy = playerTop + Screen.dp(6f);

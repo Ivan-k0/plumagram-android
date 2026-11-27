@@ -1032,9 +1032,38 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private boolean tgx101OverKb; // the viewer opens over the keyboard (see PopupLayout#tgx101SetOverKeyboard)
+
+  // (user 2026-11-27 «как появляется строка состояния при скрытии превью — мигает; сделай плавно, как в эталоне»): there
+  // the icons fade with the header — Android 11+ hides the status bar with its own fade when asked through the insets
+  // controller; the window's fullscreen flag cut it in one frame
+  private boolean tgx101StatusBarHidden;
+
+  private void tgx101SetStatusBarShown (boolean shown) {
+    if (tgx101StatusBarHidden == !shown) return;
+    tgx101StatusBarHidden = !shown;
+    android.view.Window window = context().getWindow();
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && window != null) {
+      android.view.WindowInsetsController controller = window.getInsetsController();
+      if (controller != null) {
+        if (shown) {
+          controller.show(android.view.WindowInsets.Type.statusBars());
+        } else {
+          controller.setSystemBarsBehavior(android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE);
+          controller.hide(android.view.WindowInsets.Type.statusBars());
+        }
+        return;
+      }
+    }
+    if (shown) {
+      context().removeFullScreenView(this, true);
+    } else {
+      context().addFullScreenView(this, true);
+    }
+  }
   private static final boolean TGX101_KEEP_STATUS_BAR = true;
 
   private void setFullScreen (boolean isFullscreen) {
+    if (!isFullscreen) tgx101SetStatusBarShown(true);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
       if (mode != MODE_GALLERY && Config.CUTOUT_ENABLED) {
         if (isFullscreen && (mode == MODE_MESSAGES || mode == MODE_SIMPLE) && !tgx101OverKb) {
@@ -2409,11 +2438,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       if (TGX101_KEEP_STATUS_BAR && mode != MODE_SECRET && !tgx101LandscapeWindow() && Config.CUTOUT_ENABLED && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
         // (user 2026-11-27 «строка состояния должна оставаться только во время превью; когда превью нет — и строки нет»):
         // the status bar is there with the header and the caption, and goes with them on a tap — whole, not dimmed
-        if (isVisible) {
-          context().removeFullScreenView(this, true);
-        } else {
-          context().addFullScreenView(this, true);
-        }
+        tgx101SetStatusBarShown(isVisible);
       }
       return true;
     }
