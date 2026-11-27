@@ -3458,7 +3458,20 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private float pipStartX;
   private float pipStartY;
 
+  /** (user 2026-11-28 «прыгает и скачет», journal: «slide done … JUMPED» at every let-go) resetting the last slide ran its
+   *  end once more — the window went back to the last let-go place for a frame and slid from there. The last slide is
+   *  first pointed at where the window is now, so its reset moves nothing */
+  private void tgx101DisarmPipSlide () {
+    if (pipPositionAnimator == null) return;
+    fromPipAddX = toPipAddX = pipAddX;
+    fromPipAddY = toPipAddY = pipAddY;
+    toPipXFactor = pipXFactor;
+    toPipYFactor = pipYFactor;
+    pipPositionAnimator.forceFactor(0f);
+  }
+
   private void preparePipMovement () {
+    tgx101DisarmPipSlide(); // a drag caught during a slide: from where it is
     pipStartX = pipAddX;
     pipStartY = pipAddY;
     tgx101PipLogAt = 0;
@@ -3566,7 +3579,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (pipPositionAnimator == null) {
       pipPositionAnimator = new FactorAnimator(ANIMATOR_PIP_POSITION, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 180);
     } else {
-      pipPositionAnimator.forceFactor(0f);
+      tgx101DisarmPipSlide();
     }
     // a throw starts at the finger's speed (a decelerating curve starts at twice the mean: time = 2 × way / speed)
     float tgx101Way = (float) Math.hypot(targetX - pipX, targetY - pipY);
