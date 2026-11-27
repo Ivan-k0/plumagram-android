@@ -33,6 +33,7 @@ import org.thunderdog.challegram.tool.UI;
  * camera, hands-free. Let go on the button itself — the pills stay and a tap picks; a tap elsewhere closes them.
  */
 public class Tgx101RoundCameraPills extends View {
+  private final android.graphics.RectF tgx101Tmp = new android.graphics.RectF();
   public interface Callback {
     void onPicked (boolean front);
     void onDismissed ();
@@ -307,7 +308,8 @@ public class Tgx101RoundCameraPills extends View {
     c.scale(sx, sy, capsule.centerX(), capsule.bottom);
     float rad = capsule.width() / 2f;
     shadowPaint.setAlpha((int) (0x30 * (alpha / 255f)));
-    c.drawRoundRect(capsule.left, capsule.top + Screen.dp(2f), capsule.right, capsule.bottom + Screen.dp(2f), rad, rad, shadowPaint);
+    tgx101Tmp.set(capsule.left, capsule.top + Screen.dp(2f), capsule.right, capsule.bottom + Screen.dp(2f)); // the RectF form — the float one is Android 5+
+    c.drawRoundRect(tgx101Tmp, rad, rad, shadowPaint);
     fillPaint.setColor(bg);
     fillPaint.setAlpha((int) (alpha * .94f));
     c.drawRoundRect(capsule, rad, rad, fillPaint);

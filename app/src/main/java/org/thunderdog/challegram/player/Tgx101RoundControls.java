@@ -52,6 +52,14 @@ import me.vkryl.core.ColorUtils;
  * Zoom and light last until the round is closed (a pause keeps them).
  */
 public class Tgx101RoundControls {
+  // (lint for Android 4 before 0.3.330): Canvas#drawRoundRect with four floats is Android 5+; the RectF form works everywhere
+  private static final android.graphics.RectF TGX101_TMP_RECT = new android.graphics.RectF();
+
+  static android.graphics.RectF tgx101Rect (float l, float t, float r, float b) {
+    TGX101_TMP_RECT.set(l, t, r, b);
+    return TGX101_TMP_RECT;
+  }
+
   public interface Host {
     boolean isFrontCamera ();
     @Nullable CameraManagerLegacy camera ();
@@ -322,7 +330,7 @@ public class Tgx101RoundControls {
 
       // the bar
       paint.setColor(0x33000000);
-      c.drawRoundRect(rect.left, rect.top + Screen.dp(2f), rect.right, rect.bottom + Screen.dp(2f), h / 2f, h / 2f, paint);
+      c.drawRoundRect(tgx101Rect(rect.left, rect.top + Screen.dp(2f), rect.right, rect.bottom + Screen.dp(2f)), h / 2f, h / 2f, paint);
       paint.setColor(surface);
       c.drawRoundRect(rect, h / 2f, h / 2f, paint);
 
@@ -357,7 +365,7 @@ public class Tgx101RoundControls {
           float x = xForZoom(z, left, right);
           paint.setColor(ColorUtils.alphaColor(expandFactor, big ? accent : sub));
           float th = Screen.dp(big ? 14f : 8f);
-          c.drawRoundRect(x - Screen.dp(1f), base, x + Screen.dp(1f), base + th, Screen.dp(1f), Screen.dp(1f), paint);
+          c.drawRoundRect(tgx101Rect(x - Screen.dp(1f), base, x + Screen.dp(1f), base + th), Screen.dp(1f), Screen.dp(1f), paint);
           if (big) {
             textPaint.setTextSize(Screen.dp(12f));
             textPaint.setColor(ColorUtils.alphaColor(expandFactor, accent));
@@ -367,7 +375,7 @@ public class Tgx101RoundControls {
         }
         float x = xForZoom(zoom, left, right);
         paint.setColor(ColorUtils.alphaColor(expandFactor, accent));
-        c.drawRoundRect(x - Screen.dp(2f), base - Screen.dp(2f), x + Screen.dp(2f), base + Screen.dp(20f), Screen.dp(2f), Screen.dp(2f), paint);
+        c.drawRoundRect(tgx101Rect(x - Screen.dp(2f), base - Screen.dp(2f), x + Screen.dp(2f), base + Screen.dp(20f)), Screen.dp(2f), Screen.dp(2f), paint);
 
         // the badge over the bar, on the circle's edge
         String s = zoomText(zoom, true);
@@ -624,7 +632,7 @@ public class Tgx101RoundControls {
       int alpha = (int) (255 * shown);
       paint.setColor(0x40000000);
       paint.setAlpha((int) (0x40 * shown));
-      c.drawRoundRect(rect.left, rect.top + Screen.dp(2f), rect.right, rect.bottom + Screen.dp(2f), w / 2f, w / 2f, paint);
+      c.drawRoundRect(tgx101Rect(rect.left, rect.top + Screen.dp(2f), rect.right, rect.bottom + Screen.dp(2f)), w / 2f, w / 2f, paint);
       paint.setColor(0xf01e2228);
       paint.setAlpha((int) (0xf0 * shown));
       c.drawRoundRect(rect, w / 2f, w / 2f, paint);

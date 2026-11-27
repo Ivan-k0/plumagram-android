@@ -1236,7 +1236,7 @@ public class RecordAudioVideoController implements
     boolean isRecording = isInRecording(mode);
     this.recordingVideo = isVideoMode(this.recordMode) || isVideoMode(mode);
     setRecordModeImpl(mode);
-    if (mode == RECORD_MODE_VIDEO) RoundVideoRecorder.tgx101AmplitudeListener = this::tgx101OnRoundAmplitude;
+    if (mode == RECORD_MODE_VIDEO && android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN_MR2) RoundVideoRecorder.tgx101AmplitudeListener = this::tgx101OnRoundAmplitude; // the recorder is Android 4.3+
     if (targetController != null) {
       if (mode != RECORD_MODE_NONE) {
         targetController.tgx101SetRecordOverlay(true); // the chat's «scroll down» arrow away until the screen closes
@@ -1696,7 +1696,7 @@ public class RecordAudioVideoController implements
 
   private void onRecordRemoved () {
     tgx101Controls.reset();
-    RoundVideoRecorder.tgx101AmplitudeListener = null;
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN_MR2) RoundVideoRecorder.tgx101AmplitudeListener = null;
     if (tgx101OverlayChat != null) {
       tgx101OverlayChat.tgx101SetRecordOverlay(false);
       tgx101OverlayChat = null;
