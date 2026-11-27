@@ -3862,10 +3862,6 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         org.thunderdog.challegram.player.Tgx101Cast.prewarm();
       }
 
-      // TGx101 (user 2026-11-27 22:58): stop when this track ends — once
-      ids.append(R.id.btn_tgx101StopAtEnd);
-      strings.append(org.thunderdog.challegram.player.AudioController.tgx101StopAtEnd() ? R.string.Tgx101StopAtEndOff : R.string.Tgx101StopAtEnd);
-
       // (user 2026-11-20 «обратный порядок убери, транслировать — предпоследний, перед сведениями»)
       ids.append(R.id.btn_tgx101TrackInfo);
       strings.append(R.string.Tgx101PlayerInfo);

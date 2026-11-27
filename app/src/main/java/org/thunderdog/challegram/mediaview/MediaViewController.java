@@ -1062,6 +1062,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
   private static final boolean TGX101_KEEP_STATUS_BAR = true;
 
+  /** The header and the caption opening / closing with the photo: 1 − (1 − f / 0.6)², done at 60 % */
+  private static float tgx101RevealCurve (float factor) {
+    float x = 1f - MathUtils.clamp(factor / .6f);
+    return 1f - x * x;
+  }
+
   private void setFullScreen (boolean isFullscreen) {
     if (!isFullscreen) tgx101SetStatusBarShown(true);
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -1408,7 +1414,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           // photo had flown up, so the photo's light parts flashed where the header is — 113 → 69 → 94 → 39 in brightness;
           // there it fades in from the first frames, in place, and the photo flies under it: 200 → 101 → 71 → 83) in over
           // the first third of the opening, out over the last third of the close; the status bar no longer goes away
-          tgx101HeaderRevealAlpha = TGX101_KEEP_STATUS_BAR && !tgx101LandscapeWindow() ? MathUtils.clamp(factor / .35f)
+          // (user 2026-11-28, recorded next to the reference «смотри, как появляются все пункты превью»: there the top and the
+          // bottom come in together, half way at a fifth of the opening and all but done at half of it; ours: the top at
+          // a seventh, the caption only at 40 %) one curve for both — ease-out over the first 60 %
+          tgx101HeaderRevealAlpha = TGX101_KEEP_STATUS_BAR && !tgx101LandscapeWindow() ? tgx101RevealCurve(factor)
             : MathUtils.clamp((factor - .75f) / .25f) * (factor >= 1f ? 1f : tgx101TopCover); // gone in the first quarter — before the photo
           updateHeaderAlpha();
         }
@@ -1425,8 +1434,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             // goes in the first third of the close
             // (user 2026-11-27 «само появление описания снизу очень резкое, сделай по уму»): the last third at 0.5× was
             // ~60 ms — from a third of the way on, on a smooth curve (slow in, slow out), done with the photo
-            float c = MathUtils.clamp((factor - .3f) / .7f);
-            setBottomAlpha(c * c * (3f - 2f * c));
+            // (user 2026-11-28, the reference recorded beside ours): the caption comes with the header, on the same curve
+            setBottomAlpha(tgx101RevealCurve(factor));
             break;
           }
         }
@@ -3494,7 +3503,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     double absDegrees = Math.abs(degrees);
     boolean allowVelocityY = true;
 
-    if (Math.abs(velocityX) > Screen.getTouchSlopBig() && (absDegrees < 65 || absDegrees > 115)) {
+    // TGx101 (user 2026-11-28 «окно не должно быть привязано к углам, водить можно везде; если резко смахнуть и сразу
+    // отпустить — прилипает к углу, куда вёл палец, плавно»): let go — it stays where it is (inside the screen); only a
+    // fling takes it to the corner it was thrown at, starting at the finger's own speed
+    final float tgx101Speed = (float) Math.hypot(velocityX, velocityY);
+    final boolean tgx101Fling = tgx101Speed > Screen.dp(TGX101_PIP_FLING_DP);
+    if (tgx101Fling && Math.abs(velocityX) > Screen.dp(250f) && (absDegrees < 65 || absDegrees > 115)) {
       if (absDegrees > 115 && pipX <= leftX) {
         targetX = hiddenLeftX;
         targetXFactor = -2f;
@@ -3515,26 +3529,38 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         targetX = absDegrees > 115 ? leftX : rightX;
         targetXFactor = targetX == leftX ? -1f : 1f;
       }
-    } else {
+    } else if (tgx101Fling) {
+      // thrown up or down: the side it is nearer to
       targetX = shouldBeHidden ? (hideLeft ? hiddenLeftX : hiddenRightX) : Math.abs(leftX + pipWidth / 2 - currentX) < Math.abs(rightX + pipWidth / 2 - currentX) ? leftX : rightX;
       targetXFactor = shouldBeHidden ? (hideLeft ? -2f : 2f) : targetX == leftX ? -1f : 1f;
+    } else {
+      // let go: where it is, kept inside the screen; past the edge — hidden there as before
+      targetX = shouldBeHidden ? (hideLeft ? hiddenLeftX : hiddenRightX) : Math.max(leftX, Math.min(rightX, pipX));
+      targetXFactor = shouldBeHidden ? (hideLeft ? -2f : 2f) : (fullX - offsetX) != 0 ? targetX / ((fullX - offsetX) * Math.max(.01f, pipFactor)) : 1f;
     }
 
     setPipHidden(Math.abs(targetXFactor) == 2f, targetXFactor == -2f);
 
-    if (allowVelocityY && Math.abs(velocityY) > Screen.dp(80f) && (absDegrees >= 45 && absDegrees <= 135)) {
+    if (tgx101Fling && allowVelocityY && Math.abs(velocityY) > Screen.dp(250f) && (absDegrees >= 25 && absDegrees <= 155)) {
       targetY = degrees > 0 ? bottomY : topY;
-    } else {
+      targetYFactor = targetY == topY ? -1f : 1f;
+    } else if (tgx101Fling) {
       targetY = Math.abs(topY + pipHeight / 2 - currentY) < Math.abs(bottomY + pipHeight / 2 - currentY) ? topY : bottomY;
+      targetYFactor = targetY == topY ? -1f : 1f;
+    } else {
+      targetY = Math.max(topY, Math.min(bottomY, pipY));
+      float span = targetY < 0 ? (fullY - offsetTopY) : (fullY - offsetBottomY);
+      targetYFactor = span != 0 ? targetY / (span * Math.max(.01f, pipFactor)) : 1f;
     }
-
-    targetYFactor = targetY == topY ? -1f : 1f;
 
     if (pipPositionAnimator == null) {
       pipPositionAnimator = new FactorAnimator(ANIMATOR_PIP_POSITION, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 180);
     } else {
       pipPositionAnimator.forceFactor(0f);
     }
+    // a throw starts at the finger's speed (a decelerating curve starts at twice the mean: time = 2 × way / speed)
+    float tgx101Way = (float) Math.hypot(targetX - pipX, targetY - pipY);
+    pipPositionAnimator.setDuration(tgx101Fling && tgx101Speed > 0 ? (long) Math.max(200, Math.min(450, 2000f * tgx101Way / tgx101Speed)) : 180);
 
     fromPipAddX = pipAddX;
     fromPipAddY = pipAddY;
@@ -3787,6 +3813,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private EditButton pipOpenButton, pipCloseButton, tgx101PipMuteButton;
   private boolean tgx101PipSilenced;
   private static final float TGX101_PIP_RADIUS = 14f;
+  private static final float TGX101_PIP_FLING_DP = 900f; // dp/s: slower than that the window stays where it is let go
 
   private void tgx101SetPipSilenced (boolean silenced) {
     if (tgx101PipSilenced == silenced) return;

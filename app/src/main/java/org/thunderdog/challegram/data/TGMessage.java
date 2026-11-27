@@ -1254,7 +1254,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   }
 
   private int getBubbleForwardOffset () {
-    return getBubbleNameHeight() + (tgx101FwdCard() ? Screen.dp(TGX101_FWD_LINE + TGX101_FWD_GAP) : 0);
+    return getBubbleNameHeight() + (tgx101FwdCard() ? Screen.dp(TGX101_FWD_LINE + TGX101_FWD_GAP - TGX101_FWD_TOP_CUT) : 0);
   }
 
   // TGx101 (user 2026-11-21, the reference «вернуть "переслано от" вверху имени. И имя нужно двойное. Дату сократи до
@@ -1263,7 +1263,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   // GAP (user 2026-11-21 «верхнее прямо впритык к имени»): the room between the name and the file or photo under it
   // (user 2026-11-27 23:49 «приведи к эталону: слишком большая пустота сверху над именем»): the name 3 dp closer to
   // «Переслано от» (20 → 17), and no date at the right of it, as the reference
-  private static final float TGX101_FWD_LINE = 17f, TGX101_FWD_AVATAR = 20f, TGX101_FWD_GAP = 6f;
+  // (user 2026-11-28 «ты не убрал пустое место сверху «Переслано от» — сделай грамотный отступ, как в эталоне», measured on
+  // the 23:49 screenshots: bubble edge → «Переслано от» 17 dp ours, 10 dp the reference; the name → the picture 7 dp
+  // ours, 4 dp the reference): the card 7 dp higher, the content 3 dp closer to the name
+  private static final float TGX101_FWD_LINE = 17f, TGX101_FWD_AVATAR = 20f, TGX101_FWD_GAP = 3f, TGX101_FWD_TOP_CUT = 7f;
   private static final boolean TGX101_FWD_DATE = false;
   private String tgx101FwdLabel;
   private float tgx101FwdLabelW;
@@ -4339,7 +4342,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   private void tgx101DrawForwardCard (MessageView view, Canvas c) {
     int top = pContentY - getBubbleForwardOffset();
     int left = getForwardAuthorNameLeft();
-    int labelBaseline = top + Screen.dp(15f);
+    int labelBaseline = top + Screen.dp(15f - TGX101_FWD_TOP_CUT);
     // the label in the name's own colour (user 2026-11-21: one colour for both lines, as in the reference)
     int nameColor = fAuthorNameT != null ? fAuthorNameT.getTextColor() : getChatAuthorColor();
     String label = tgx101FwdLabel != null ? tgx101FwdLabel : Lang.getString(R.string.Tgx101ForwardedFrom);

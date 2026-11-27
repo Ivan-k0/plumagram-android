@@ -722,6 +722,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   // few times a second; between updates the line goes on at the measured rate (at most 0.6 s ahead, still on pause)
   private long tgx101SeekTime;
   private float tgx101SeekRate; // per ms
+  private float tgx101SeekRateCandidate;
 
   private float tgx101ShownSeek () {
     if (!isAudioPlaying || tgx101SeekRate <= 0f || tgx101SeekTime == 0) return seekFactor;
@@ -733,9 +734,24 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     long now = android.os.SystemClock.uptimeMillis();
     if (tgx101SeekTime != 0 && seekFactor > this.seekFactor && now - tgx101SeekTime < 2000 && now > tgx101SeekTime) {
       float rate = (seekFactor - this.seekFactor) / (now - tgx101SeekTime);
-      tgx101SeekRate = tgx101SeekRate > 0f ? tgx101SeekRate * .6f + rate * .4f : rate;
+      // (user 2026-11-28, recording: after a seek forward the line ran on 15 % past the place, then jumped back) a seek
+      // forward is a step, not a speed: it measured as a rate many times the playing one and the line glided on at it.
+      // A rate far from the one known starts the measuring again; a new rate is taken only once two steps agree
+      if (tgx101SeekRate > 0f) {
+        if (rate > tgx101SeekRate * 2.5f || rate < tgx101SeekRate / 2.5f) {
+          tgx101SeekRate = 0f;
+          tgx101SeekRateCandidate = 0f;
+        } else {
+          tgx101SeekRate = tgx101SeekRate * .6f + rate * .4f;
+        }
+      } else if (tgx101SeekRateCandidate > 0f && rate < tgx101SeekRateCandidate * 1.6f && rate > tgx101SeekRateCandidate / 1.6f) {
+        tgx101SeekRate = (tgx101SeekRateCandidate + rate) / 2f;
+      } else {
+        tgx101SeekRateCandidate = rate;
+      }
     } else if (seekFactor < this.seekFactor || now - tgx101SeekTime >= 2000) {
       tgx101SeekRate = 0f; // a seek back or a long gap: measure again
+      tgx101SeekRateCandidate = 0f;
     }
     tgx101SeekTime = now;
     if (this.seekFactor != seekFactor) {
@@ -839,8 +855,9 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       // TGx101 (user 2026-11-27 23:52, video: «голосовое всё равно уходит с белой подложкой»): a voice played to the end
       // left the line at full width, and as the bar folded away the line stayed bright under it — a white stroke across the
       // screen. The line fades with the bar's own height as it leaves (the last 60 % of it)
-      float barShare = Size.getHeaderPlayerSize() > 0 ? (float) (playerBottom - playerTop) / Size.getHeaderPlayerSize() : 1f;
-      float lineAlpha = tgx101BarCollapse > 0f ? 1f : Math.max(0f, Math.min(1f, (barShare - .4f) / .6f));
+      // (2026-11-28, the user's recording: the bar doesn't shrink, it slides up under the header by hideFactor — the line,
+      // at its bottom, was the last thing seen, a bright stroke riding up) it goes in the first 40 % of the slide
+      float lineAlpha = tgx101BarCollapse > 0f ? 1f : Math.max(0f, 1f - hideFactor / .4f);
       c.drawRect(0, shownBottom - (Screen.dp(1f) + 1) - (int) (Screen.dp(1f) * tgx101BarCollapse), width * shownSeek, shownBottom, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha * lineAlpha, seekColor)));
       if (shownSeek != seekFactor) invalidateOngoingBar(); // the next frame — the line glides between the updates
     }
