@@ -1340,8 +1340,22 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     TdlibManager.instance().calls().openCurrentCall();
   }
 
+  // TGx101 (user 2026-11-27 «да, крась в цвет шапки, но когда идёт разговор кнопка трубки пусть дышит зелёным ореолом»):
+  // with «Закреп в цвет шапки» the call bar is a row of the header; the state shows on the hang-up button, not in the colour
+  private boolean tgx101CallOnHeader () {
+    return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PinnedHeader();
+  }
+
+  private boolean tgx101HaloScheduled;
+  private final Runnable tgx101HaloTick = () -> {
+    tgx101HaloScheduled = false;
+    invalidateOngoingBar();
+  };
+
   private void drawOngoingCall (Canvas c, int playerTop, float rectWidth, int playerBottom) {
-    final int backgroundColor = ColorUtils.fromToArgb(Theme.getColor(ColorId.headerBarCallMuted), ColorUtils.fromToArgb(Theme.getColor(ColorId.headerBarCallActive), Theme.getColor(ColorId.headerBarCallIncoming), callIncomingFactor), (1f - callMuteFactor) * callActiveFactor);
+    final boolean onHeader = tgx101CallOnHeader();
+    final int backgroundColor = onHeader ? Theme.headerColor() : ColorUtils.fromToArgb(Theme.getColor(ColorId.headerBarCallMuted), ColorUtils.fromToArgb(Theme.getColor(ColorId.headerBarCallActive), Theme.getColor(ColorId.headerBarCallIncoming), callIncomingFactor), (1f - callMuteFactor) * callActiveFactor);
+    final int fg = onHeader ? Theme.headerTextColor() : 0xffffffff;
     if (restoreRect && restorePixels > 0) {
       c.drawRect(rectWidth, playerTop, width, playerBottom, Paints.fillingPaint(backgroundColor));
     }
@@ -1349,7 +1363,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
     c.drawRect(0, playerTop, rectWidth, playerBottom, Paints.fillingPaint(playerFillingColor));
 
-    Paint iconPaint = Paints.whitePorterDuffPaint();
+    Paint iconPaint = onHeader ? Paints.getPorterDuffPaint(fg) : Paints.whitePorterDuffPaint();
 
     // Mute button
     iconPaint.setAlpha((int) (255f * dropShadowAlpha * callActiveFactor * (1f - callIncomingFactor)));
@@ -1357,13 +1371,28 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     int cx = Screen.dp(18f);
     int cy = playerTop + Screen.dp(6f);
     Drawables.draw(c, micIcon, cx, cy, iconPaint);
-    DrawAlgorithms.drawCross(c, cx + micIcon.getMinimumWidth() / 2, cy + micIcon.getMinimumHeight() / 2, callMuteFactor, ColorUtils.color(iconPaint.getAlpha(), 0xffffff), playerFillingColor);
+    DrawAlgorithms.drawCross(c, cx + micIcon.getMinimumWidth() / 2, cy + micIcon.getMinimumHeight() / 2, callMuteFactor, ColorUtils.color(iconPaint.getAlpha(), fg), playerFillingColor);
 
     // Call button
     iconPaint.setAlpha((int) (255f * dropShadowAlpha));
     cx = width - Screen.dp(12f) - hangIcon.getMinimumWidth();
     cy = playerTop + Screen.dp(6f);
 
+    if (onHeader && callActiveFactor > 0f) {
+      // the green halo breathes around the hang-up button while the call is on (and while it rings)
+      float phase = (android.os.SystemClock.uptimeMillis() % 1800L) / 1800f;
+      float breath = .5f - .5f * (float) Math.cos(2 * Math.PI * phase);
+      float hcx = cx + hangIcon.getMinimumWidth() / 2f, hcy = cy + hangIcon.getMinimumHeight() / 2f;
+      float radius = Screen.dp(14f) + Screen.dp(4f) * breath;
+      int green = Theme.getColor(ColorId.headerBarCallIncoming);
+      float a = dropShadowAlpha * callActiveFactor;
+      c.drawCircle(hcx, hcy, radius, Paints.fillingPaint(ColorUtils.alphaColor(a * (.22f + .18f * breath), green)));
+      c.drawCircle(hcx, hcy, Screen.dp(13f), Paints.fillingPaint(ColorUtils.alphaColor(a * .9f, green)));
+      if (!tgx101HaloScheduled && headerView != null) {
+        tgx101HaloScheduled = true;
+        headerView.postDelayed(tgx101HaloTick, 33); // 30 a second is enough for a breath, and spares the CPU
+      }
+    }
     float callRotationFactor = callIncomingFactor * callActiveFactor;
     if (callRotationFactor != 0f) {
       c.save();
@@ -1371,7 +1400,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     }
     Drawables.draw(c, hangIcon, cx, cy, iconPaint);
     if (callActiveFactor != 1f) {
-      DrawAlgorithms.drawCross(c, cx + hangIcon.getMinimumWidth() / 2, cy + hangIcon.getMinimumHeight() / 2 - Screen.dp(2f), 1f - callActiveFactor, ColorUtils.color((int) (255f * dropShadowAlpha), 0xffffff), backgroundColor);
+      DrawAlgorithms.drawCross(c, cx + hangIcon.getMinimumWidth() / 2, cy + hangIcon.getMinimumHeight() / 2 - Screen.dp(2f), 1f - callActiveFactor, ColorUtils.color((int) (255f * dropShadowAlpha), fg), backgroundColor);
     }
     if (callRotationFactor != 0f) {
       c.restore();
@@ -1385,7 +1414,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     int rightLimit = width - Screen.dp(12f) - hangIcon.getMinimumWidth() - Screen.dp(8f);
     int centeredLeft = (int) ((rectWidth - textWidth) / 2f);
     int callTextLeft = Math.max(textLeft, Math.min(centeredLeft, rightLimit - textWidth));
-    drawOngoingText(c, playerTop, rectWidth, playerBottom, callTextLeft, TextColorSets.WHITE, 1f, textAlpha);
+    drawOngoingText(c, playerTop, rectWidth, playerBottom, callTextLeft, onHeader ? (TextColorSet) () -> fg : TextColorSets.WHITE, 1f, textAlpha);
   }
 
   // Show/hide ongoing bar
