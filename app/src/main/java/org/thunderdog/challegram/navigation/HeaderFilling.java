@@ -197,12 +197,25 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
   private int tgx101ScreenFill () {
     ViewController<?> screen = tgx101Screen();
-    return screen != null ? screen.tgx101HeaderColor() : 0;
+    int custom = screen != null ? screen.tgx101HeaderColor() : 0;
+    if (custom == 0 && tgx101VoiceOnHeader()) return Theme.headerColor();
+    return custom;
   }
 
   private int tgx101ScreenText () {
     ViewController<?> screen = tgx101Screen();
-    return screen != null && tgx101ScreenFill() != 0 ? screen.tgx101HeaderTextColor() : 0;
+    int custom = screen != null ? screen.tgx101HeaderColor() : 0;
+    if (custom != 0) return screen.tgx101HeaderTextColor();
+    return tgx101VoiceOnHeader() ? Theme.headerTextColor() : 0;
+  }
+
+  /**
+   * TGx101 (user 2026-11-27 «голосовые и кружки тоже нужно красить в цвет, если опция включена»): with «Закреп в цвет шапки»
+   * the bar of a playing voice message or round is a row of the header too; music keeps its cover's colours
+   */
+  private boolean tgx101VoiceOnHeader () {
+    return playingMessage != null && playingMessage.content.getConstructor() != TdApi.MessageAudio.CONSTRUCTOR
+      && org.thunderdog.challegram.unsorted.Settings.instance().tgx101PinnedHeader();
   }
 
   private int tgx101BarFill () {
