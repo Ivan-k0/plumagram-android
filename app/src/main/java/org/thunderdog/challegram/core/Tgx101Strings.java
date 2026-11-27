@@ -583,6 +583,18 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MenuThread, "Посмотреть в теме / ответы");
     RU.put(R.string.Tgx101MenuBack, "Назад");
     RU.put(R.string.Tgx101ChatMenuMore, "Ещё");
+    RU.put(R.string.Tgx101Repeat, "Повторять");
+    RU.put(R.string.Tgx101RepeatNever, "Никогда");
+    RU.put(R.string.Tgx101RepeatDaily, "Ежедневно");
+    RU.put(R.string.Tgx101RepeatWeekly, "Еженедельно");
+    RU.put(R.string.Tgx101RepeatBiweekly, "Раз в 2 недели");
+    RU.put(R.string.Tgx101RepeatMonthly, "Ежемесячно");
+    RU.put(R.string.Tgx101Repeat3Months, "Раз в 3 месяца");
+    RU.put(R.string.Tgx101Repeat6Months, "Раз в 6 месяцев");
+    RU.put(R.string.Tgx101RepeatYearly, "Ежегодно");
+    RU.put(R.string.Tgx101RepeatPremium, "Повтор доступен с Telegram Premium");
+    RU.put(R.string.Tgx101SendSilentOn, "Будет отправлено без звука");
+    RU.put(R.string.Tgx101SendSilentOff, "Будет отправлено со звуком");
     RU.put(R.string.Tgx101BirdResumeVideo, "Досмотреть · %1$s");
     RU.put(R.string.Tgx101CallRemoteMuted, "Микрофон собеседника выключен");
     RU.put(R.string.Tgx101PinnedHeader, "Закреп в цвет шапки");

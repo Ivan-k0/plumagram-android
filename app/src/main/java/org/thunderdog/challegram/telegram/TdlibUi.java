@@ -7767,9 +7767,12 @@ public class TdlibUi extends Handler {
           tomorrowRes = R.string.SendTomorrowAt;
           futureRes = R.string.SendDateAt;
         }
-        context.showDateTimePicker(Lang.getString(titleRes), todayRes, tomorrowRes, futureRes, millis -> {
+        context.showDateTimePicker(tdlib, Lang.getString(titleRes), todayRes, tomorrowRes, futureRes, millis -> { }, (millis, repeatPeriod, silent) -> {
           int sendDate = (int) TimeUnit.MILLISECONDS.toSeconds(millis);
-          callback.runWithData(Td.newSendOptions(defaultSendOptions, new TdApi.MessageSchedulingStateSendAtDate(sendDate, 0 /*TODO: repeat period*/)));
+          // TGx101 (user 2026-11-27): the repeat the server does by itself (Premium) and «without sound»
+          TdApi.MessageSendOptions options = Td.newSendOptions(defaultSendOptions, new TdApi.MessageSchedulingStateSendAtDate(sendDate, repeatPeriod));
+          if (silent) options.disableNotification = true;
+          callback.runWithData(options);
         }, forcedTheme);
         return true;
       }

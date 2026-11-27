@@ -3182,6 +3182,22 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
   }
 
   public final PopupLayout showDateTimePicker (Tdlib tdlib, CharSequence title, @StringRes int todayRes, @StringRes int tomorrowRes, @StringRes int futureRes, final RunnableLong callback, final @Nullable ThemeDelegate forcedTheme) {
+    return showDateTimePicker(tdlib, title, todayRes, tomorrowRes, futureRes, callback, null, forcedTheme);
+  }
+
+  /** TGx101 (user 2026-11-27, screenshot of the reference): the picked time with a repeat period (s, 0 — never) and «silent» */
+  public interface Tgx101ScheduleCallback {
+    void onPicked (long millis, int repeatPeriod, boolean silent);
+  }
+
+  // the periods the server takes (td_api messageSchedulingStateSendAtDate.repeat_period), in seconds
+  private static final int[] TGX101_REPEAT_PERIODS = {0, 86400, 7 * 86400, 14 * 86400, 30 * 86400, 91 * 86400, 182 * 86400, 365 * 86400};
+  private static final int[] TGX101_REPEAT_NAMES = {R.string.Tgx101RepeatNever, R.string.Tgx101RepeatDaily, R.string.Tgx101RepeatWeekly, R.string.Tgx101RepeatBiweekly,
+    R.string.Tgx101RepeatMonthly, R.string.Tgx101Repeat3Months, R.string.Tgx101Repeat6Months, R.string.Tgx101RepeatYearly};
+
+  public final PopupLayout showDateTimePicker (Tdlib tdlib, CharSequence title, @StringRes int todayRes, @StringRes int tomorrowRes, @StringRes int futureRes, final RunnableLong callback, final @Nullable Tgx101ScheduleCallback tgx101Callback, final @Nullable ThemeDelegate forcedTheme) {
+    final int[] tgx101Repeat = {0};
+    final boolean[] tgx101Silent = {false};
     return showPopup(title, true, Text.LINE_COUNT_UNLIMITED, (popupLayout, optionsWrap) -> {
       int contentHeight = 0;
       int pickerHeight = InfiniteRecyclerView.getItemHeight() * 5;
@@ -3369,6 +3385,70 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       optionsWrap.addView(datePickerWrap);
       contentHeight += pickerHeight;
 
+      if (tgx101Callback != null) {
+        // (user 2026-11-27 «как в эталоне достаточно, и там есть кнопка отправить без звука»): «Repeat: Never ⌃⌄» in the
+        // middle, the bell for a silent message at the end
+        android.widget.FrameLayout row = new android.widget.FrameLayout(context);
+        row.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(56f)));
+        final int textColor = forcedTheme != null ? forcedTheme.getColor(ColorId.text) : Theme.textAccentColor();
+        final int iconColor = forcedTheme != null ? forcedTheme.getColor(ColorId.icon) : Theme.iconColor();
+        final TextView pill = new TextView(context);
+        pill.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+        pill.setTextColor(textColor);
+        pill.setGravity(Gravity.CENTER);
+        pill.setPadding(Screen.dp(18f), 0, Screen.dp(14f), 0);
+        android.graphics.drawable.GradientDrawable pillBg = new android.graphics.drawable.GradientDrawable();
+        pillBg.setCornerRadius(Screen.dp(19f));
+        pillBg.setColor(me.vkryl.core.ColorUtils.alphaColor(.08f, textColor));
+        pill.setBackground(pillBg);
+        final Runnable updatePill = () -> {
+          int i = 0;
+          for (int k = 0; k < TGX101_REPEAT_PERIODS.length; k++) if (TGX101_REPEAT_PERIODS[k] == tgx101Repeat[0]) i = k;
+          android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(Lang.getString(R.string.Tgx101Repeat) + ": ");
+          int start = b.length();
+          b.append(Lang.getString(TGX101_REPEAT_NAMES[i]));
+          b.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, b.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+          b.append("  ⌃⌄");
+          pill.setText(b);
+        };
+        updatePill.run();
+        android.widget.FrameLayout.LayoutParams pp = new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(38f), Gravity.CENTER);
+        pill.setLayoutParams(pp);
+        pill.setOnClickListener(v -> {
+          if (!tdlib.hasPremium()) {
+            UI.showToast(R.string.Tgx101RepeatPremium, android.widget.Toast.LENGTH_SHORT);
+            return;
+          }
+          String[] names = new String[TGX101_REPEAT_NAMES.length];
+          int[] ids = new int[names.length];
+          for (int k = 0; k < names.length; k++) { names[k] = Lang.getString(TGX101_REPEAT_NAMES[k]); ids[k] = k + 1; }
+          showOptions(null, ids, names, null, null, (itemView, id) -> {
+            tgx101Repeat[0] = TGX101_REPEAT_PERIODS[id - 1];
+            updatePill.run();
+            return true;
+          }, forcedTheme);
+        });
+        row.addView(pill);
+        final android.widget.ImageView bell = new android.widget.ImageView(context);
+        bell.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+        final Runnable updateBell = () -> {
+          bell.setImageResource(org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(tgx101Silent[0] ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24));
+          bell.setColorFilter(tgx101Silent[0] ? Theme.getColor(ColorId.iconActive) : iconColor);
+          bell.setContentDescription(Lang.getString(tgx101Silent[0] ? R.string.Tgx101SendSilentOn : R.string.Tgx101SendSilentOff));
+        };
+        updateBell.run();
+        bell.setLayoutParams(new android.widget.FrameLayout.LayoutParams(Screen.dp(52f), Screen.dp(52f), Gravity.CENTER_VERTICAL | Gravity.END));
+        Views.setClickable(bell);
+        bell.setOnClickListener(v -> {
+          tgx101Silent[0] = !tgx101Silent[0];
+          updateBell.run();
+          UI.showToast(tgx101Silent[0] ? R.string.Tgx101SendSilentOn : R.string.Tgx101SendSilentOff, android.widget.Toast.LENGTH_SHORT);
+        });
+        row.addView(bell);
+        optionsWrap.addView(row);
+        contentHeight += Screen.dp(56f);
+      }
+
       Views.setClickable(sendView);
       sendView.setGravity(Gravity.CENTER);
       sendView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16f);
@@ -3388,7 +3468,11 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
           // TGx101 (user 2026-11-20 «как будто мигает экран на мгновение», recording): the message went first and the chat
           // under the dim jumped while the sheet was still leaving — the dim went in one frame. The sheet leaves first
           popupLayout.hideWindow(true);
-          UI.post(() -> callback.runWithLong(millis), 280);
+          if (tgx101Callback != null) {
+            UI.post(() -> tgx101Callback.onPicked(millis, tgx101Repeat[0], tgx101Silent[0]), 280);
+          } else {
+            UI.post(() -> callback.runWithLong(millis), 280);
+          }
         }
       });
       listener.onCurrentIndexChanged(null, -1);
