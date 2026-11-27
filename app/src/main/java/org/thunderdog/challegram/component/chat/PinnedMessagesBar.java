@@ -356,6 +356,15 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
     tgx101SetTransparent();
   }
 
+  // TGx101 (user 2026-11-27 «плашку закрепа красить в цвет шапки, чтобы это было как одно целое, с тоненькой
+  // разделительной полосой»): a row of the header — its colour under it, its text colours, a thin line between them
+  private boolean tgx101HeaderFill;
+
+  public void tgx101SetHeaderColored () {
+    tgx101SetOnHeader();
+    tgx101HeaderFill = true;
+  }
+
   // TGx101: in the header's rows the bar slides up out of its own place (0 — in place, 1 — gone) and doesn't take touches
   private float tgx101Slide;
 
@@ -386,7 +395,12 @@ public class PinnedMessagesBar extends ViewGroup implements Destroyable, Message
 
   @Override
   protected void onDraw (Canvas c) {
-    if (tgx101OnHeader) {
+    if (tgx101HeaderFill) {
+      int h = getRecyclerHeight();
+      c.drawRect(0, 0, getMeasuredWidth(), h, Paints.fillingPaint(Theme.headerColor()));
+      // the thin line between the header and the bar
+      c.drawRect(0, 0, getMeasuredWidth(), Math.max(1, Screen.dp(.5f)), Paints.fillingPaint(ColorUtils.alphaColor(.16f, Theme.headerTextColor())));
+    } else if (tgx101OnHeader) {
       int h = getRecyclerHeight();
       c.drawRect(0, h - Math.max(1, Screen.dp(.5f)), getMeasuredWidth(), h, Paints.fillingPaint(ColorUtils.alphaColor(.14f, Theme.headerTextColor())));
     }

@@ -1630,6 +1630,12 @@ public class MessagesController extends ViewController<MessagesController.Argume
       pinnedMessagesBar.tgx101SetOnHeader();
       pinnedMessagesBar.setPadding(Screen.dp(6f), 0, Screen.dp(4f), 0);
       addThemeInvalidateListener(pinnedMessagesBar);
+    } else if (Settings.instance().tgx101PinnedHeader()) {
+      // (user 2026-11-27): the bar in the header's colour, as one piece with it (MagiX → Messages and menus); the player's
+      // bar keeps its own colours
+      pinnedMessagesBar.tgx101SetHeaderColored();
+      pinnedMessagesBar.setPadding(Screen.dp(6f), 0, Screen.dp(4f), 0);
+      addThemeInvalidateListener(pinnedMessagesBar);
     } else if (Settings.instance().useFloatingInput()) {
       tgx101FloatPinnedBar(pinnedMessagesBar);
       pinnedMessagesBar.tgx101SetCompact(); // one line + the list button, in the capsule too (all builds since 2026-10-19)

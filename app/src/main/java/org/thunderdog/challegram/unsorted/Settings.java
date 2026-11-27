@@ -3396,6 +3396,18 @@ public class Settings {
     pmc.putBoolean(KEY_TGX101_EMOJI_EFFECTS, on);
   }
 
+  private static final String KEY_TGX101_PINNED_HEADER = "tgx101_pinned_header";
+
+  /** (user 2026-11-27 «закрепы… красить в цвет шапки, чтобы это было как одно целое, с тоненькой разделительной полосой.
+   *  функцию сделай отключаемой»): the pinned bar in the header's colour, under it — on by default */
+  public boolean tgx101PinnedHeader () {
+    return pmc.getBoolean(KEY_TGX101_PINNED_HEADER, true);
+  }
+
+  public void setTgx101PinnedHeader (boolean on) {
+    pmc.putBoolean(KEY_TGX101_PINNED_HEADER, on);
+  }
+
   private static final String KEY_TGX101_MENU_OUTLINED = "tgx101_menu_outlined_icons";
 
   /** The message menu's icons: outlined (default) or the filled ones as before */
