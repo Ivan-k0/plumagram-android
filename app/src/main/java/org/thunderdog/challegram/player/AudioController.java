@@ -1060,8 +1060,13 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
     return tgx101StopAtEnd;
   }
 
+  /** (user 2026-11-28): the player screen's shuffle button shows it — told when it changes, also by itself at the end */
+  public static @Nullable Runnable tgx101StopAtEndListener;
+
   public void tgx101SetStopAtEnd (boolean on) {
+    boolean changed = tgx101StopAtEnd != on;
     tgx101StopAtEnd = on;
+    if (changed && tgx101StopAtEndListener != null) UI.post(tgx101StopAtEndListener);
     if (exoPlayer != null) exoPlayer.setPauseAtEndOfMediaItems(on);
     org.thunderdog.challegram.Tgx101Diag.mark("player: stop at the end of the track " + on);
   }

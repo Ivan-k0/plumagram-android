@@ -353,6 +353,12 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     addThemeInvalidateListener(shadowView);
 
     shuffleButton = newButton(R.id.btn_shuffle, R.drawable.round_shuffle_24, isShuffleActive());
+    // TGx101 (user 2026-11-28, variant 4): the shuffle button's third state «one track» — the sign morphs into it
+    tgx101ShuffleIcon = new Tgx101ShuffleDrawable();
+    tgx101ShuffleIcon.setFactor(org.thunderdog.challegram.player.AudioController.tgx101StopAtEnd() ? 1f : 0f);
+    shuffleButton.setImageDrawable(tgx101ShuffleIcon);
+    shuffleButton.setColorFilter(Theme.getColor(isShuffleActive() ? ColorId.playerButtonActive : ColorId.playerButton));
+    org.thunderdog.challegram.player.AudioController.tgx101StopAtEndListener = this::tgx101OnStopAtEndChanged;
     nextButton = newButton(R.id.btn_next, R.drawable.round_skip_next_36, false);
     prevButton = newButton(R.id.btn_previous, R.drawable.round_skip_previous_36, false);
     repeatButton = newButton(R.id.btn_repeat, getRepeatIcon(), isRepeatActive());
@@ -365,6 +371,8 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     tgx101Dislike.setOnClickListener(v -> tgx101ToggleDislike());
     tgx101AttachDislikeMenu(tgx101Dislike);
     org.thunderdog.challegram.player.Tgx101MusicTaste.addListener(tgx101TasteListener);
+    tgx101AttachModeHint(shuffleButton, true);
+    tgx101AttachModeHint(repeatButton, false);
     tgx101HoldToSeek(nextButton, 1);
     tgx101HoldToSeek(prevButton, -1);
     playPauseButton = new PlayPauseButton(context);
@@ -439,6 +447,9 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
   @Override
   public void destroy () {
     super.destroy();
+    if (org.thunderdog.challegram.player.AudioController.tgx101StopAtEndListener != null) {
+      org.thunderdog.challegram.player.AudioController.tgx101StopAtEndListener = null;
+    }
     tdlib.context().player().removeTrackListChangeListener(this);
     tdlib.context().player().removeTrackChangeListener(tgx101SpeedListener);
     org.thunderdog.challegram.player.Tgx101MusicTaste.removeListener(tgx101TasteListener);
@@ -1878,7 +1889,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     boolean wasShuffling = (playFlags & TGPlayerController.PLAY_FLAG_SHUFFLE) != 0;
     boolean nowShuffling = (newPlayFlags & TGPlayerController.PLAY_FLAG_SHUFFLE) != 0;
     if (wasShuffling != nowShuffling) {
-      setActive(shuffleButton, nowShuffling);
+      setActive(shuffleButton, nowShuffling || org.thunderdog.challegram.player.AudioController.tgx101StopAtEnd());
     }
 
     int prevRepeatMode = TGPlayerController.getPlayRepeatFlag(playFlags);
@@ -2109,7 +2120,134 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
   // State
 
   private boolean isShuffleActive () {
-    return (playFlags & TGPlayerController.PLAY_FLAG_SHUFFLE) != 0;
+    return (playFlags & TGPlayerController.PLAY_FLAG_SHUFFLE) != 0 || org.thunderdog.challegram.player.AudioController.tgx101StopAtEnd();
+  }
+
+  private @Nullable Tgx101ShuffleDrawable tgx101ShuffleIcon;
+  private @Nullable android.animation.ValueAnimator tgx101ShuffleMorph;
+
+  private void tgx101OnStopAtEndChanged () {
+    if (isDestroyed() || shuffleButton == null || tgx101ShuffleIcon == null) return;
+    float to = org.thunderdog.challegram.player.AudioController.tgx101StopAtEnd() ? 1f : 0f;
+    if (tgx101ShuffleMorph != null) tgx101ShuffleMorph.cancel();
+    tgx101ShuffleMorph = android.animation.ValueAnimator.ofFloat(tgx101ShuffleIcon.getFactor(), to);
+    tgx101ShuffleMorph.setDuration(320);
+    tgx101ShuffleMorph.setInterpolator(org.thunderdog.challegram.widget.PopupLayout.TGX101_IN_CURVE);
+    tgx101ShuffleMorph.addUpdateListener(a -> tgx101ShuffleIcon.setFactor((float) a.getAnimatedValue()));
+    tgx101ShuffleMorph.start();
+    setActive(shuffleButton, isShuffleActive());
+  }
+
+  /** order → shuffle → one track (this one, then stop) → order */
+  private void tgx101NextShuffleMode () {
+    TGPlayerController player = tdlib.context().player();
+    org.thunderdog.challegram.player.AudioController audio = tdlib.context().audio();
+    boolean shuffling = (playFlags & TGPlayerController.PLAY_FLAG_SHUFFLE) != 0;
+    if (org.thunderdog.challegram.player.AudioController.tgx101StopAtEnd()) {
+      audio.tgx101SetStopAtEnd(false);
+    } else if (shuffling) {
+      player.togglePlaybackFlag(TGPlayerController.PLAY_FLAG_SHUFFLE);
+      audio.tgx101SetStopAtEnd(true);
+    } else {
+      player.togglePlaybackFlag(TGPlayerController.PLAY_FLAG_SHUFFLE);
+    }
+  }
+
+  /** (user 2026-11-28 «по удержанию — краткое описание каждой позиции кнопки, и кнопок повтора»): a small card above the
+   *  button, every state with a line on what it does, the current one lit */
+  private void tgx101AttachModeHint (ImageView button, boolean shuffle) {
+    button.setOnLongClickListener(v -> {
+      tgx101ShowModeHint(button, shuffle);
+      return true;
+    });
+  }
+
+  private void tgx101ShowModeHint (ImageView anchor, boolean shuffle) {
+    Context ctx = context();
+    int filling = Theme.getColor(ColorId.filling);
+    int textColor = Theme.getColor(ColorId.text), lightColor = Theme.getColor(ColorId.textLight);
+    int accent = Theme.getColor(ColorId.playerButtonActive), grey = Theme.getColor(ColorId.playerButton);
+    LinearLayout card = new LinearLayout(ctx);
+    card.setOrientation(LinearLayout.VERTICAL);
+    card.setPadding(0, Screen.dp(6f), 0, Screen.dp(6f));
+    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+    bg.setColor(Theme.isDark() ? me.vkryl.core.ColorUtils.fromToArgb(filling, 0xffffffff, .08f) : filling);
+    bg.setCornerRadius(Screen.dp(14f));
+    bg.setStroke(Math.max(1, Screen.dp(.5f)), Theme.separatorColor());
+    card.setBackground(bg);
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) card.setElevation(Screen.dp(6f));
+    int current;
+    int[] titles, texts;
+    android.graphics.drawable.Drawable[] icons = new android.graphics.drawable.Drawable[3];
+    if (shuffle) {
+      current = org.thunderdog.challegram.player.AudioController.tgx101StopAtEnd() ? 2 : (playFlags & TGPlayerController.PLAY_FLAG_SHUFFLE) != 0 ? 1 : 0;
+      titles = new int[] {R.string.Tgx101ModeInOrder, R.string.Tgx101ModeShuffle, R.string.Tgx101ModeOneTrack};
+      texts = new int[] {R.string.Tgx101ModeInOrderInfo, R.string.Tgx101ModeShuffleInfo, R.string.Tgx101ModeOneTrackInfo};
+      icons[0] = new Tgx101ShuffleDrawable();
+      icons[1] = new Tgx101ShuffleDrawable();
+      Tgx101ShuffleDrawable one = new Tgx101ShuffleDrawable();
+      one.setFactor(1f);
+      icons[2] = one;
+    } else {
+      int repeat = TGPlayerController.getPlayRepeatFlag(playFlags);
+      current = repeat == TGPlayerController.PLAY_FLAG_REPEAT_ONE ? 2 : repeat == TGPlayerController.PLAY_FLAG_REPEAT ? 1 : 0;
+      titles = new int[] {R.string.Tgx101ModeNoRepeat, R.string.Tgx101ModeRepeatAll, R.string.Tgx101ModeRepeatOne};
+      texts = new int[] {R.string.Tgx101ModeNoRepeatInfo, R.string.Tgx101ModeRepeatAllInfo, R.string.Tgx101ModeRepeatOneInfo};
+      icons[0] = androidx.core.content.ContextCompat.getDrawable(ctx, R.drawable.round_repeat_24);
+      icons[1] = androidx.core.content.ContextCompat.getDrawable(ctx, R.drawable.round_repeat_24);
+      icons[2] = androidx.core.content.ContextCompat.getDrawable(ctx, R.drawable.round_repeat_one_24);
+    }
+    for (int i = 0; i < 3; i++) {
+      LinearLayout row = new LinearLayout(ctx);
+      row.setOrientation(LinearLayout.HORIZONTAL);
+      row.setPadding(Screen.dp(14f), Screen.dp(7f), Screen.dp(16f), Screen.dp(7f));
+      ImageView icon = new ImageView(ctx);
+      if (icons[i] != null) {
+        android.graphics.drawable.Drawable d = icons[i].mutate();
+        d.setColorFilter(new android.graphics.PorterDuffColorFilter(i == 0 ? grey : accent, android.graphics.PorterDuff.Mode.SRC_IN));
+        icon.setImageDrawable(d);
+      }
+      icon.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
+      row.addView(icon, new LinearLayout.LayoutParams(Screen.dp(22f), Screen.dp(22f)));
+      LinearLayout words = new LinearLayout(ctx);
+      words.setOrientation(LinearLayout.VERTICAL);
+      android.widget.TextView title = new android.widget.TextView(ctx);
+      title.setText(Lang.getString(titles[i]));
+      title.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 14f);
+      title.setTextColor(i == current ? accent : textColor);
+      title.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+      words.addView(title);
+      android.widget.TextView text = new android.widget.TextView(ctx);
+      text.setText(Lang.getString(texts[i]));
+      text.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+      text.setTextColor(lightColor);
+      words.addView(text);
+      LinearLayout.LayoutParams wp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+      wp.leftMargin = Screen.dp(12f);
+      row.addView(words, wp);
+      card.addView(row);
+    }
+    android.widget.PopupWindow popup = new android.widget.PopupWindow(card, ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, false);
+    popup.setOutsideTouchable(true);
+    popup.setBackgroundDrawable(new android.graphics.drawable.ColorDrawable(0));
+    card.measure(View.MeasureSpec.makeMeasureSpec(Screen.dp(300f), View.MeasureSpec.AT_MOST), View.MeasureSpec.UNSPECIFIED);
+    int[] loc = new int[2];
+    anchor.getLocationInWindow(loc);
+    int w = card.getMeasuredWidth(), h = card.getMeasuredHeight();
+    int screenW = anchor.getRootView().getWidth();
+    int x = Math.max(Screen.dp(8f), Math.min(screenW - w - Screen.dp(8f), loc[0] + anchor.getWidth() / 2 - w / 2));
+    int y = loc[1] - h - Screen.dp(4f);
+    card.setAlpha(0f);
+    card.setScaleX(.92f);
+    card.setScaleY(.92f);
+    card.setPivotX(loc[0] + anchor.getWidth() / 2f - x);
+    card.setPivotY(h);
+    popup.showAtLocation(anchor, android.view.Gravity.NO_GRAVITY, x, y);
+    card.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(180).setInterpolator(org.thunderdog.challegram.widget.PopupLayout.TGX101_IN_CURVE).start();
+    anchor.postDelayed(() -> {
+      if (popup.isShowing()) card.animate().alpha(0f).setDuration(160).withEndAction(() -> { try { popup.dismiss(); } catch (Throwable ignored) { } }).start();
+    }, 2600);
+    UI.forceVibrate(anchor, false);
   }
 
   private boolean isRepeatActive () {
@@ -2166,7 +2304,7 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
     } else if (viewId == R.id.btn_repeat) {
       tdlib.context().player().toggleRepeatMode();
     } else if (viewId == R.id.btn_shuffle) {
-      tdlib.context().player().togglePlaybackFlag(TGPlayerController.PLAY_FLAG_SHUFFLE);
+      tgx101NextShuffleMode();
     }
   }
 

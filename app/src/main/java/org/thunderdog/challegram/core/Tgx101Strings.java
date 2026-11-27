@@ -1806,6 +1806,18 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101PlayerLoop, "Повтор видео");
     RU.put(R.string.Tgx101PlayerBackground, "Играть в фоне");
     RU.put(R.string.Tgx101StopAtEnd, "Остановить после этого трека");
+    RU.put(R.string.Tgx101ModeInOrder, "По порядку");
+    RU.put(R.string.Tgx101ModeInOrderInfo, "Треки идут друг за другом");
+    RU.put(R.string.Tgx101ModeShuffle, "Перемешать");
+    RU.put(R.string.Tgx101ModeShuffleInfo, "Следующий трек — случайный");
+    RU.put(R.string.Tgx101ModeOneTrack, "Один трек");
+    RU.put(R.string.Tgx101ModeOneTrackInfo, "Доиграет этот и остановится");
+    RU.put(R.string.Tgx101ModeNoRepeat, "Без повтора");
+    RU.put(R.string.Tgx101ModeNoRepeatInfo, "Очередь закончится — остановится");
+    RU.put(R.string.Tgx101ModeRepeatAll, "Повторять все");
+    RU.put(R.string.Tgx101ModeRepeatAllInfo, "После последнего — снова первый");
+    RU.put(R.string.Tgx101ModeRepeatOne, "Повторять трек");
+    RU.put(R.string.Tgx101ModeRepeatOneInfo, "Этот трек по кругу");
     RU.put(R.string.Tgx101StopAtEndOff, "Не останавливать после трека");
     RU.put(R.string.Tgx101StopAtEndToast, "Остановится, когда трек закончится");
     RU.put(R.string.Tgx101StopAtEndOffToast, "Играет дальше");
