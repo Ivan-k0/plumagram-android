@@ -3238,7 +3238,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
     // mediaView styles
 
-    int pipSize = Screen.dp(220f);
+    int pipSize = Screen.dp(tgx101PipSizeDp());
     float pipScale = Math.min((float) pipSize / (float) mediaWidth, (float) pipSize / (float) mediaHeight);
 
     // scale
@@ -3267,7 +3267,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     float y = (((pipYFactor < 0f ? offsetTopY : offsetBottomY) * -pipYFactor) + (fullY * pipYFactor) + pipAddY) * pipFactor;
 
     if (Math.abs(this.pipXFactor) == 2f) {
-      x = this.pipXFactor == -2f ? x - currentWidth - offsetX + Screen.dp(24f) : x + currentWidth + offsetX - Screen.dp(24f);
+      // (user 2026-11-27 «прячется за экран, как ютуб на iOS — остаётся тонкая прозрачная полоска»): 14 dp of it, was 24
+      x = this.pipXFactor == -2f ? x - currentWidth - offsetX + Screen.dp(TGX101_PIP_PEEK) : x + currentWidth + offsetX - Screen.dp(TGX101_PIP_PEEK);
     }
 
     if (allowControlsHide) {
@@ -3426,6 +3427,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       this.pipHideFactor = factor;
       updatePipControlsAlpha();
       pipOverlayView.setAlpha(factor);
+      mediaView.setAlpha(1f - .45f * factor); // the strip left at the edge is see-through
 
     }
   }
@@ -3701,6 +3703,41 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
   }
 
+  // TGx101 (user 2026-11-27 «дать возможность окну менять размер, подумай 3–5 вариантов»): five sizes by the long side
+  private static final float[] TGX101_PIP_SIZES = {140f, 180f, 220f, 280f, 340f};
+  private static final float TGX101_PIP_PEEK = 14f;
+  private long tgx101PipTapAt;
+  private float tgx101PipSizeAnimDp = -1f; // while the size changes
+
+  private float tgx101PipSizeDp () {
+    if (tgx101PipSizeAnimDp > 0f) return tgx101PipSizeAnimDp;
+    int i = Math.max(0, Math.min(TGX101_PIP_SIZES.length - 1, Settings.instance().tgx101PipSize()));
+    return TGX101_PIP_SIZES[i];
+  }
+
+  private void tgx101NextPipSize () {
+    final float from = tgx101PipSizeDp();
+    int i = (Math.max(0, Math.min(TGX101_PIP_SIZES.length - 1, Settings.instance().tgx101PipSize())) + 1) % TGX101_PIP_SIZES.length;
+    Settings.instance().setTgx101PipSize(i);
+    final float to = TGX101_PIP_SIZES[i];
+    android.animation.ValueAnimator a = android.animation.ValueAnimator.ofFloat(0f, 1f);
+    a.setDuration(220);
+    a.setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR);
+    a.addUpdateListener(an -> {
+      tgx101PipSizeAnimDp = from + (to - from) * (float) an.getAnimatedValue();
+      updatePipLayout(mediaView.getMeasuredWidth(), mediaView.getMeasuredHeight(), false, false);
+    });
+    a.addListener(new android.animation.AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (android.animation.Animator animation) {
+        tgx101PipSizeAnimDp = -1f;
+        updatePipLayout(mediaView.getMeasuredWidth(), mediaView.getMeasuredHeight(), false, false);
+      }
+    });
+    a.start();
+    org.thunderdog.challegram.Tgx101Diag.mark("pip: size " + Math.round(from) + " → " + Math.round(to) + " dp");
+  }
+
   private static class PipOverlayView extends View {
     private Drawable backIcon;
 
@@ -3720,15 +3757,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
     @Override
     protected void onDraw (Canvas c) {
-      int y = getMeasuredHeight() / 2 - backIcon.getMinimumHeight() / 2;
-      if (isLeft) {
-        c.save();
-        c.rotate(180, getMeasuredWidth() / 2, getMeasuredHeight() / 2);
-        Drawables.draw(c, backIcon, 0, y, Paints.whitePorterDuffPaint());
-        c.restore();
-      } else {
-        Drawables.draw(c, backIcon, 0, y, Paints.whitePorterDuffPaint());
-      }
+      // (user 2026-11-27): a small white grip in the middle of the thin strip left at the edge, instead of an arrow
+      float peek = Screen.dp(TGX101_PIP_PEEK);
+      float cx = isLeft ? getMeasuredWidth() - peek / 2f : peek / 2f;
+      float h = Math.min(Screen.dp(34f), getMeasuredHeight() * .4f);
+      float w = Screen.dp(3f);
+      android.graphics.RectF r = Paints.getRectF();
+      r.set(cx - w / 2f, getMeasuredHeight() / 2f - h / 2f, cx + w / 2f, getMeasuredHeight() / 2f + h / 2f);
+      c.drawRoundRect(r, w / 2f, w / 2f, Paints.fillingPaint(0xe6ffffff));
     }
   }
 
@@ -7187,7 +7223,16 @@ public class MediaViewController extends ViewController<MediaViewController.Args
               case MotionEvent.ACTION_UP: {
                 if (listenCatchPip) {
                   if (Math.max(Math.abs(startX - e.getX()), Math.abs(startY - e.getY())) < Screen.getTouchSlop()) {
-                    togglePipControlsVisibility();
+                    // (user 2026-11-27): two taps change the window's size, one shows / hides its buttons as before
+                    long now = android.os.SystemClock.uptimeMillis();
+                    if (!pipHidden && now - tgx101PipTapAt < 300) {
+                      tgx101PipTapAt = 0;
+                      togglePipControlsVisibility(); // the first tap's toggle undone
+                      tgx101NextPipSize();
+                    } else {
+                      tgx101PipTapAt = now;
+                      togglePipControlsVisibility();
+                    }
                   }
                   listenCatchPip = false;
                   return true;

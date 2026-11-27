@@ -6315,6 +6315,17 @@ public class Settings {
 
   // PiP
 
+  private static final String KEY_TGX101_PIP_SIZE = "tgx101_pip_size";
+
+  /** (user 2026-11-27 «дать возможность окну менять размер»): the video window's size, a place in MediaViewController's list */
+  public int tgx101PipSize () {
+    return pmc.getInt(KEY_TGX101_PIP_SIZE, 2);
+  }
+
+  public void setTgx101PipSize (int index) {
+    pmc.putInt(KEY_TGX101_PIP_SIZE, index);
+  }
+
   public long getPipPosition () {
     return getLong(KEY_PIP, BitwiseUtils.mergeLong(Lang.rtl() ? -1 : 1, -1));
   }
