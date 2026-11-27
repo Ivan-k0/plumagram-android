@@ -71,6 +71,12 @@ public final class Tgx101Island {
     final TdApi.Message message = ((TdApi.UpdateNewMessage) update).message;
     if (message == null || message.isOutgoing || message.sendingState != null || message.schedulingState != null) return;
     if (System.currentTimeMillis() / 1000L - message.date > 60) return; // not «now»
+    // (user 2026-11-27 «завершаю звонок, а уведомление всё равно появляется»): the call's own message after it ends — as in
+    // the system notifications, only a missed call is told about
+    if (message.content.getConstructor() == TdApi.MessageCall.CONSTRUCTOR) {
+      TdApi.CallDiscardReason reason = ((TdApi.MessageCall) message.content).discardReason;
+      if (reason == null || reason.getConstructor() != TdApi.CallDiscardReasonMissed.CONSTRUCTOR) return;
+    }
     final Settings settings = Settings.instance();
     if (settings.tgx101FgShow() == Settings.TGX101_FG_SYSTEM) return; // the system notification does it all
     final long chatId = message.chatId;
