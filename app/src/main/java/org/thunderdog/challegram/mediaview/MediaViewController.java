@@ -3530,7 +3530,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     // fling takes it to the corner it was thrown at, starting at the finger's own speed
     final float tgx101Speed = (float) Math.hypot(velocityX, velocityY);
     final boolean tgx101Fling = tgx101Speed > Screen.dp(TGX101_PIP_FLING_DP);
-    if (tgx101Fling && Math.abs(velocityX) > Screen.dp(250f) && (absDegrees < 65 || absDegrees > 115)) {
+    if (tgx101Fling && Math.abs(velocityX) > Screen.dp(150f) && (absDegrees < 65 || absDegrees > 115)) {
       if (absDegrees > 115 && pipX <= leftX) {
         targetX = hiddenLeftX;
         targetXFactor = -2f;
@@ -3565,7 +3565,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
     setPipHidden(Math.abs(targetXFactor) == 2f, targetXFactor == -2f);
 
-    if (tgx101Fling && allowVelocityY && Math.abs(velocityY) > Screen.dp(250f) && (absDegrees >= 25 && absDegrees <= 155)) {
+    if (tgx101Fling && allowVelocityY && Math.abs(velocityY) > Screen.dp(150f) && (absDegrees >= 25 && absDegrees <= 155)) {
       targetY = degrees > 0 ? bottomY : topY;
       targetYFactor = targetY == topY ? -1f : 1f;
     } else if (tgx101Fling) {
@@ -3860,7 +3860,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private EditButton pipOpenButton, pipCloseButton, tgx101PipMuteButton;
   private boolean tgx101PipSilenced;
   private static final float TGX101_PIP_RADIUS = 14f;
-  private static final float TGX101_PIP_FLING_DP = 900f; // dp/s: slower than that the window stays where it is let go
+  // dp/s: slower than that the window stays where it is let go (journal 2026-11-28: the user's flicks measured 389–486,
+  // plain drags let go at 0–300 — 900 was never reached, «оно не липнет к краям»)
+  private static final float TGX101_PIP_FLING_DP = 380f;
 
   private void tgx101SetPipSilenced (boolean silenced) {
     if (tgx101PipSilenced == silenced) return;
