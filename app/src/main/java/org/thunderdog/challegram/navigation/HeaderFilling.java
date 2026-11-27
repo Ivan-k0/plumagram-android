@@ -1197,6 +1197,8 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
 
   private void setCallActive (boolean isActive, boolean animated, TdApi.CallState state) {
     if (this.isCallActive != isActive) {
+      // (user 2026-11-27, variant 1 «красный выдох»): the moment the call ends — the halo flashes red once and fades out
+      tgx101CallEndedAt = !isActive && this.isCallActive && animated ? android.os.SystemClock.uptimeMillis() : 0;
       this.isCallActive = isActive;
       final float toFactor = isActive ? 1f : 0f;
       if (animated) {
@@ -1347,6 +1349,8 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
   }
 
   private boolean tgx101HaloScheduled;
+  private long tgx101CallEndedAt;
+  private static final long TGX101_EXHALE_MS = 900;
   private final Runnable tgx101HaloTick = () -> {
     tgx101HaloScheduled = false;
     invalidateOngoingBar();
@@ -1378,7 +1382,22 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     cx = width - Screen.dp(12f) - hangIcon.getMinimumWidth();
     cy = playerTop + Screen.dp(6f);
 
-    if (onHeader && callActiveFactor > 0f) {
+    final long exhale = tgx101CallEndedAt != 0 ? android.os.SystemClock.uptimeMillis() - tgx101CallEndedAt : -1;
+    if (onHeader && !isCallActive && exhale >= 0 && exhale < TGX101_EXHALE_MS) {
+      // the red exhale: green turns red in the first 150 ms, then the ring widens and fades
+      float hcx = cx + hangIcon.getMinimumWidth() / 2f, hcy = cy + hangIcon.getMinimumHeight() / 2f;
+      float turn = Math.min(1f, exhale / 150f);
+      float fade = exhale <= 150 ? 1f : 1f - (exhale - 150) / (float) (TGX101_EXHALE_MS - 150);
+      fade = fade * fade;
+      int color = ColorUtils.fromToArgb(Theme.getColor(ColorId.headerBarCallIncoming), 0xffe53935, turn);
+      float radius = Screen.dp(14f) + Screen.dp(8f) * (1f - fade);
+      c.drawCircle(hcx, hcy, radius, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha * .35f * fade, color)));
+      c.drawCircle(hcx, hcy, Screen.dp(13f), Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha * .9f * fade, color)));
+      if (!tgx101HaloScheduled && headerView != null) {
+        tgx101HaloScheduled = true;
+        headerView.postDelayed(tgx101HaloTick, 33);
+      }
+    } else if (onHeader && callActiveFactor > 0f) {
       // the green halo breathes around the hang-up button while the call is on (and while it rings)
       float phase = (android.os.SystemClock.uptimeMillis() % 1800L) / 1800f;
       float breath = .5f - .5f * (float) Math.cos(2 * Math.PI * phase);
