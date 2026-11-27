@@ -25,6 +25,45 @@ public final class Tgx101VideoResume {
 
   private Tgx101VideoResume () { }
 
+  // TGx101 (user 2026-11-27, mockup «Последнее видео», «делаем птичку»): the last video left unfinished — the bird's
+  // «Досмотреть» opens it again from that place. Kept on disk: the phone unloads the app in the background
+  public static final class Last {
+    public final int account;
+    public final long chatId, messageId, positionMs, durationMs;
+    Last (int account, long chatId, long messageId, long positionMs, long durationMs) {
+      this.account = account; this.chatId = chatId; this.messageId = messageId; this.positionMs = positionMs; this.durationMs = durationMs;
+    }
+  }
+
+  private static android.content.SharedPreferences lastPrefs () {
+    return org.thunderdog.challegram.unsorted.AppContext.get().getSharedPreferences("tgx101_last_video", android.content.Context.MODE_PRIVATE);
+  }
+
+  private static void tgx101RememberLast (MediaItem item, long positionMs, long durationMs) {
+    long chatId = item.getSourceChatId(), messageId = item.getSourceMessageId();
+    if (chatId == 0 || messageId == 0) return;
+    android.content.SharedPreferences p = lastPrefs();
+    boolean unfinished = positionMs >= MIN_POSITION_MS && (durationMs <= 0 || positionMs <= durationMs - END_MARGIN_MS);
+    if (unfinished) {
+      p.edit().putInt("account", item.tdlib().id()).putLong("chat", chatId).putLong("message", messageId)
+        .putLong("position", positionMs).putLong("duration", durationMs).apply();
+    } else if (p.getLong("chat", 0) == chatId && p.getLong("message", 0) == messageId) {
+      p.edit().clear().apply(); // watched to the end: nothing left to finish
+    }
+  }
+
+  @Nullable
+  public static Last last () {
+    android.content.SharedPreferences p = lastPrefs();
+    long chatId = p.getLong("chat", 0), messageId = p.getLong("message", 0);
+    if (chatId == 0 || messageId == 0) return null;
+    return new Last(p.getInt("account", 0), chatId, messageId, p.getLong("position", 0), p.getLong("duration", 0));
+  }
+
+  public static void clearLast () {
+    lastPrefs().edit().clear().apply();
+  }
+
   @Nullable
   private static String key (@Nullable MediaItem item) {
     if (item == null || item.getType() != MediaItem.TYPE_VIDEO || item.isSecret() || item.tdlib() == null) {
@@ -38,6 +77,7 @@ public final class Tgx101VideoResume {
     if (key == null) {
       return;
     }
+    tgx101RememberLast(item, positionMs, durationMs);
     // (user 2026-10-31): back in the feed or the post, the video goes on from where the viewer left it
     if (positionMs > 0) org.thunderdog.challegram.loader.gif.GifActor.tgx101SetPosition(item.getFileId(), positionMs);
     synchronized (positions) {

@@ -39,7 +39,8 @@ public final class Tgx101Bird {
 
   public static final int ACTION_STORAGE = 0, ACTION_PROXY = 1, ACTION_ACCOUNTS = 2, ACTION_CALLS = 3, ACTION_SETTINGS = 4,
     ACTION_COMPOSE = 5, ACTION_SEARCH = 6, ACTION_NEXT_ACCOUNT = 7, ACTION_NOTE = 8, ACTION_MENU = 9, ACTION_NIGHT = 10, ACTION_PEEK = 11, ACTION_GAZETA = 12, ACTION_PLAYER = 13,
-    ACTION_HIDE = 99; // «×» under a new user's first ring: hide the bird (not in the ring's settings)
+    ACTION_HIDE = 99,
+    ACTION_RESUME_VIDEO = 98; // (user 2026-11-27) «Досмотреть» — the last video left unfinished, while there is one // «×» under a new user's first ring: hide the bird (not in the ring's settings)
   public static final int MAX = 7; // (user 2026-10-22 «7 возможных кнопок вместо 5, в два ряда — 4 и 3»)
 
   /** the order of the bits in {@link Settings#tgx101BirdRing()} */
@@ -123,6 +124,12 @@ public final class Tgx101Bird {
         continue;
       }
       out.add(new Tgx101BirdView.Item(i, ICONS[i], COLORS[i], Lang.getString(TITLES[i])));
+    }
+    org.thunderdog.challegram.mediaview.Tgx101VideoResume.Last last = org.thunderdog.challegram.mediaview.Tgx101VideoResume.last();
+    if (last != null && out.size() < MAX) {
+      long s = last.positionMs / 1000;
+      out.add(0, new Tgx101BirdView.Item(ACTION_RESUME_VIDEO, R.drawable.baseline_replay_24, 0xff3a7bd5,
+        Lang.getString(R.string.Tgx101BirdResumeVideo, (s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60))));
     }
     if (Settings.instance().tgx101BirdHideHint() && !out.isEmpty()) {
       out.add(new Tgx101BirdView.Item(ACTION_HIDE, R.drawable.baseline_close_24, 0xff5a6675, Lang.getString(R.string.Tgx101BirdHide)));
@@ -548,6 +555,23 @@ public final class Tgx101Bird {
     switch (action) {
       case ACTION_HIDE: {
         confirmHide(host);
+        break;
+      }
+      case ACTION_RESUME_VIDEO: {
+        final org.thunderdog.challegram.mediaview.Tgx101VideoResume.Last last = org.thunderdog.challegram.mediaview.Tgx101VideoResume.last();
+        if (last == null) break;
+        final Tdlib t = last.account == tdlib.id() ? tdlib : org.thunderdog.challegram.telegram.TdlibManager.getTdlib(last.account);
+        t.client().send(new TdApi.GetMessage(last.chatId, last.messageId), result -> org.thunderdog.challegram.tool.UI.post(() -> {
+          if (host.isDestroyed()) return;
+          if (result.getConstructor() != TdApi.Message.CONSTRUCTOR) {
+            org.thunderdog.challegram.mediaview.Tgx101VideoResume.clearLast(); // the message is gone
+            org.thunderdog.challegram.Tgx101Diag.mark("bird: resume video — the message is gone");
+            return;
+          }
+          org.thunderdog.challegram.mediaview.data.MediaItem item = org.thunderdog.challegram.mediaview.data.MediaItem.valueOf(context, t, (TdApi.Message) result);
+          if (item == null) return;
+          org.thunderdog.challegram.mediaview.MediaViewController.openFromMedia(host, item, null, false); // goes on from the place kept for it
+        }));
         break;
       }
       case ACTION_STORAGE:
