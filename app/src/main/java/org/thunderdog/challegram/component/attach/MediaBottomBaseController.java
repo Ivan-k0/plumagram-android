@@ -666,8 +666,8 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     int target;
     float t; // s
     if (reach >= remaining) {
-      target = max;
-      t = (float) (-tau * Math.log(1.0 - remaining / reach));
+      tgx101ThrowThrough(speed, remaining);
+      return true;
     } else {
       t = (float) (tau * Math.log(speed / TGX101_THROW_STOP));
       target = currentHeight + Math.round(reach * (1f - (float) Math.exp(-t / tau)));
@@ -688,6 +688,78 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     final float arrival = target == max ? speed * (float) Math.exp(-k) : 0f; // px/s at the top
     animateCurrentHeightImpl(target, duration, curve, arrival > TGX101_THROW_STOP * 2f && recyclerView != null ? () -> tgx101GlideGrid(arrival, TGX101_THROW_TAU) : null);
     return true;
+  }
+
+  /**
+   * (recording 2026-11-27 after the first try: at the hand-over 72 → 14 → 72 and 20 → 4 → 18 px a frame — the sheet's animator
+   * ended, the grid's started a few frames later) one animator on one clock moves the sheet and, past the top, the grid: the
+   * same fading speed throughout, nothing handed over
+   */
+  private void tgx101ThrowThrough (float speed, final int remaining) {
+    if (animatingHeight && heightAnimator != null) heightAnimator.cancel();
+    if (tgx101GridGlide != null) tgx101GridGlide.cancel();
+    tgx101HookGridTouch();
+    final float tau = TGX101_THROW_TAU;
+    final float t = (float) (tau * Math.log(speed / TGX101_THROW_STOP)); // s, till it has stopped
+    final float k = t / tau;
+    final float norm = 1f - (float) Math.exp(-k);
+    final float total = speed * tau * norm; // px in all, sheet and grid
+    final int from = currentHeight, max = getMaxHeight();
+    final int[] scrolled = {0};
+    final long t0 = android.view.animation.AnimationUtils.currentAnimationTimeMillis() - 8; // from the frame already shown
+    final long ms = Math.max(1l, Math.round(t * 1000f));
+    org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: thrown through at " + Math.round(speed) + " px/s, " + remaining + " px of sheet then " + Math.max(0, Math.round(total) - remaining) + " px of grid, " + ms + " ms");
+    animatingHeight = true;
+    final ValueAnimator a = ValueAnimator.ofFloat(0f, 1f);
+    float scale = org.thunderdog.challegram.U.getAnimationScale(context);
+    a.setDuration(scale > 0f && scale != 1f ? Math.round(ms / scale) : ms); // runs as long as the throw; the steps go by the real clock
+    a.addUpdateListener(an -> {
+      if (!animatingHeight) {
+        an.cancel();
+        return;
+      }
+      float f = Math.min(1f, (android.view.animation.AnimationUtils.currentAnimationTimeMillis() - t0) / (float) ms);
+      int d = Math.round(total * (1f - (float) Math.exp(-k * f)) / norm);
+      int h = Math.min(max, from + d);
+      if (h != currentHeight) setCurrentHeight(h, true);
+      int grid = d - remaining;
+      if (grid > scrolled[0] && recyclerView != null) {
+        if (!recyclerView.canScrollVertically(1)) {
+          an.cancel(); // the end of the grid
+          return;
+        }
+        recyclerView.scrollBy(0, grid - scrolled[0]);
+        scrolled[0] = grid;
+      }
+    });
+    a.addListener(new AnimatorListenerAdapter() {
+      @Override
+      public void onAnimationEnd (Animator animation) {
+        if (heightAnimator == a) {
+          animatingHeight = false;
+          heightAnimator = null;
+        }
+        if (tgx101GridGlide == a) tgx101GridGlide = null;
+      }
+    });
+    heightAnimator = a;
+    tgx101GridGlide = a; // a touch on the grid stops it
+    a.start();
+  }
+
+  private void tgx101HookGridTouch () {
+    if (tgx101GridGlideHooked || recyclerView == null) return;
+    tgx101GridGlideHooked = true;
+    recyclerView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
+      @Override
+      public boolean onInterceptTouchEvent (@androidx.annotation.NonNull RecyclerView rv, @androidx.annotation.NonNull MotionEvent e) {
+        if (e.getActionMasked() == MotionEvent.ACTION_DOWN && tgx101GridGlide != null) {
+          tgx101GridGlide.cancel();
+          tgx101GridGlide = null;
+        }
+        return false;
+      }
+    });
   }
 
   /** Starts at the given speed (slope at 0, in distance per duration) and ends at the other one (0: comes to rest), no jolt on either end */
@@ -719,19 +791,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     if (tgx101ArrivalSpeed > 0f) velocity = tgx101ArrivalSpeed;
     if (recyclerView == null || velocity <= 0f) return;
     if (tgx101GridGlide != null) tgx101GridGlide.cancel();
-    if (!tgx101GridGlideHooked) {
-      tgx101GridGlideHooked = true;
-      recyclerView.addOnItemTouchListener(new RecyclerView.SimpleOnItemTouchListener() {
-        @Override
-        public boolean onInterceptTouchEvent (@androidx.annotation.NonNull RecyclerView rv, @androidx.annotation.NonNull MotionEvent e) {
-          if (e.getActionMasked() == MotionEvent.ACTION_DOWN && tgx101GridGlide != null) {
-            tgx101GridGlide.cancel();
-            tgx101GridGlide = null;
-          }
-          return false;
-        }
-      });
-    }
+    tgx101HookGridTouch();
     // (user 2026-11-22 «почему скролл останавливается? он должен продолжаться»): it goes on as a fling does — the speed
     // fades exponentially (time constant tau) from exactly the sheet's speed; RecyclerView's own fling started at about
     // half the speed it was given on this phone, which was the step seen at the top
