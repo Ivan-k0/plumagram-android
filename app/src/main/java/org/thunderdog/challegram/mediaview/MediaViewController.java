@@ -1365,7 +1365,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         setCommonFactor(tgx101Dim * tgx101RevealAlphaScale);
         setHeaderAlpha(MathUtils.clamp(factor));
         if (mode == MODE_MESSAGES || mode == MODE_SIMPLE) {
-          tgx101HeaderRevealAlpha = MathUtils.clamp((factor - .75f) / .25f) * (factor >= 1f ? 1f : tgx101TopCover); // gone in the first quarter — before the photo
+          // (user 2026-11-27, recorded next to the reference «шапка мигает, нет плавности»: the header came in only once the
+          // photo had flown up, so the photo's light parts flashed where the header is — 113 → 69 → 94 → 39 in brightness;
+          // there it fades in from the first frames, in place, and the photo flies under it: 200 → 101 → 71 → 83) in over
+          // the first third of the opening, out over the last third of the close; the status bar no longer goes away
+          tgx101HeaderRevealAlpha = TGX101_KEEP_STATUS_BAR && !tgx101LandscapeWindow() ? MathUtils.clamp(factor / .35f)
+            : MathUtils.clamp((factor - .75f) / .25f) * (factor >= 1f ? 1f : tgx101TopCover); // gone in the first quarter — before the photo
           updateHeaderAlpha();
         }
         switch (mode) {
@@ -2624,7 +2629,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     switch (revealAnimationType) {
       case ANIMATION_TYPE_REVEAL: {
         if (headerView != null) {
-          headerView.setTranslationY(-tgx101HeaderHeight() * Math.max(1f - alpha, getForceEditModeVisibility()));
+          // (user 2026-11-27): in place, as the reference — it only fades (see tgx101HeaderRevealAlpha)
+          boolean inPlace = TGX101_KEEP_STATUS_BAR && !tgx101LandscapeWindow() && (mode == MODE_MESSAGES || mode == MODE_SIMPLE);
+          headerView.setTranslationY(inPlace ? 0f : -tgx101HeaderHeight() * Math.max(1f - alpha, getForceEditModeVisibility()));
         }
         break;
       }
