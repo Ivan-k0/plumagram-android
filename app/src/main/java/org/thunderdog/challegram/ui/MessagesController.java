@@ -1648,6 +1648,8 @@ public class MessagesController extends ViewController<MessagesController.Argume
       @Override
       public void onMessageClick (PinnedMessagesBar view, TdApi.Message message, TdApi.InputTextQuote quote) {
         highlightMessage(new MessageId(message.chatId, message.id));
+        // (user 2026-11-27): the pinned message's date shows at the top for a moment, once the chat has got there
+        if (messagesView != null) messagesView.postDelayed(() -> { if (messagesView != null && !isDestroyed()) messagesView.tgx101FlashDate(); }, 350);
       }
 
       @Override

@@ -266,6 +266,15 @@ public class MessagesRecyclerView extends RecyclerView implements FactorAnimator
     }
   }
 
+  /**
+   * TGx101 (user 2026-11-27 «во время перехода по закрепам пусть показывается дата на секунду-полторы маленькой каплей
+   * вверху, как в чате»): the date at the top comes in as for a finger's scroll and goes ~1.5 s later
+   */
+  public void tgx101FlashDate () {
+    setIsScrolling(true);
+    postDelayed(() -> setIsScrolling(false), 150);
+  }
+
   public final void invalidateDate () {
     int topOffset = getTopOffset();
     invalidate(topOffset, 0, getMeasuredWidth(), topOffset + TGMessage.getDateHeight(manager.useBubbles()));
