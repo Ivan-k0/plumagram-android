@@ -1025,6 +1025,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private boolean tgx101OverKb; // the viewer opens over the keyboard (see PopupLayout#tgx101SetOverKeyboard)
+  private static final boolean TGX101_KEEP_STATUS_BAR = true;
 
   private void setFullScreen (boolean isFullscreen) {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
@@ -1034,6 +1035,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           if (c != null) {
             c.hideSoftwareKeyboard();
           }
+        }
+        if (isFullscreen && TGX101_KEEP_STATUS_BAR && mode != MODE_SECRET && !tgx101LandscapeWindow()) {
+          // TGx101 (user 2026-11-27, recorded next to the reference «эталон получше выглядит, и строка не исчезает»): the
+          // clock and icons stay over the viewer, as there — the window doesn't go fullscreen in portrait
+          return;
         }
         if (isFullscreen) {
           context().addFullScreenView(this, true);
