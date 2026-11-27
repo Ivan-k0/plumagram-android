@@ -6255,8 +6255,8 @@
   <string name="Tgx101SpeechModelMissing">Download a speech model in Settings → MagiX → Speech recognition to transcribe voice messages on the phone</string>
   <string name="Tgx101MenuThread">View in topic / replies</string>
   <string name="Tgx101MenuBack">Back</string>
-  <string name="Tgx101ChatMenuMore">More…</string>
-  <string name="Tgx101ChatMenuSectionMore">In «More…» — shown in place of the neighbours</string>
+  <string name="Tgx101ChatMenuMore">More</string>
+  <string name="Tgx101ChatMenuSectionMore">In «More» — shown in place of the neighbours</string>
   <string name="Tgx101PlayerChapters">Chapters</string>
   <string name="Tgx101BackgroundSet">%1$s set a new chat wallpaper</string>
   <string name="Tgx101BackgroundSet_outgoing">You set a new chat wallpaper</string>
@@ -6515,7 +6515,7 @@
   <string name="Tgx101ChatMenuOrder">Chat ⋮ menu items</string>
   <string name="Tgx101BarSectionOn">In the menu, top to bottom</string>
   <string name="Tgx101DrawerOrderHint">Hold an item and drag it up, down or into «Off». The switch shows or hides it. «Proxy» shows only when proxies are added.</string>
-  <string name="Tgx101ChatMenuOrderHint">Hold an item and drag it up, down, into «More…» or into «Off». The switch shows or hides it. Items a chat doesn\'t have are skipped (e.g. «Call» in a channel).</string>
+  <string name="Tgx101ChatMenuOrderHint">Hold an item and drag it up, down, into «More» or into «Off». The switch shows or hides it. Items a chat doesn\'t have are skipped (e.g. «Call» in a channel).</string>
   <string name="Tgx101DrawerSettingsStays">«Settings» stays in the menu</string>
   <string name="Tgx101DrawerGap">Space</string>
   <string name="Tgx101DrawerLine">Divider</string>

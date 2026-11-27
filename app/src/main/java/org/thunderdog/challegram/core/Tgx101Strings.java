@@ -582,8 +582,8 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101SpeechModelMissing, "Чтобы расшифровывать голосовые на телефоне, скачайте модель: Настройки → MagiX → Распознавание речи");
     RU.put(R.string.Tgx101MenuThread, "Посмотреть в теме / ответы");
     RU.put(R.string.Tgx101MenuBack, "Назад");
-    RU.put(R.string.Tgx101ChatMenuMore, "Ещё…");
-    RU.put(R.string.Tgx101ChatMenuSectionMore, "В «Ещё…» — появляются на месте соседних");
+    RU.put(R.string.Tgx101ChatMenuMore, "Ещё");
+    RU.put(R.string.Tgx101ChatMenuSectionMore, "В «Ещё» — появляются на месте соседних");
     RU.put(R.string.Tgx101PlayerChapters, "Главы");
     RU.put(R.string.Tgx101BackgroundSet, "%1$s установил(а) новый фон чата");
     RU.put(R.string.Tgx101BackgroundSet_outgoing, "Вы установили новый фон чата");
@@ -839,7 +839,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101DrawerOrder, "Пункты бокового меню");
     RU.put(R.string.Tgx101ChatMenuOrder, "Пункты меню ⋮ в чате");
     RU.put(R.string.Tgx101BarSectionOn, "В меню, сверху вниз");
-    RU.put(R.string.Tgx101DrawerOrderHint, "Зажмите пункт и перетащите вверх, вниз, в «Ещё…» или в «Выключены». Переключатель — показывать в меню или нет. «Прокси» видно, только если прокси добавлены.");
+    RU.put(R.string.Tgx101DrawerOrderHint, "Зажмите пункт и перетащите вверх, вниз, в «Ещё» или в «Выключены». Переключатель — показывать в меню или нет. «Прокси» видно, только если прокси добавлены.");
     RU.put(R.string.Tgx101ChatMenuOrderHint, "Зажмите пункт и перетащите вверх, вниз или в «Выключены». Переключатель — показывать в меню или нет. Пункты, которых в чате нет (например «Позвонить» в канале), пропускаются.");
     RU.put(R.string.Tgx101DrawerSettingsStays, "«Настройки» остаются в меню");
     RU.put(R.string.Tgx101DrawerGap, "Пробел");

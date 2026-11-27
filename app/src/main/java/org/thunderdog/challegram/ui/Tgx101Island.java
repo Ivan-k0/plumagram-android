@@ -76,6 +76,11 @@ public final class Tgx101Island {
     final long chatId = message.chatId;
     if (tdlib.isSelfChat(chatId)) return;
     if (!tdlib.chatNotificationsEnabled(chatId) && !message.containsUnreadMention) return;
+    // (user 2026-11-27 video «зашёл в чат, на который не подписан, вышел — и плашка сыплет сообщения, в системе их нет»):
+    // a group only looked into (a channel's comments) still gets its messages for a while — no capsule for a chat that
+    // isn't in any of my lists, as TDLib gives no notification for it either
+    TdApi.Chat chat = tdlib.chat(chatId);
+    if (chat == null || chat.positions == null || chat.positions.length == 0) return;
     UI.post(() -> {
       if (!passes(tdlib, chatId)) return;
       // the app's own sound / vibration — the shade gets nothing while the app is open
