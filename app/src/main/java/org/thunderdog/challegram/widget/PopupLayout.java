@@ -1150,6 +1150,15 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
   /** TGx101 (user 2026-11-23 «зачем на одинаковых окнах разное затемнение?»): one dim for every window — the message
    *  menu, the sheets, the ⋮ menus and the cards in the middle — 55 % black on a dark theme, 35 % on a light one; going
    *  from one to the next, the screen keeps the same darkness */
+  // (user 2026-11-27 «во время подъёма… задний экран чата должен светлеть в такт со свайпом»): a share of the dim, 1 — all
+  private float tgx101DimScale = 1f;
+
+  public void tgx101SetDimScale (float scale) {
+    if (tgx101DimScale == scale) return;
+    tgx101DimScale = scale;
+    if (backgroundView != null) backgroundView.setAlpha(factor * scale);
+  }
+
   /** (user 2026-11-27): the dim over the screen under the popup right now, as drawn */
   public int tgx101CurrentDim () {
     final int color = animationType == ANIMATION_TYPE_SIMPLE || tgx101StrongDim ? tgx101Dim() : ColorUtils.color((int) (255f * (Theme.getPopupOverlayAlpha())), 0);
@@ -1214,7 +1223,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
           break;
         }
       }
-      backgroundView.setAlpha(factor);
+      backgroundView.setAlpha(factor * tgx101DimScale);
       if (animationType == ANIMATION_TYPE_SIMPLE || (animationType == ANIMATION_TYPE_CUSTOM && tgx101SystemBlur)) {
         tgx101SetBlurFactor(tgx101BlurFromMenu && tgx101From != null ? 1f : factor);
       }

@@ -552,13 +552,17 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
       if (updateMediaLayout) {
         if (currentHeight == startHeight) {
           mediaLayout.setBottomBarFactor(1f);
+          mediaLayout.tgx101SetDimScale(1f);
           mediaLayout.setHeaderFactor(0f);
         } else if (currentHeight < startHeight) {
           mediaLayout.setBottomBarFactor((float) currentHeight / (float) startHeight);
+          mediaLayout.tgx101SetDimScale(1f);
           mediaLayout.setHeaderFactor(0f);
         } else {
           float barFactor = (float) (getMaxHeight() - currentHeight) / (float) (maxHeight - startHeight);
           mediaLayout.setBottomBarFactor(barFactor);
+          // (user 2026-11-27): the chat behind brightens with the swipe — no dim left when the header reaches the top
+          if (MediaLayout.TGX101_HEADER_COLORED) mediaLayout.tgx101SetDimScale(Math.max(0f, Math.min(1f, barFactor)));
           // TGx101 (recorded next to the other client): the header comes in only as the sheet reaches the top — over the
           // last 30 % of the way; it showed over the chat from the first frames of the rise
           mediaLayout.setHeaderFactor(Math.max(0f, (1f - barFactor - .7f) / .3f));

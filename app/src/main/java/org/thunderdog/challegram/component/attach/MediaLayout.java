@@ -2048,6 +2048,11 @@ public class MediaLayout extends FrameLayoutFix implements
     }
   }
 
+  /** the chat behind the sheet brightens as the sheet rises over its start height: 1 — the usual dim, 0 — none */
+  public void tgx101SetDimScale (float scale) {
+    if (popupLayout != null) popupLayout.tgx101SetDimScale(scale);
+  }
+
   public void setHeaderFactor (float factor) {
     if (this.headerFactor != factor) {
       this.headerFactor = factor;
