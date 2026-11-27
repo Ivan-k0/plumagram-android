@@ -170,6 +170,7 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
       this.speedCounter = null;
     }
     TGLegacyManager.instance().addEmojiListener(this);
+    org.thunderdog.challegram.voip.Tgx101RemoteMute.addListener(tgx101RemoteMuteChanged);
   }
 
   private void updateSpeedCounter (int speed, boolean animated) {
@@ -244,9 +245,18 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     invalidateOngoingBar();
   }
 
+  // (user 2026-11-27): the other side's microphone off / on — the bar's 🔇
+  private final Runnable tgx101RemoteMuteChanged = () -> {
+    if (this.call != null) {
+      buildCall();
+      invalidateOngoingBar();
+    }
+  };
+
   @Override
   public void performDestroy () {
     TGLegacyManager.instance().removeEmojiListener(this);
+    org.thunderdog.challegram.voip.Tgx101RemoteMute.removeListener(tgx101RemoteMuteChanged);
     org.thunderdog.challegram.voip.Tgx101GroupCall.removeGlobalListener(this);
     TdlibManager.instance().dateManager().removeListener(timeFormatListener);
   }
@@ -1121,6 +1131,8 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     } else {
       callState = TD.getCallState(call, TdlibManager.instance().calls().getCallDuration(callTdlib, call.id), true);
     }
+    // (user 2026-11-27): the other side's microphone off — 🔇 before the time
+    if (!TD.isFinished(call) && org.thunderdog.challegram.voip.Tgx101RemoteMute.isMuted(call.id)) callState = "🔇 " + callState;
     setText(TD.getUserName(user), "  " + callState, textLeft * 2);
     if (!TD.isFinished(call)) {
       CallSettings settings = callTdlib.cache().getCallSettings(call.id);
@@ -1348,6 +1360,12 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     return org.thunderdog.challegram.unsorted.Settings.instance().tgx101PinnedHeader();
   }
 
+  /** a green that stands out on the header's colour in any theme: lighter on a dark header, deeper on a light one */
+  private static int tgx101ReadableGreen (int background) {
+    float lum = (0.299f * android.graphics.Color.red(background) + 0.587f * android.graphics.Color.green(background) + 0.114f * android.graphics.Color.blue(background)) / 255f;
+    return lum > .6f ? 0xff1e9e4a : lum > .35f ? 0xff4ce07a : 0xff3ddc6e;
+  }
+
   private boolean tgx101HaloScheduled;
   private long tgx101CallEndedAt;
   private static final long TGX101_EXHALE_MS = 900;
@@ -1366,6 +1384,28 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     final int playerFillingColor = ColorUtils.alphaColor(dropShadowAlpha, backgroundColor);
 
     c.drawRect(0, playerTop, rectWidth, playerBottom, Paints.fillingPaint(playerFillingColor));
+    if (onHeader) {
+      // (user 2026-11-27 «дышащую кнопку убираем… во время звонка разделяющие полосы красятся из серого в зелёный, так,
+      // чтобы читалось на любой теме»): the lines above and under the bar, grey → green while the call is on; when it ends
+      // they flash red and go back to grey (variant 1 «красный выдох» moved onto the lines)
+      int grey = ColorUtils.alphaColor(.35f, fg);
+      int green = tgx101ReadableGreen(backgroundColor);
+      int line = ColorUtils.fromToArgb(grey, green, isCallLooping ? callActiveFactor : 0f); // green once the call is connected, grey while it rings / connects
+      final long exhale = tgx101CallEndedAt != 0 ? android.os.SystemClock.uptimeMillis() - tgx101CallEndedAt : -1;
+      if (!isCallActive && exhale >= 0 && exhale < TGX101_EXHALE_MS) {
+        float turn = Math.min(1f, exhale / 150f);
+        float fade = exhale <= 150 ? 1f : 1f - (exhale - 150) / (float) (TGX101_EXHALE_MS - 150);
+        line = ColorUtils.fromToArgb(grey, ColorUtils.fromToArgb(green, 0xffe53935, turn), fade * fade);
+        if (!tgx101HaloScheduled && headerView != null) {
+          tgx101HaloScheduled = true;
+          headerView.postDelayed(tgx101HaloTick, 33);
+        }
+      }
+      int h = Math.max(2, Screen.dp(1.5f));
+      Paint p = Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha, line));
+      c.drawRect(0, playerTop, rectWidth, playerTop + h, p);
+      c.drawRect(0, playerBottom - h, rectWidth, playerBottom, p);
+    }
 
     Paint iconPaint = onHeader ? Paints.getPorterDuffPaint(fg) : Paints.whitePorterDuffPaint();
 
@@ -1382,36 +1422,6 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     cx = width - Screen.dp(12f) - hangIcon.getMinimumWidth();
     cy = playerTop + Screen.dp(6f);
 
-    final long exhale = tgx101CallEndedAt != 0 ? android.os.SystemClock.uptimeMillis() - tgx101CallEndedAt : -1;
-    if (onHeader && !isCallActive && exhale >= 0 && exhale < TGX101_EXHALE_MS) {
-      // the red exhale: green turns red in the first 150 ms, then the ring widens and fades
-      float hcx = cx + hangIcon.getMinimumWidth() / 2f, hcy = cy + hangIcon.getMinimumHeight() / 2f;
-      float turn = Math.min(1f, exhale / 150f);
-      float fade = exhale <= 150 ? 1f : 1f - (exhale - 150) / (float) (TGX101_EXHALE_MS - 150);
-      fade = fade * fade;
-      int color = ColorUtils.fromToArgb(Theme.getColor(ColorId.headerBarCallIncoming), 0xffe53935, turn);
-      float radius = Screen.dp(14f) + Screen.dp(8f) * (1f - fade);
-      c.drawCircle(hcx, hcy, radius, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha * .35f * fade, color)));
-      c.drawCircle(hcx, hcy, Screen.dp(13f), Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha * .9f * fade, color)));
-      if (!tgx101HaloScheduled && headerView != null) {
-        tgx101HaloScheduled = true;
-        headerView.postDelayed(tgx101HaloTick, 33);
-      }
-    } else if (onHeader && callActiveFactor > 0f) {
-      // the green halo breathes around the hang-up button while the call is on (and while it rings)
-      float phase = (android.os.SystemClock.uptimeMillis() % 1800L) / 1800f;
-      float breath = .5f - .5f * (float) Math.cos(2 * Math.PI * phase);
-      float hcx = cx + hangIcon.getMinimumWidth() / 2f, hcy = cy + hangIcon.getMinimumHeight() / 2f;
-      float radius = Screen.dp(14f) + Screen.dp(4f) * breath;
-      int green = Theme.getColor(ColorId.headerBarCallIncoming);
-      float a = dropShadowAlpha * callActiveFactor;
-      c.drawCircle(hcx, hcy, radius, Paints.fillingPaint(ColorUtils.alphaColor(a * (.22f + .18f * breath), green)));
-      c.drawCircle(hcx, hcy, Screen.dp(13f), Paints.fillingPaint(ColorUtils.alphaColor(a * .9f, green)));
-      if (!tgx101HaloScheduled && headerView != null) {
-        tgx101HaloScheduled = true;
-        headerView.postDelayed(tgx101HaloTick, 33); // 30 a second is enough for a breath, and spares the CPU
-      }
-    }
     float callRotationFactor = callIncomingFactor * callActiveFactor;
     if (callRotationFactor != 0f) {
       c.save();

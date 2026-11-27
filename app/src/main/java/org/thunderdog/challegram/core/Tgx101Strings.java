@@ -583,6 +583,7 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MenuThread, "Посмотреть в теме / ответы");
     RU.put(R.string.Tgx101MenuBack, "Назад");
     RU.put(R.string.Tgx101ChatMenuMore, "Ещё");
+    RU.put(R.string.Tgx101CallRemoteMuted, "Микрофон собеседника выключен");
     RU.put(R.string.Tgx101PinnedHeader, "Закреп в цвет шапки");
     RU.put(R.string.Tgx101ChatMenuSectionMore, "В «Ещё» — появляются на месте соседних");
     RU.put(R.string.Tgx101PlayerChapters, "Главы");

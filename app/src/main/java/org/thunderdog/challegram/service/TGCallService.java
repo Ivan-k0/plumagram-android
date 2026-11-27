@@ -2191,6 +2191,12 @@ public class TGCallService extends Service implements
       }
 
       @Override
+      public void onRemoteMediaStateChanged (VoIPInstance context, int audioState, int videoState) {
+        final boolean remoteMuted = audioState == org.thunderdog.challegram.voip.annotation.AudioState.MUTED;
+        UI.post(() -> org.thunderdog.challegram.voip.Tgx101RemoteMute.set(call.id, remoteMuted));
+      }
+
+      @Override
       public void onSignalBarCountChanged (int newCount) {
         if (newCount != lastLoggedSignalBars) {
           lastLoggedSignalBars = newCount;

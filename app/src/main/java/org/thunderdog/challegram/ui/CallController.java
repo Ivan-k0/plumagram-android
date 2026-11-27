@@ -831,6 +831,7 @@ public class CallController extends ViewController<CallController.Arguments> imp
 
     // Data
 
+    org.thunderdog.challegram.voip.Tgx101RemoteMute.addListener(tgx101RemoteMuteChanged);
     tdlib.cache().subscribeToCallUpdates(call.id, this);
     tdlib.cache().addUserDataListener(call.userId, this);
 
@@ -1483,6 +1484,9 @@ public class CallController extends ViewController<CallController.Arguments> imp
         }
       }
     }
+    if (call.state.getConstructor() == TdApi.CallStateReady.CONSTRUCTOR && org.thunderdog.challegram.voip.Tgx101RemoteMute.isMuted(call.id)) {
+      str = str + "\n" + Lang.getString(R.string.Tgx101CallRemoteMuted); // (user 2026-11-27) the other side's microphone is off
+    }
     // (same): plain sentence case on the new screen, not capitals
     stateView.setText(Settings.instance().useNewCallScreen() && photoMode != Settings.CALL_PHOTO_FULL_SCREEN ? str : Lang.uppercase(str));
     setButtonsVisible(!TD.isFinished(call) && !(call.state.getConstructor() == TdApi.CallStatePending.CONSTRUCTOR && !call.isOutgoing), isFocused());
@@ -1727,8 +1731,14 @@ public class CallController extends ViewController<CallController.Arguments> imp
     updateCallState();
   }
 
+  // (user 2026-11-27): the other side turns its microphone off / on — the state line follows at once
+  private final Runnable tgx101RemoteMuteChanged = () -> {
+    if (this.call != null && !isDestroyed()) updateCallState();
+  };
+
   @Override
   public void destroy () {
+    org.thunderdog.challegram.voip.Tgx101RemoteMute.removeListener(tgx101RemoteMuteChanged);
     context().tgx101RestoreOverlaysAfterCall();
     super.destroy();
     Screen.removeStatusBarHeightListener(this);
