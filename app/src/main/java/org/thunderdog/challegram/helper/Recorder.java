@@ -374,6 +374,7 @@ public class Recorder implements Runnable {
         }
       }
       int mode = org.thunderdog.challegram.unsorted.Settings.instance().tgx101VoiceMic();
+      if (mode != org.thunderdog.challegram.unsorted.Settings.TGX101_VOICE_MIC_EXTERNAL) tgx101CloseStaleCallChannel();
       if (mode == org.thunderdog.challegram.unsorted.Settings.TGX101_VOICE_MIC_AUTO) {
         // (user 2026-11-25 «если стоит авто — как сейчас, телефон берёт из того источника, к которому подключён»): no ask
         org.thunderdog.challegram.Tgx101Diag.mark("voice mic: auto — the phone picks, bluetooth " + (bluetooth != null) + ", wired " + (wired != null));
@@ -405,6 +406,34 @@ public class Recorder implements Runnable {
       android.media.AudioDeviceInfo d = recorder.getRoutedDevice();
       android.media.AudioManager am = (android.media.AudioManager) org.thunderdog.challegram.unsorted.AppContext.get().getSystemService(android.content.Context.AUDIO_SERVICE);
       org.thunderdog.challegram.Tgx101Diag.mark("voice mic: recording from " + (d != null ? d.getType() + " " + d.getProductName() : "?") + ", audio mode " + (am != null ? am.getMode() : -1) + ", call channel " + (am != null && am.isBluetoothScoOn()));
+    } catch (Throwable ignored) { }
+  }
+
+  /**
+   * (user 2026-11-27 «записываю голосовое, а микрофон по-прежнему берёт из машины»; journal 14:39–14:40: recorded from the
+   * phone's own microphone, but the car's call channel left open by the call that had ended at 14:39:31 — the car took it
+   * for a call) with no call on the phone, a call channel still open is nobody's — it is closed before the recording
+   */
+  private static void tgx101CloseStaleCallChannel () {
+    try {
+      android.media.AudioManager am = (android.media.AudioManager) org.thunderdog.challegram.unsorted.AppContext.get().getSystemService(android.content.Context.AUDIO_SERVICE);
+      if (am == null) return;
+      int audioMode = am.getMode();
+      boolean inCall = audioMode == android.media.AudioManager.MODE_IN_CALL || audioMode == android.media.AudioManager.MODE_IN_COMMUNICATION || audioMode == android.media.AudioManager.MODE_RINGTONE
+        || org.thunderdog.challegram.service.TGCallService.currentInstance() != null || org.thunderdog.challegram.voip.Tgx101GroupCall.current() != null;
+      if (inCall) return;
+      boolean closed = false;
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S && am.getCommunicationDevice() != null
+        && am.getCommunicationDevice().getType() != android.media.AudioDeviceInfo.TYPE_BUILTIN_EARPIECE) {
+        am.clearCommunicationDevice();
+        closed = true;
+      }
+      if (am.isBluetoothScoOn()) {
+        am.setBluetoothScoOn(false);
+        am.stopBluetoothSco();
+        closed = true;
+      }
+      if (closed) org.thunderdog.challegram.Tgx101Diag.mark("voice mic: a call channel left open with no call — closed before the recording");
     } catch (Throwable ignored) { }
   }
 

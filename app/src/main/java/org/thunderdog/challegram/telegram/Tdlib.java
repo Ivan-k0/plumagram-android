@@ -10116,6 +10116,13 @@ public class Tdlib implements TdlibProvider, Settings.SettingsChangeListener, Da
     org.thunderdog.challegram.Tgx101DiagHooks.onUpdate(update); // TGx101: diagnostics builds only
     if (update.getConstructor() == TdApi.UpdateNewMessage.CONSTRUCTOR) {
       org.thunderdog.challegram.ui.Tgx101Island.onUpdate(this, update); // TGx101: the capsule / in-app sound (MagiX → Notifications)
+      if (update.getConstructor() == TdApi.UpdateMessageIsPinned.CONSTRUCTOR) {
+        // (user 2026-11-27 «пост в канале или в своей группе сам закрепляется — зачем?»): who pinned what — the app never
+        // pins on sending; the journal tells the chat, the message and whether it was mine, just sent
+        TdApi.UpdateMessageIsPinned u = (TdApi.UpdateMessageIsPinned) update;
+        TdApi.Chat chat = chat(u.chatId);
+        org.thunderdog.challegram.Tgx101Diag.mark("td pinned " + u.isPinned + ": chat " + u.chatId + " (" + (chat == null ? "?" : isChannel(u.chatId) ? "channel" : isSupergroup(u.chatId) ? "group" : "chat") + ") message " + u.messageId);
+      }
       org.thunderdog.challegram.ui.Tgx101Gazeta.onNewMessage(this, ((TdApi.UpdateNewMessage) update).message); // TGx101: «Газета» takes new posts in
     }
     switch (update.getConstructor()) {

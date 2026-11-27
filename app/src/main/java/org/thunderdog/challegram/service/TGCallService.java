@@ -995,7 +995,21 @@ public class TGCallService extends Service implements
       });
 
       // TGx101: off the main thread (~0.9 s on the vivo froze the screen as the call grew into a group one)
-      org.thunderdog.challegram.voip.Tgx101Audio.run(() -> am.setMode(AudioManager.MODE_NORMAL));
+      org.thunderdog.challegram.voip.Tgx101Audio.run(() -> {
+        am.setMode(AudioManager.MODE_NORMAL);
+        // (user 2026-11-27 «микрофон по-прежнему берёт из машины»): on Android 12+ the call routes the sound with
+        // setCommunicationDevice, and the end left it — the car's call channel stayed open after the call
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+          try {
+            am.clearCommunicationDevice();
+            if (am.isBluetoothScoOn()) {
+              am.setBluetoothScoOn(false);
+              am.stopBluetoothSco();
+            }
+            org.thunderdog.challegram.Tgx101Diag.mark("call audio: the call's route cleared at the end (call channel " + am.isBluetoothScoOn() + ")");
+          } catch (Throwable ignored) { }
+        }
+      });
       tgx101ModeNormalSet = true;
       // Audio focus changed in the onDestroy
 
