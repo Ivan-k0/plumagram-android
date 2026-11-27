@@ -583,6 +583,16 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101MenuThread, "Посмотреть в теме / ответы");
     RU.put(R.string.Tgx101MenuBack, "Назад");
     RU.put(R.string.Tgx101ChatMenuMore, "Ещё");
+    RU.put(R.string.Tgx101OwnRuleAsk, "Запомнить как своё время");
+    RU.put(R.string.Tgx101OwnRuleDaily, "каждый день");
+    RU.put(R.string.Tgx101OwnRuleMon, "по понедельникам");
+    RU.put(R.string.Tgx101OwnRuleTue, "по вторникам");
+    RU.put(R.string.Tgx101OwnRuleWed, "по средам");
+    RU.put(R.string.Tgx101OwnRuleThu, "по четвергам");
+    RU.put(R.string.Tgx101OwnRuleFri, "по пятницам");
+    RU.put(R.string.Tgx101OwnRuleSat, "по субботам");
+    RU.put(R.string.Tgx101OwnRuleSun, "по воскресеньям");
+    RU.put(R.string.Tgx101OwnRuleMonthDay, "%1$d-го числа");
     RU.put(R.string.Tgx101Repeat, "Повторять");
     RU.put(R.string.Tgx101RepeatNever, "Никогда");
     RU.put(R.string.Tgx101RepeatDaily, "Ежедневно");

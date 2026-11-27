@@ -7659,6 +7659,62 @@ public class TdlibUi extends Handler {
   }
 
   /** seconds until the given time of day (minutes after midnight): today if still ahead, else tomorrow; or tomorrow always */
+  // TGx101 (user 2026-11-27 «хочу выставить своё время, чтобы запомнилось — каждого первого числа месяца»): one's own time
+  // remembers a day too — 0: every day; 1–7: that day of the week (Calendar.SUNDAY…SATURDAY); 101–131: that day of the month.
+  // The message goes once, at the nearest such moment; no repeat
+  private static final String TGX101_OWN_RULE = "tgx101_schedule_own_rule";
+
+  private long tgx101SecondsUntilOwn (int minutesOfDay, int rule) {
+    if (rule <= 0) return tgx101SecondsUntil(minutesOfDay, false);
+    long now = tdlib.currentTimeMillis();
+    Calendar c = DateUtils.calendarInstance(now);
+    c.set(Calendar.SECOND, 0);
+    c.set(Calendar.MILLISECOND, 0);
+    for (int i = 0; i < 400; i++) {
+      boolean fits;
+      if (rule <= 7) {
+        fits = c.get(Calendar.DAY_OF_WEEK) == rule;
+      } else {
+        int want = Math.min(rule - 100, c.getActualMaximum(Calendar.DAY_OF_MONTH)); // the 31st in a short month: its last day
+        fits = c.get(Calendar.DAY_OF_MONTH) == want;
+      }
+      if (fits) {
+        c.set(Calendar.HOUR_OF_DAY, minutesOfDay / 60);
+        c.set(Calendar.MINUTE, minutesOfDay % 60);
+        if (c.getTimeInMillis() > now + 60_000) return TimeUnit.MILLISECONDS.toSeconds(c.getTimeInMillis() - now);
+      }
+      c.add(Calendar.DAY_OF_MONTH, 1);
+      c.set(Calendar.HOUR_OF_DAY, 0);
+      c.set(Calendar.MINUTE, 0);
+    }
+    return tgx101SecondsUntil(minutesOfDay, false);
+  }
+
+  private static String tgx101OwnRuleName (int rule) {
+    if (rule <= 0) return Lang.getString(R.string.Tgx101OwnRuleDaily);
+    if (rule <= 7) {
+      int[] names = {R.string.Tgx101OwnRuleSun, R.string.Tgx101OwnRuleMon, R.string.Tgx101OwnRuleTue, R.string.Tgx101OwnRuleWed, R.string.Tgx101OwnRuleThu, R.string.Tgx101OwnRuleFri, R.string.Tgx101OwnRuleSat};
+      return Lang.getString(names[rule - 1]);
+    }
+    return Lang.getString(R.string.Tgx101OwnRuleMonthDay, rule - 100);
+  }
+
+  /** after the wheels: what to remember — every day, that weekday or that day of the month; then the message goes at millis */
+  private void tgx101AskOwnRule (ViewController<?> context, long millis, Runnable after) {
+    Calendar picked = DateUtils.calendarInstance(millis);
+    int minutes = picked.get(Calendar.HOUR_OF_DAY) * 60 + picked.get(Calendar.MINUTE);
+    int[] rules = {0, picked.get(Calendar.DAY_OF_WEEK), 100 + picked.get(Calendar.DAY_OF_MONTH)};
+    String time = String.format(java.util.Locale.US, "%d:%02d", minutes / 60, minutes % 60);
+    String[] names = new String[rules.length];
+    for (int i = 0; i < rules.length; i++) names[i] = tgx101OwnRuleName(rules[i]) + ", " + time;
+    Settings.instance().pmc().putInt("tgx101_schedule_own_minutes", minutes);
+    context.showOptions(Lang.getString(R.string.Tgx101OwnRuleAsk), new int[] {1, 2, 3}, names, null, null, (v, id) -> {
+      Settings.instance().pmc().putInt(TGX101_OWN_RULE, rules[id - 1]);
+      after.run();
+      return true;
+    });
+  }
+
   private long tgx101SecondsUntil (int minutesOfDay, boolean tomorrow) {
     long now = tdlib.currentTimeMillis();
     Calendar c = DateUtils.calendarInstance(now);
@@ -7712,8 +7768,9 @@ public class TdlibUi extends Handler {
 
     final int ownMinutes = Settings.instance().pmc().getInt("tgx101_schedule_own_minutes", -1);
     ids.append(R.id.btn_sendScheduled1Yr);
+    final int ownRule = Settings.instance().pmc().getInt(TGX101_OWN_RULE, 0);
     String ownLabel = ownMinutes >= 0
-      ? Lang.getString(R.string.Tgx101SendOwnTime, String.format(java.util.Locale.US, "%d:%02d", ownMinutes / 60, ownMinutes % 60))
+      ? Lang.getString(R.string.Tgx101SendOwnTime, (ownRule != 0 ? tgx101OwnRuleName(ownRule) + ", " : "") + String.format(java.util.Locale.US, "%d:%02d", ownMinutes / 60, ownMinutes % 60))
       : Lang.getString(R.string.Tgx101SendSetOwnTime);
     if (ownMinutes >= 0 && !Settings.instance().pmc().getBoolean("tgx101_schedule_own_hint", false)) {
       Settings.instance().pmc().putBoolean("tgx101_schedule_own_hint", true); // «hold to change», once
@@ -7742,15 +7799,13 @@ public class TdlibUi extends Handler {
         seconds = tgx101SecondsUntil(8 * 60 + 30, true); // tomorrow at 8:30
       } else if (optionId == R.id.btn_sendScheduled1Yr) {
         if (ownMinutes >= 0) {
-          seconds = tgx101SecondsUntil(ownMinutes, false); // the next time it's that o'clock
+          seconds = tgx101SecondsUntilOwn(ownMinutes, ownRule); // the next time it's that o'clock (on that day)
         } else {
           // not set yet: picked on the wheels, remembered, and this message goes then
           context.showDateTimePicker(Lang.getString(R.string.Tgx101SendSetOwnTime), isSelfChat ? R.string.RemindTodayAt : R.string.SendTodayAt,
             isSelfChat ? R.string.RemindTomorrowAt : R.string.SendTomorrowAt, isSelfChat ? R.string.RemindDateAt : R.string.SendDateAt, millis -> {
-            Calendar picked = DateUtils.calendarInstance(millis);
-            Settings.instance().pmc().putInt("tgx101_schedule_own_minutes", picked.get(Calendar.HOUR_OF_DAY) * 60 + picked.get(Calendar.MINUTE));
             int sendDate = (int) TimeUnit.MILLISECONDS.toSeconds(millis);
-            callback.runWithData(Td.newSendOptions(defaultSendOptions, new TdApi.MessageSchedulingStateSendAtDate(sendDate, 0)));
+            tgx101AskOwnRule(context, millis, () -> callback.runWithData(Td.newSendOptions(defaultSendOptions, new TdApi.MessageSchedulingStateSendAtDate(sendDate, 0))));
           }, forcedTheme);
           return true;
         }
@@ -7794,10 +7849,8 @@ public class TdlibUi extends Handler {
         if (id != R.id.btn_sendScheduled1Yr || ownMinutes < 0) return false;
         context.showDateTimePicker(Lang.getString(R.string.Tgx101SendSetOwnTime), isSelfChat ? R.string.RemindTodayAt : R.string.SendTodayAt,
           isSelfChat ? R.string.RemindTomorrowAt : R.string.SendTomorrowAt, isSelfChat ? R.string.RemindDateAt : R.string.SendDateAt, millis -> {
-          Calendar picked = DateUtils.calendarInstance(millis);
-          Settings.instance().pmc().putInt("tgx101_schedule_own_minutes", picked.get(Calendar.HOUR_OF_DAY) * 60 + picked.get(Calendar.MINUTE));
           int sendDate = (int) TimeUnit.MILLISECONDS.toSeconds(millis);
-          callback.runWithData(Td.newSendOptions(defaultSendOptions, new TdApi.MessageSchedulingStateSendAtDate(sendDate, 0)));
+          tgx101AskOwnRule(context, millis, () -> callback.runWithData(Td.newSendOptions(defaultSendOptions, new TdApi.MessageSchedulingStateSendAtDate(sendDate, 0))));
         }, forcedTheme);
         return true;
       }

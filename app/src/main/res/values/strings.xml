@@ -6256,6 +6256,16 @@
   <string name="Tgx101MenuThread">View in topic / replies</string>
   <string name="Tgx101MenuBack">Back</string>
   <string name="Tgx101ChatMenuMore">More</string>
+  <string name="Tgx101OwnRuleAsk">Remember as my time</string>
+  <string name="Tgx101OwnRuleDaily">every day</string>
+  <string name="Tgx101OwnRuleMon">on Mondays</string>
+  <string name="Tgx101OwnRuleTue">on Tuesdays</string>
+  <string name="Tgx101OwnRuleWed">on Wednesdays</string>
+  <string name="Tgx101OwnRuleThu">on Thursdays</string>
+  <string name="Tgx101OwnRuleFri">on Fridays</string>
+  <string name="Tgx101OwnRuleSat">on Saturdays</string>
+  <string name="Tgx101OwnRuleSun">on Sundays</string>
+  <string name="Tgx101OwnRuleMonthDay">on the %1$d of the month</string>
   <string name="Tgx101Repeat">Repeat</string>
   <string name="Tgx101RepeatNever">Never</string>
   <string name="Tgx101RepeatDaily">Daily</string>
