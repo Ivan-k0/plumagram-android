@@ -1386,7 +1386,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             // (user 2026-11-27, recorded next to the reference «при открытии снизу что-то мигает»): the caption's dark plate
             // stood over the chat from the first frames — it comes in over the last third, once the photo is there, and
             // goes in the first third of the close
-            setBottomAlpha(MathUtils.clamp((factor - .67f) / .33f));
+            // (user 2026-11-27 «само появление описания снизу очень резкое, сделай по уму»): the last third at 0.5× was
+            // ~60 ms — from a third of the way on, on a smooth curve (slow in, slow out), done with the photo
+            float c = MathUtils.clamp((factor - .3f) / .7f);
+            setBottomAlpha(c * c * (3f - 2f * c));
             break;
           }
         }
