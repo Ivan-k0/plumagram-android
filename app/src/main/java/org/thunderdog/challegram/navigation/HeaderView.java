@@ -246,7 +246,36 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     return 0;
   }
 
+  // TGx101 (user 2026-11-28): the media viewer hides the status bar on a tap and fades its header at the same time — the
+  // header keeps its offset meanwhile; frozen, an inset change waits; unfrozen, it applies once the inset is back to the
+  // kept one or a new one settles (the next change)
+  private boolean tgx101OffsetFrozen;
+  private int tgx101PendingOffset = -1;
+
+  private long tgx101ThawUntil;
+
+  public void tgx101SetOffsetFrozen (boolean frozen) {
+    if (this.tgx101OffsetFrozen == frozen) return;
+    this.tgx101OffsetFrozen = frozen;
+    if (!frozen) {
+      // the status bar comes back with its own animation: the inset passes through in-between values — they wait out
+      // 0.6 s; whatever is pending then is the settled one
+      tgx101ThawUntil = android.os.SystemClock.uptimeMillis() + 600;
+      postDelayed(() -> {
+        if (tgx101OffsetFrozen) return;
+        int pending = tgx101PendingOffset;
+        tgx101PendingOffset = -1;
+        if (pending > 0) setHeaderOffset(pending);
+      }, 650);
+    }
+  }
+
   private void setHeaderOffset (int headerOffset) {
+    if (this.currentHeaderOffset != -1 && headerOffset != this.currentHeaderOffset
+      && (tgx101OffsetFrozen || android.os.SystemClock.uptimeMillis() < tgx101ThawUntil)) {
+      tgx101PendingOffset = headerOffset;
+      return;
+    }
     if (this.currentHeaderOffset != headerOffset) {
       this.currentHeaderOffset = headerOffset;
       Views.setTopMargin(backButton, headerOffset);

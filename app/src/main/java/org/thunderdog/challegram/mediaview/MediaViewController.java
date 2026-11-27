@@ -1038,8 +1038,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   // controller; the window's fullscreen flag cut it in one frame
   private boolean tgx101StatusBarHidden;
 
+  // (user 2026-11-28 recording: the header jumped 19 px up in the first frame of going away and rode up after it) the
+  // status bar going takes the header's top inset away and HeaderView moves its buttons and title up at once; while the
+  // status bar is hidden for the viewer the header keeps the offset it had (HeaderView#tgx101SetOffsetFrozen)
   private void tgx101SetStatusBarShown (boolean shown) {
     if (tgx101StatusBarHidden == !shown) return;
+    if (headerView != null) headerView.tgx101SetOffsetFrozen(!shown);
     tgx101StatusBarHidden = !shown;
     android.view.Window window = context().getWindow();
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && window != null) {
@@ -2445,9 +2449,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       // (user 2026-11-27 «меня волнует появление — делай как у эталона», frame by frame: there the header and the status bar
       // come in together over ~120 ms, near even steps; here the header was in by ~70 ms and the status bar's icons only
       // then began) coming back it takes as long as the status bar's own fade, on a soft curve; going away as before
-      boolean showing = !headerVisible.getValue();
-      headerVisible.setDuration(showing ? 240L : BOTTOM_ANIMATION_DURATION);
-      headerVisible.setInterpolator(showing ? TGX101_HEADER_SHOW_CURVE : AnimatorUtils.DECELERATE_INTERPOLATOR);
+      // (user 2026-11-28 «в 4-й раз — уход шапки с пролагами, текст снизу исчезает рывком»; recording: going away the
+      // header and the caption lost a third of their light in the first frame — 150 ms decelerating — while the status bar
+      // faded over ~14 frames) going away now as coming back: 240 ms, the same soft curve, header and caption together
+      headerVisible.setDuration(240L);
+      headerVisible.setInterpolator(TGX101_HEADER_SHOW_CURVE);
       boolean isVisible = headerVisible.toggleValue(true);
       if (isVisible) {
         context().removeHideNavigationView(this);
