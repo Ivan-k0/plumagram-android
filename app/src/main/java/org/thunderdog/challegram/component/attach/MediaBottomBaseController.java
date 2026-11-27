@@ -646,13 +646,16 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
   }
 
   /** the throw's slowing down: the speed halves every tau × ln 2 (set by the reference's recordings, 2026-11-27) */
-  private static final float TGX101_THROW_TAU = .42f; // s
+  // (user 2026-11-27 «в эталоне листание просто прокручивается вверх, ничто его не останавливает»; frame-to-frame steps of the
+  // reference: after the let-go 60 → 30 px a frame in ~0.4 s, the same fade before and after the header) one fade throughout
+  private static final float TGX101_THROW_TAU = .55f; // s
   private static final float TGX101_THROW_STOP = 30f; // px/s — slower than this it has stopped
 
   /**
    * TGx101 (user 2026-11-27): the sheet let go upwards at {@code speed} px/s goes on as a thrown thing — its speed fades
-   * exponentially — and stops where that ends, or at the top if it gets there (still moving, as the reference). A stop in
-   * the header's stretch (the last 30 %) goes on to the top so the header isn't left half shown. False — nothing to throw
+   * exponentially — and stops where that ends; reaching the top still moving, the grid goes on with that very speed and the
+   * same fade, no stop between (the reference). A stop in the header's stretch (the last 30 %) goes on to the top so the
+   * header isn't left half shown. False — nothing to throw
    */
   private boolean tgx101Throw (float speed) {
     final int max = getMaxHeight();
@@ -682,7 +685,8 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     long duration = Math.max(60l, Math.round(t * 1000f));
     org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: thrown at " + Math.round(speed) + " px/s, " + currentHeight + " → " + target + " px of " + max + ", " + duration + " ms");
     tgx101ArrivalSpeed = 0f;
-    animateCurrentHeightImpl(target, duration, curve, null);
+    final float arrival = target == max ? speed * (float) Math.exp(-k) : 0f; // px/s at the top
+    animateCurrentHeightImpl(target, duration, curve, arrival > TGX101_THROW_STOP * 2f && recyclerView != null ? () -> tgx101GlideGrid(arrival, TGX101_THROW_TAU) : null);
     return true;
   }
 
@@ -708,6 +712,10 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
   private boolean tgx101GridGlideHooked;
 
   private void tgx101GlideGrid (float velocity) {
+    tgx101GlideGrid(velocity, .7f);
+  }
+
+  private void tgx101GlideGrid (float velocity, final float tau) {
     if (tgx101ArrivalSpeed > 0f) velocity = tgx101ArrivalSpeed;
     if (recyclerView == null || velocity <= 0f) return;
     if (tgx101GridGlide != null) tgx101GridGlide.cancel();
@@ -727,7 +735,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     // (user 2026-11-22 «почему скролл останавливается? он должен продолжаться»): it goes on as a fling does — the speed
     // fades exponentially (time constant tau) from exactly the sheet's speed; RecyclerView's own fling started at about
     // half the speed it was given on this phone, which was the step seen at the top
-    final float tau = .7f; // s — set by recording next to the reference app (its grid halves every ~0.3 s, stops after ~1.6 s)
+    // tau (s): .7 set by recording next to the reference app 2026-11-22; a throw passes its own
     final float v = velocity / 1000f; // px per ms
     final long duration = Math.max(300l, Math.round(tau * 1000f * Math.log(Math.max(1.01f, velocity / 12f))));
     final float k = duration / (tau * 1000f);
