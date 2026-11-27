@@ -3862,6 +3862,10 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
         org.thunderdog.challegram.player.Tgx101Cast.prewarm();
       }
 
+      // TGx101 (user 2026-11-27 22:58): stop when this track ends — once
+      ids.append(R.id.btn_tgx101StopAtEnd);
+      strings.append(org.thunderdog.challegram.player.AudioController.tgx101StopAtEnd() ? R.string.Tgx101StopAtEndOff : R.string.Tgx101StopAtEnd);
+
       // (user 2026-11-20 «обратный порядок убери, транслировать — предпоследний, перед сведениями»)
       ids.append(R.id.btn_tgx101TrackInfo);
       strings.append(R.string.Tgx101PlayerInfo);
@@ -3872,7 +3876,11 @@ public class PlaybackController extends ViewController<Void> implements Menu, Mo
 
   @Override
   public void onMoreItemPressed (int id) {
-    if (id == R.id.btn_tgx101Cast) {
+    if (id == R.id.btn_tgx101StopAtEnd) {
+      boolean on = !org.thunderdog.challegram.player.AudioController.tgx101StopAtEnd();
+      tdlib.context().audio().tgx101SetStopAtEnd(on);
+      UI.showToast(on ? R.string.Tgx101StopAtEndToast : R.string.Tgx101StopAtEndOffToast, android.widget.Toast.LENGTH_SHORT);
+    } else if (id == R.id.btn_tgx101Cast) {
       org.thunderdog.challegram.player.Tgx101Cast.onMenuItem(this, tdlib.context().audio().tgx101CastSource);
     } else if (id == R.id.btn_tgx101ProfileMusicToggle) {
       TdApi.Audio song = currentItem != null ? Tgx101ProfileMusic.audioOf(currentItem.getMessage()) : null;

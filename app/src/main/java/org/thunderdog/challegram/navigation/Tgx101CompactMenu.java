@@ -126,15 +126,16 @@ public final class Tgx101CompactMenu {
     popup.init(true);
     popup.setDismissOtherPopUps(!options.ignoreOtherPopUps);
     popup.setNeedFullScreen(true);
-    popup.tgx101AllowWhileBusy = true; // as the wide card: it may open while the screen is still settling
+    popup.tgx101AllowWhileBusy = true;
+    popup.tgx101SetStrongDim(true); // (user 2026-11-28 «затемнение бери поменьше»): one dim with the other windows, 40 % // as the wide card: it may open while the screen is still settling
     if (delegate != null) popup.setDisableCancelOnTouchDown(delegate.disableCancelOnTouchdown());
 
     View.OnClickListener onClick = v -> {
       if (delegate != null) {
-        if (delegate.onOptionItemPressed(v, v.getId())) popup.hideWindow(true);
+        if (delegate.onOptionItemPressed(v, v.getId())) popup.tgx101HideAsDone();
       } else {
         ViewController<?> c = controller.context().navigation().getCurrentStackItem();
-        if (c instanceof OptionDelegate && ((OptionDelegate) c).onOptionItemPressed(v, v.getId())) popup.hideWindow(true);
+        if (c instanceof OptionDelegate && ((OptionDelegate) c).onOptionItemPressed(v, v.getId())) popup.tgx101HideAsDone();
       }
     };
 
@@ -192,7 +193,7 @@ public final class Tgx101CompactMenu {
       row.setOnClickListener(onClick);
       if (delegate != null) row.setOnLongClickListener(lv -> {
         if (!delegate.onOptionItemLongPressed(lv, lv.getId())) return false;
-        popup.hideWindow(true);
+        popup.tgx101HideAsDone();
         return true;
       });
       list.addView(row);

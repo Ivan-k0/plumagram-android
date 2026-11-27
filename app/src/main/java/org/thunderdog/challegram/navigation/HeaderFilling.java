@@ -836,7 +836,12 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
     c.drawRect(0, playerTop, rectWidth, shownBottom, Paints.fillingPaint(playerFillingColor));
     if (seekFactor != 0f) {
       float shownSeek = tgx101ShownSeek();
-      c.drawRect(0, shownBottom - (Screen.dp(1f) + 1) - (int) (Screen.dp(1f) * tgx101BarCollapse), width * shownSeek, shownBottom, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha, seekColor)));
+      // TGx101 (user 2026-11-27 23:52, video: «голосовое всё равно уходит с белой подложкой»): a voice played to the end
+      // left the line at full width, and as the bar folded away the line stayed bright under it — a white stroke across the
+      // screen. The line fades with the bar's own height as it leaves (the last 60 % of it)
+      float barShare = Size.getHeaderPlayerSize() > 0 ? (float) (playerBottom - playerTop) / Size.getHeaderPlayerSize() : 1f;
+      float lineAlpha = tgx101BarCollapse > 0f ? 1f : Math.max(0f, Math.min(1f, (barShare - .4f) / .6f));
+      c.drawRect(0, shownBottom - (Screen.dp(1f) + 1) - (int) (Screen.dp(1f) * tgx101BarCollapse), width * shownSeek, shownBottom, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha * lineAlpha, seekColor)));
       if (shownSeek != seekFactor) invalidateOngoingBar(); // the next frame — the line glides between the updates
     }
     if (tgx101BarCollapse >= 1f) return;

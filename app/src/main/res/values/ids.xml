@@ -828,6 +828,8 @@
   <item type="id" name="btn_quote" />
   <item type="id" name="btn_inlinePlayPause" />
   <item type="id" name="btn_inlineClose" />
+  <item type="id" name="btn_tgx101PipMute" />
+  <item type="id" name="btn_tgx101StopAtEnd" />
   <item type="id" name="btn_inlineOpen" />
   <item type="id" name="btn_copyText" />
   <item type="id" name="btn_copyTranslation" />

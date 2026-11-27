@@ -2543,6 +2543,11 @@ public class MediaCellView extends ViewGroup implements
     }
   }
 
+  /** TGx101: the video window's «no sound» (MediaViewController's top-right button in the window) */
+  public void tgx101SetSilenced (boolean silenced) {
+    if (playerView != null) playerView.tgx101SetSilenced(silenced);
+  }
+
   public void updateMute () {
     if (playerView != null && media != null && media.isVideo() && (media.isLoaded() || Config.VIDEO_CLOUD_PLAYBACK_AVAILABLE) && media.getType() == MediaItem.TYPE_GALLERY_VIDEO) {
       playerView.setMuted(media.needMute());

@@ -126,9 +126,11 @@ public final class Tgx101Bird {
       out.add(new Tgx101BirdView.Item(i, ICONS[i], COLORS[i], Lang.getString(TITLES[i])));
     }
     org.thunderdog.challegram.mediaview.Tgx101VideoResume.Last last = org.thunderdog.challegram.mediaview.Tgx101VideoResume.last();
-    if (last != null && out.size() < MAX) {
+    // (user 2026-11-27 22:14 «в птичке нет «Досмотреть» — наверное, предел 7 кнопок; сделай её 8-й, у самого левого края
+    // посередине»): beyond the seven, on a ring of its own straight out from the bird (Tgx101BirdView.isResume)
+    if (last != null) {
       long s = last.positionMs / 1000;
-      out.add(0, new Tgx101BirdView.Item(ACTION_RESUME_VIDEO, R.drawable.baseline_replay_24, 0xff3a7bd5,
+      out.add(new Tgx101BirdView.Item(ACTION_RESUME_VIDEO, R.drawable.baseline_replay_24, 0xff3a7bd5,
         Lang.getString(R.string.Tgx101BirdResumeVideo, (s / 60) + ":" + (s % 60 < 10 ? "0" : "") + (s % 60))));
     }
     if (Settings.instance().tgx101BirdHideHint() && !out.isEmpty()) {

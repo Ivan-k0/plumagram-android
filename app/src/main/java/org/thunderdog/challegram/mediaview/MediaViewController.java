@@ -1326,11 +1326,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   // (group 2026-11-01 «когда увеличиваешь фото двойным нажатием, «состояние» — описание и количество медиа — должно
   // пропадать»): zoomed in — the header and caption go away; back to normal size — they come back, if they went for the zoom
   private boolean tgx101HiddenByZoom;
+  private static final boolean TGX101_HIDE_ON_ZOOM = false;
   private final Runnable tgx101ZoomWatch = new Runnable() {
     @Override
     public void run () {
       if (isDestroyed() || mediaView == null) return;
-      boolean zoomed = mediaView.isZoomed();
+      // (user 2026-11-27 22:55 «при увеличении фото превью не должно скрываться»): as the reference — the header and the
+      // caption stay; only a tap hides them
+      boolean zoomed = TGX101_HIDE_ON_ZOOM && mediaView.isZoomed();
       if (zoomed && !tgx101HiddenByZoom && headerVisible.getValue()) {
         tgx101HiddenByZoom = true;
         toggleHeaderVisibility();
@@ -3121,6 +3124,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private void backFromPictureInPicture () {
+    tgx101SetPipSilenced(false); // the full screen has no button of its own for it: the sound comes back
     ViewController<?> c = context.navigation().getCurrentStackItem();
     if (c != null) {
       c.hideSoftwareKeyboard();
@@ -3292,7 +3296,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     pipControlsWrap.setTranslationY(viewHeight / 2 + y - currentHeight / 2 + addY);
 
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+      boolean clip = pipFactor > 0f && !Config.DISABLE_VIEWER_ELEVATION;
+      if (mediaView.getClipToOutline() != clip) mediaView.setClipToOutline(clip);
       mediaView.invalidateOutline();
+      pipControlsWrap.invalidateOutline();
     }
 
     // inline controls check
@@ -3622,6 +3629,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     float alpha = pipControlsFactor * (1f - pipHideFactor);
     pipOpenButton.setAlpha(alpha);
     pipCloseButton.setAlpha(alpha);
+    if (tgx101PipMuteButton != null) {
+      tgx101PipMuteButton.setAlpha(alpha);
+      tgx101PipMuteButton.setEnabled(alpha == 1f);
+    }
     pipPlayPauseButton.setAlpha(alpha);
     pipBackgroundView.setAlpha(alpha * .7f);
 
@@ -3773,7 +3784,16 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private MediaView mediaView;
   private FillingSpace bottomSpace;
   private FrameLayoutFix pipControlsWrap;
-  private EditButton pipOpenButton, pipCloseButton;
+  private EditButton pipOpenButton, pipCloseButton, tgx101PipMuteButton;
+  private boolean tgx101PipSilenced;
+  private static final float TGX101_PIP_RADIUS = 14f;
+
+  private void tgx101SetPipSilenced (boolean silenced) {
+    if (tgx101PipSilenced == silenced) return;
+    tgx101PipSilenced = silenced;
+    if (mediaView != null && mediaView.getBaseCell() != null) mediaView.getBaseCell().tgx101SetSilenced(silenced);
+    if (tgx101PipMuteButton != null) tgx101PipMuteButton.setIcon(silenced ? R.drawable.tgx101_o_volume_off_24 : R.drawable.tgx101_o_volume_up_24, true, false);
+  }
   private View pipBackgroundView;
   private PlayPauseButton pipPlayPauseButton;
   private PipOverlayView pipOverlayView;
@@ -3861,7 +3881,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     if (tgx101SettingsView != null) {
       if (commit) {
         if (tgx101SettingsPage != PAGE_MAIN) {
-          tgx101SettingsPage = PAGE_MAIN; // TGx101: Back on a list returns to the settings
+          tgx101SettingsPage = tgx101ParentPage(tgx101SettingsPage); // TGx101: Back on a list returns to the one it came from
           tgx101RefreshSettings();
         } else {
           tgx101CloseSettings(); // TGx101: Back closes the player settings panel
@@ -4423,7 +4443,22 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private @Nullable LinearLayout tgx101SettingsRows;
   private @Nullable android.widget.TextView tgx101SettingsTitle;
   private @Nullable View tgx101SettingsBack;
-  private static final int PAGE_MAIN = 0, PAGE_SPEED = 1, PAGE_GESTURES = 2, PAGE_STEP = 3, PAGE_SLEEP = 4, PAGE_ORIENTATION = 5, PAGE_CHAPTERS = 6;
+  private static final int PAGE_MAIN = 0, PAGE_SPEED = 1, PAGE_GESTURES = 2, PAGE_STEP = 3, PAGE_SLEEP = 4, PAGE_ORIENTATION = 5, PAGE_CHAPTERS = 6,
+    PAGE_PLAYBACK = 7, PAGE_CONTROL = 8, PAGE_PICTURE = 9, PAGE_SUBTITLES = 10;
+
+  /** TGx101 (user 2026-11-27 22:16 «слишком большая простыня — раскидать по мини-пунктам… с кнопкой «Назад»; тап рядом
+   *  возвращает предыдущее меню»): where Back (the arrow, the system Back, a tap beside the panel) goes from a page */
+  private static int tgx101ParentPage (int page) {
+    switch (page) {
+      case PAGE_GESTURES: case PAGE_STEP: return PAGE_CONTROL;
+      case PAGE_ORIENTATION: return PAGE_PICTURE;
+      default: return PAGE_MAIN;
+    }
+  }
+
+  private static int tgx101PageDepth (int page) {
+    return page == PAGE_MAIN ? 0 : tgx101ParentPage(page) == PAGE_MAIN ? 1 : 2;
+  }
   private int tgx101SettingsPage = PAGE_MAIN;
 
   /** The panel shows a list on its own page instead of a separate full-screen menu */
@@ -4492,19 +4527,27 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private void tgx101RefreshSettings () {
     if (tgx101SettingsRows == null) return;
-    String[] titles = {Lang.getString(R.string.Tgx101PlayerSettings), Lang.getString(R.string.Tgx101PlayerSpeed), Lang.getString(R.string.Tgx101PlayerGestures), Lang.getString(R.string.Tgx101PlayerSeekStep), Lang.getString(R.string.Tgx101PlayerSleep), Lang.getString(R.string.Tgx101Orientation), Lang.getString(R.string.Tgx101PlayerChapters)};
+    String[] titles = {Lang.getString(R.string.Tgx101PlayerSettings), Lang.getString(R.string.Tgx101PlayerSpeed), Lang.getString(R.string.Tgx101PlayerGestures), Lang.getString(R.string.Tgx101PlayerSeekStep), Lang.getString(R.string.Tgx101PlayerSleep), Lang.getString(R.string.Tgx101Orientation), Lang.getString(R.string.Tgx101PlayerChapters),
+      Lang.getString(R.string.Tgx101PlayerPagePlayback), Lang.getString(R.string.Tgx101PlayerPageControl), Lang.getString(R.string.Tgx101PlayerPagePicture), Lang.getString(R.string.Tgx101Subtitles)};
     if (tgx101SettingsTitle != null) tgx101SettingsTitle.setText(titles[tgx101SettingsPage]);
     if (tgx101SettingsBack != null) tgx101SettingsBack.setVisibility(tgx101SettingsPage == PAGE_MAIN ? View.GONE : View.VISIBLE);
     if (tgx101SettingsPage == PAGE_MAIN) {
       tgx101FillSettingsRows(tgx101SettingsRows);
+    } else if (tgx101SettingsPage >= PAGE_PLAYBACK) {
+      tgx101FillSettingsGroup(tgx101SettingsRows, tgx101SettingsPage);
     } else {
       tgx101FillSettingsPage(tgx101SettingsRows, tgx101SettingsPage);
     }
     // a page change fades in (the rows used to be swapped in a single frame); a switch flipped on the same page doesn't —
     // the whole list blinked out and back at every tap (user video 2026-10-29 16:48 «смотри, как мигает меню плеера»)
     if (tgx101ShownSettingsPage != tgx101SettingsPage || tgx101ShownSettingsRows != tgx101SettingsRows) {
+      // a page deeper comes in from the right, a page back from the left — a short slide with the fade
+      int from = tgx101ShownSettingsRows == tgx101SettingsRows && tgx101ShownSettingsPage >= 0
+        ? Integer.signum(tgx101PageDepth(tgx101SettingsPage) - tgx101PageDepth(tgx101ShownSettingsPage)) : 0;
+      tgx101SettingsRows.animate().cancel();
       tgx101SettingsRows.setAlpha(0f);
-      tgx101SettingsRows.animate().alpha(1f).setDuration(130).start();
+      tgx101SettingsRows.setTranslationX(Screen.dp(28f) * from * (Lang.rtl() ? -1 : 1));
+      tgx101SettingsRows.animate().alpha(1f).translationX(0f).setDuration(200).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).start();
     }
     tgx101ShownSettingsPage = tgx101SettingsPage;
     tgx101ShownSettingsRows = tgx101SettingsRows;
@@ -4544,7 +4587,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             mediaView.tgx101SetSpeed(speed);
             tgx101SpeedItem = stack.getCurrent(); // the speed belongs to this video: the next one starts at 1× unless it is kept
             if (videoSliderView != null) videoSliderView.setTgx101Speed(speed);
-            tgx101SettingsPage = PAGE_MAIN;
+            tgx101SettingsPage = tgx101ParentPage(tgx101SettingsPage);
             tgx101RefreshSettings();
           });
         }
@@ -4570,7 +4613,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           tgx101ChoiceRow(rows, Lang.getString(R.string.Tgx101Seconds, step), step == current, () -> {
             settings.setTgx101PlayerSeekStep(step);
             org.thunderdog.challegram.Tgx101Diag.mark("player settings: seek step " + step + " s");
-            tgx101SettingsPage = PAGE_MAIN;
+            tgx101SettingsPage = tgx101ParentPage(tgx101SettingsPage);
             tgx101RefreshSettings();
           });
         }
@@ -4588,7 +4631,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
               tgx101SleepAt = android.os.SystemClock.uptimeMillis() + minutes * 60000L;
               contentView.postDelayed(tgx101SleepAction, minutes * 60000L);
             }
-            tgx101SettingsPage = PAGE_MAIN;
+            tgx101SettingsPage = tgx101ParentPage(tgx101SettingsPage);
             tgx101RefreshSettings();
           });
         }
@@ -4604,7 +4647,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             settings.setTgx101PlayerOrientation(mode);
             org.thunderdog.challegram.Tgx101Diag.mark("player settings: orientation " + mode);
             tgx101ApplyOrientation();
-            tgx101SettingsPage = PAGE_MAIN;
+            tgx101SettingsPage = tgx101ParentPage(tgx101SettingsPage);
             tgx101RefreshSettings();
           });
         }
@@ -4643,7 +4686,14 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     boolean landscape = context.getResources().getConfiguration().orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE;
     android.widget.FrameLayout wrap = new android.widget.FrameLayout(context);
     wrap.setBackgroundColor(0x59000000);
-    wrap.setOnClickListener(v -> tgx101CloseSettings());
+    wrap.setOnClickListener(v -> { // a tap beside the panel: one page back, or closed from the first one
+      if (tgx101SettingsPage != PAGE_MAIN) {
+        tgx101SettingsPage = tgx101ParentPage(tgx101SettingsPage);
+        tgx101RefreshSettings();
+      } else {
+        tgx101CloseSettings();
+      }
+    });
     androidx.core.view.ViewCompat.setTranslationZ(wrap, Screen.dp(30f));
 
     // TGx101 (user 2026-11-13 «настройки плеера должны смахиваться свайпом сверху вниз»): in portrait the panel follows a
@@ -4752,7 +4802,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     back.setColorFilter(0xffffffff);
     back.setScaleType(android.widget.ImageView.ScaleType.CENTER);
     back.setOnClickListener(v -> {
-      tgx101SettingsPage = PAGE_MAIN;
+      tgx101SettingsPage = tgx101ParentPage(tgx101SettingsPage);
       tgx101RefreshSettings();
     });
     back.setVisibility(View.GONE);
@@ -4816,11 +4866,56 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     }
     String off = Lang.getString(R.string.Tgx101Off);
     tgx101SettingsRow(rows, R.drawable.baseline_fast_forward_24, Lang.getString(R.string.Tgx101PlayerSpeed), speedText, -1, () -> tgx101OpenSettingsPage(PAGE_SPEED));
+    // (user 2026-11-27 22:16 «слишком большая простыня»): the rest in four pages of their own
+    tgx101SettingsRow(rows, R.drawable.baseline_repeat_24, Lang.getString(R.string.Tgx101PlayerPagePlayback), "", -1, () -> tgx101OpenSettingsPage(PAGE_PLAYBACK));
+    tgx101SettingsRow(rows, R.drawable.baseline_gesture_24, Lang.getString(R.string.Tgx101PlayerPageControl), "", -1, () -> tgx101OpenSettingsPage(PAGE_CONTROL));
+    tgx101SettingsRow(rows, R.drawable.baseline_image_24, Lang.getString(R.string.Tgx101PlayerPagePicture), "", -1, () -> tgx101OpenSettingsPage(PAGE_PICTURE));
+    tgx101SettingsRow(rows, R.drawable.baseline_file_caption_24, Lang.getString(R.string.Tgx101Subtitles), Lang.getString(settings.tgx101Subtitles() ? R.string.Tgx101On : R.string.Tgx101Off), -1, () -> tgx101OpenSettingsPage(PAGE_SUBTITLES));
+    tgx101SettingsRow(rows, R.drawable.baseline_timer_16, Lang.getString(R.string.Tgx101PlayerSleep), tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off, -1, () -> tgx101OpenSettingsPage(PAGE_SLEEP));
+  }
+
+  /** TGx101: the pages the main list was split into */
+  private void tgx101FillSettingsGroup (LinearLayout rows, int page) {
+    rows.removeAllViews();
+    Settings settings = Settings.instance();
+    float speed = settings.tgx101PlayerSpeed();
+    String speedText = (speed == (int) speed ? Integer.toString((int) speed) : Float.toString(speed)) + "×";
+    int gesturesOn = 0;
+    for (int g : new int[] {Settings.GESTURE_SEEK, Settings.GESTURE_BRIGHTNESS, Settings.GESTURE_VOLUME, Settings.GESTURE_SPEED, Settings.GESTURE_DOUBLE_TAP_ZOOM}) {
+      if (settings.tgx101PlayerGesture(g)) gesturesOn++;
+    }
+    String off = Lang.getString(R.string.Tgx101Off);
+    switch (page) {
+      case PAGE_PLAYBACK: {
+    tgx101SettingsRow(rows, R.drawable.baseline_repeat_24, Lang.getString(R.string.Tgx101PlayerLoop), null, settings.tgx101PlayerLoop() ? 1 : 0, () -> {
+      settings.setTgx101PlayerLoop(!settings.tgx101PlayerLoop());
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: repeat " + settings.tgx101PlayerLoop());
+      mediaView.tgx101ApplyLooping();
+      tgx101RefreshSettings();
+    });
+    tgx101SettingsRow(rows, R.drawable.baseline_history_24, Lang.getString(R.string.Tgx101PlayerResume), null, settings.tgx101PlayerResume() ? 1 : 0, () -> {
+      settings.setTgx101PlayerResume(!settings.tgx101PlayerResume());
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: resume " + settings.tgx101PlayerResume());
+      tgx101RefreshSettings();
+    });
+    tgx101SettingsRow(rows, R.drawable.baseline_music_note_24, Lang.getString(R.string.Tgx101PlayerPauseMusic), null, settings.tgx101PlayerPauseMusic() ? 1 : 0, () -> {
+      settings.setTgx101PlayerPauseMusic(!settings.tgx101PlayerPauseMusic());
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: pause music " + settings.tgx101PlayerPauseMusic());
+      tgx101RefreshSettings();
+    });
     tgx101SettingsRow(rows, R.drawable.baseline_history_24, Lang.getString(R.string.Tgx101PlayerKeepSpeed), null, settings.tgx101PlayerKeepSpeed() ? 1 : 0, () -> {
       settings.setTgx101PlayerKeepSpeed(!settings.tgx101PlayerKeepSpeed());
       org.thunderdog.challegram.Tgx101Diag.mark("player settings: keep speed " + settings.tgx101PlayerKeepSpeed());
       tgx101RefreshSettings();
     });
+    tgx101SettingsRow(rows, R.drawable.baseline_music_note_24, Lang.getString(R.string.Tgx101PlayerBackground), null, settings.tgx101PlayerBackground() ? 1 : 0, () -> {
+      settings.setTgx101PlayerBackground(!settings.tgx101PlayerBackground());
+      org.thunderdog.challegram.Tgx101Diag.mark("player settings: in the background " + settings.tgx101PlayerBackground());
+      tgx101RefreshSettings();
+    });
+        break;
+      }
+      case PAGE_CONTROL: {
     tgx101SettingsRow(rows, R.drawable.baseline_gesture_24, Lang.getString(R.string.Tgx101PlayerGestures), gesturesOn + " / 4", -1, () -> tgx101OpenSettingsPage(PAGE_GESTURES));
     tgx101SettingsRow(rows, R.drawable.baseline_school_24, Lang.getString(R.string.Tgx101PlayerGuide), "", -1, () -> {
       tgx101CloseSettings();
@@ -4828,6 +4923,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       tgx101ShowGuide();
     });
     tgx101SettingsRow(rows, R.drawable.baseline_replay_24, Lang.getString(R.string.Tgx101PlayerSeekStep), Lang.getString(R.string.Tgx101Seconds, settings.tgx101PlayerSeekStep()), -1, () -> tgx101OpenSettingsPage(PAGE_STEP));
+        break;
+      }
+      case PAGE_PICTURE: {
     final int ambient = settings.tgx101PlayerAmbient();
     tgx101SettingsRow(rows, R.drawable.dot_baseline_flip_horizontal_24, Lang.getString(R.string.Tgx101PlayerMirror),
       Lang.getString(ambient == Settings.AMBIENT_GLOW ? R.string.Tgx101PlayerAmbientGlow : ambient == Settings.AMBIENT_MIRROR ? R.string.Tgx101PlayerAmbientMirror : R.string.Off), -1, () -> {
@@ -4846,22 +4944,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         tgx101RefreshSettings();
       });
     }
-    tgx101SettingsRow(rows, R.drawable.baseline_repeat_24, Lang.getString(R.string.Tgx101PlayerLoop), null, settings.tgx101PlayerLoop() ? 1 : 0, () -> {
-      settings.setTgx101PlayerLoop(!settings.tgx101PlayerLoop());
-      org.thunderdog.challegram.Tgx101Diag.mark("player settings: repeat " + settings.tgx101PlayerLoop());
-      mediaView.tgx101ApplyLooping();
-      tgx101RefreshSettings();
-    });
-    tgx101SettingsRow(rows, R.drawable.baseline_history_24, Lang.getString(R.string.Tgx101PlayerResume), null, settings.tgx101PlayerResume() ? 1 : 0, () -> {
-      settings.setTgx101PlayerResume(!settings.tgx101PlayerResume());
-      org.thunderdog.challegram.Tgx101Diag.mark("player settings: resume " + settings.tgx101PlayerResume());
-      tgx101RefreshSettings();
-    });
-    tgx101SettingsRow(rows, R.drawable.baseline_music_note_24, Lang.getString(R.string.Tgx101PlayerPauseMusic), null, settings.tgx101PlayerPauseMusic() ? 1 : 0, () -> {
-      settings.setTgx101PlayerPauseMusic(!settings.tgx101PlayerPauseMusic());
-      org.thunderdog.challegram.Tgx101Diag.mark("player settings: pause music " + settings.tgx101PlayerPauseMusic());
-      tgx101RefreshSettings();
-    });
+    tgx101SettingsRow(rows, R.drawable.baseline_screen_rotation_24, Lang.getString(R.string.Tgx101Orientation), Lang.getString(settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_AUTO ? R.string.Tgx101OrientationAutoShort : settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_PORTRAIT ? R.string.Tgx101OrientationPortraitShort : R.string.Tgx101OrientationSystemShort), -1, () -> tgx101OpenSettingsPage(PAGE_ORIENTATION));
+        break;
+      }
+      case PAGE_SUBTITLES: {
     tgx101SettingsRow(rows, R.drawable.baseline_file_caption_24, Lang.getString(R.string.Tgx101Subtitles), null, settings.tgx101Subtitles() ? 1 : 0, () -> {
       settings.setTgx101Subtitles(!settings.tgx101Subtitles());
       org.thunderdog.challegram.Tgx101Diag.mark("player settings: subtitles " + settings.tgx101Subtitles());
@@ -4869,8 +4955,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       tgx101RefreshSettings();
     });
     tgx101SettingsRow(rows, R.drawable.baseline_insert_drive_file_24, Lang.getString(R.string.Tgx101SubtitlesFile), "", -1, this::tgx101PickSubtitles);
-    tgx101SettingsRow(rows, R.drawable.baseline_timer_16, Lang.getString(R.string.Tgx101PlayerSleep), tgx101SleepAt > 0 ? Lang.getString(R.string.Tgx101Minutes, (int) Math.max(1, (tgx101SleepAt - android.os.SystemClock.uptimeMillis() + 59999) / 60000)) : off, -1, () -> tgx101OpenSettingsPage(PAGE_SLEEP));
-    tgx101SettingsRow(rows, R.drawable.baseline_screen_rotation_24, Lang.getString(R.string.Tgx101Orientation), Lang.getString(settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_AUTO ? R.string.Tgx101OrientationAutoShort : settings.tgx101PlayerOrientation() == Settings.PLAYER_ORIENTATION_PORTRAIT ? R.string.Tgx101OrientationPortraitShort : R.string.Tgx101OrientationSystemShort), -1, () -> tgx101OpenSettingsPage(PAGE_ORIENTATION));
+        break;
+      }
+    }
   }
 
   /** One row: icon, title, and either a value with › (switchState -1) or a switch (0 / 1) */
@@ -6911,6 +6998,13 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           case MotionEvent.ACTION_DOWN: {
             startX = e.getX();
             startY = e.getY();
+            // TGx101 (user 2026-11-27 22:19 «перетаскивание окна не задевает ни одну кнопку»): the window is dragged from
+            // anywhere on it, over its buttons too — a button gets only a tap; once the finger moves, the drag takes it
+            listenCatchPip = false;
+            if (pipFactor == 1f && pipControlsWrap != null && pipControlsWrap.getVisibility() == View.VISIBLE && (pipPositionAnimator == null || !pipPositionAnimator.isAnimating())) {
+              float lx = e.getX() - pipControlsWrap.getX(), ly = e.getY() - pipControlsWrap.getY();
+              listenCatchPip = lx >= 0 && ly >= 0 && lx < pipControlsWrap.getWidth() && ly < pipControlsWrap.getHeight();
+            }
             listenCloseBySlide = canCloseBySlide() && pipFactor == 0f && !mediaView.isZoomed() && mediaView.isBaseVisible();
             // TGx101: a swipe that starts at the top edge is pulling the notification shade, not the photo
             if (e.getRawY() < Screen.getStatusBarHeight() + Screen.dp(32f)) {
@@ -7281,6 +7375,26 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         pipCloseButton.setIcon(R.drawable.baseline_close_24, false, false);
         pipCloseButton.setLayoutParams(fp);
         pipControlsWrap.addView(pipCloseButton);
+
+        // TGx101 (user 2026-11-27 22:19, 2026-11-28 «пока обойдёмся только кнопкой без звука справа вверху»)
+        fp = FrameLayoutFix.newParams(Screen.dp(40f), Screen.dp(40f), Gravity.TOP | Gravity.RIGHT);
+        tgx101PipMuteButton = new EditButton(context);
+        tgx101PipMuteButton.setOnClickListener(this);
+        tgx101PipMuteButton.setId(R.id.btn_tgx101PipMute);
+        tgx101PipMuteButton.setIcon(R.drawable.tgx101_o_volume_up_24, false, false);
+        tgx101PipMuteButton.setLayoutParams(fp);
+        pipControlsWrap.addView(tgx101PipMuteButton);
+
+        // (user 2026-11-27 22:15 «мини-окно современнее, со скруглёнными краями»): the window's controls round too
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+          pipControlsWrap.setOutlineProvider(new android.view.ViewOutlineProvider() {
+            @Override
+            public void getOutline (View view, android.graphics.Outline outline) {
+              outline.setRoundRect(0, 0, view.getWidth(), view.getHeight(), Screen.dp(TGX101_PIP_RADIUS));
+            }
+          });
+          pipControlsWrap.setClipToOutline(true);
+        }
 
         pipOverlayView = new PipOverlayView(context);
         pipOverlayView.setAlpha(0f);
@@ -10266,6 +10380,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       processEmojiClick();
     } else if (viewId == R.id.btn_inlineClose) {
       closePictureInPicture();
+    } else if (viewId == R.id.btn_tgx101PipMute) {
+      tgx101SetPipSilenced(!tgx101PipSilenced);
     } else if (viewId == R.id.btn_inlinePlayPause) {
       stack.getCurrent().performClick(v);
     } else if (viewId == R.id.btn_check) {
@@ -11372,7 +11488,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
               int right = width / 2 + size[0] / 2;
               int top = height / 2 - size[1] / 2;
               int bottom = height / 2 + size[1] / 2;
-              outline.setRect(left, top, right, bottom);
+              // (user 2026-11-27 22:15): round corners as the window — the radius in the view's own (unscaled) units
+              float r = Screen.dp(TGX101_PIP_RADIUS) * pipFactor / Math.max(.01f, view.getScaleX());
+              outline.setRoundRect(left, top, right, bottom, r);
             } else {
               outline.setEmpty();
             }

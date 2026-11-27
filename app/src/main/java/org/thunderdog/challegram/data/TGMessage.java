@@ -947,7 +947,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
           isPsa && fPsaTextT != null && fAuthorNameT != null ? fAuthorNameT.getWidth() : 0)
           + (replyData != null ? xTextPadding : 0);
         if (tgx101FwdCard()) {
-          forwardWidth = Math.max(tgx101FwdLabelWidth() + fTimeWidth + Screen.dp(12f), Screen.dp(TGX101_FWD_AVATAR + 6f) + (fAuthorNameT != null ? fAuthorNameT.getWidth() : 0));
+          forwardWidth = Math.max(tgx101FwdLabelWidth() + (TGX101_FWD_DATE ? fTimeWidth + Screen.dp(12f) : 0), Screen.dp(TGX101_FWD_AVATAR + 6f) + (fAuthorNameT != null ? fAuthorNameT.getWidth() : 0));
         }
         width = Math.max(width, Math.max(contentWidth + tgx101FwdIndent(), (int) (forwardWidth + tgx101FwdIndent())));
       } else {
@@ -1261,7 +1261,10 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
   // цифр»): in bubbles a forward is «Переслано от» + the date on the first line, a small photo and the full name on
   // the second, the content right under them at the bubble's edge — no bar on the left and no indent for it
   // GAP (user 2026-11-21 «верхнее прямо впритык к имени»): the room between the name and the file or photo under it
-  private static final float TGX101_FWD_LINE = 20f, TGX101_FWD_AVATAR = 20f, TGX101_FWD_GAP = 6f;
+  // (user 2026-11-27 23:49 «приведи к эталону: слишком большая пустота сверху над именем»): the name 3 dp closer to
+  // «Переслано от» (20 → 17), and no date at the right of it, as the reference
+  private static final float TGX101_FWD_LINE = 17f, TGX101_FWD_AVATAR = 20f, TGX101_FWD_GAP = 6f;
+  private static final boolean TGX101_FWD_DATE = false;
   private String tgx101FwdLabel;
   private float tgx101FwdLabelW;
 
@@ -4343,7 +4346,7 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
     tgx101FwdLabelWidth();
     c.drawText(label, left, labelBaseline, Paints.colorPaint(tgx101FwdLabelPaint(), nameColor));
     float right = left + tgx101FwdLabelW;
-    if (fTime != null) {
+    if (TGX101_FWD_DATE && fTime != null) {
       float timeX = Math.max(left + tgx101FwdLabelW + Screen.dp(12f), getInternalBubbleEndX() - fTimeWidth);
       c.drawText(fTime, timeX, labelBaseline, Paints.colorPaint(mTimeBubble(), getDecentColor()));
     }
@@ -4370,7 +4373,9 @@ public abstract class TGMessage implements InvalidateContentProvider, TdlibDeleg
    * draws its content 11 dp in from the bar
    */
   private int tgx101ForwardBottomLineWidth () {
-    if (!(this instanceof TGMessageText) || hasFooter()) return BOTTOM_LINE_EXPAND_HEIGHT;
+    // (user 2026-11-27 23:49, ours next to the reference: «дата не напротив строки, а перенеслась, хотя места достаточно»):
+    // a forwarded photo / video with a caption keeps the time on the caption's last line too
+    if (!(this instanceof TGMessageText || this instanceof TGMessageMedia) || hasFooter()) return BOTTOM_LINE_EXPAND_HEIGHT;
     int width = getBottomLineContentWidth();
     return width >= 0 ? width + tgx101FwdIndent() : width;
   }

@@ -5047,6 +5047,16 @@ public class Settings {
     pmc.putBoolean(CONFIRM_KEYS[kind], on);
   }
 
+  /** TGx101 (user 2026-11-27 22:16 «при сворачивании приложения видео должно продолжать проигрывание — в настройки
+   *  плеера»): a video with sound keeps playing while the app is in the background */
+  public boolean tgx101PlayerBackground () {
+    return pmc.getBoolean("tgx101_player_background", false);
+  }
+
+  public void setTgx101PlayerBackground (boolean value) {
+    pmc.putBoolean("tgx101_player_background", value);
+  }
+
   public boolean tgx101PlayerLoop () {
     return pmc.getBoolean(KEY_TGX101_PLAYER_LOOP, false);
   }

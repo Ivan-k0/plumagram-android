@@ -102,8 +102,16 @@ public final class Tgx101OwnTime {
     return true;
   }
 
-  /** The first message, from the picker: the picked moment — a week later when its week has the other parity */
-  public static long firstSend (int rule, long millis) {
+  /** The first message, from the picker: the picked moment — a week later when its week has the other parity; the 1st
+   *  of next month / in a week … a year: counted from now, at the picked time (user 2026-11-28 «выбрал 1-го числа —
+   *  пишет отправить сегодня») */
+  public static long firstSend (int rule, long millis, long now) {
+    if (rule > 400) {
+      Calendar picked = DateUtils.calendarInstance(millis);
+      int minutes = picked.get(Calendar.HOUR_OF_DAY) * 60 + picked.get(Calendar.MINUTE);
+      long target = now + TimeUnit.SECONDS.toMillis(secondsUntil(now, minutes, rule));
+      return Math.round(target / 60_000d) * 60_000L; // on the minute
+    }
     if (parityFits(rule, millis)) return millis;
     Calendar c = DateUtils.calendarInstance(millis);
     c.add(Calendar.DAY_OF_MONTH, 7);

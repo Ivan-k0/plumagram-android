@@ -1804,6 +1804,14 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101GuideText, "Свайп вверх-вниз в левой трети — яркость (если включено в «Жестах»).\nСвайп вверх-вниз в правой трети — громкость (если включено в «Жестах»).\nСвайп вниз в средней трети — свернуть видео.\nСвайп влево-вправо в середине — перемотка с подсказкой, на сколько (если включено в «Жестах»). Если выключено — двойное касание слева или справа мотает назад или вперёд.\nСвайп влево-вправо от самого края экрана — предыдущий или следующий файл.\nДвойное касание по центру — пауза / продолжить.\nНажать и держать — скорость 2×, пока держите (если включено в «Жестах»).\nОдно касание в любом месте — показать или спрятать кнопки: пауза, время, скорость, замок, настройки.\nВерхний край экрана — это шторка уведомлений, видео на него не реагирует.");
     RU.put(R.string.Tgx101PlayerSeekStep, "Шаг перемотки");
     RU.put(R.string.Tgx101PlayerLoop, "Повтор видео");
+    RU.put(R.string.Tgx101PlayerBackground, "Играть в фоне");
+    RU.put(R.string.Tgx101StopAtEnd, "Остановить после этого трека");
+    RU.put(R.string.Tgx101StopAtEndOff, "Не останавливать после трека");
+    RU.put(R.string.Tgx101StopAtEndToast, "Остановится, когда трек закончится");
+    RU.put(R.string.Tgx101StopAtEndOffToast, "Играет дальше");
+    RU.put(R.string.Tgx101PlayerPagePlayback, "Воспроизведение");
+    RU.put(R.string.Tgx101PlayerPageControl, "Управление");
+    RU.put(R.string.Tgx101PlayerPagePicture, "Изображение");
     RU.put(R.string.Tgx101PlayerPauseMusic, "Пауза музыки");
     RU.put(R.string.Tgx101GestureSeek, "Перемотка");
     RU.put(R.string.Tgx101GestureBrightness, "Яркость");

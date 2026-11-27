@@ -2908,7 +2908,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     if (delegate != null) {
       onClickListener = v -> {
         if (delegate.onOptionItemPressed(v, v.getId())) {
-          popupLayout.hideWindow(true);
+          popupLayout.tgx101HideAsDone();
         }
       };
     } else {
@@ -3307,7 +3307,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       final FutureLong tgx101SendDate = () -> {
         long millis = calculateDate.getLongValue();
         if (!tgx101Own || millis == 0) return millis;
-        return org.thunderdog.challegram.telegram.Tgx101OwnTime.firstSend(org.thunderdog.challegram.telegram.Tgx101OwnTime.ruleFor(tgx101OwnKind[0], millis), millis);
+        return org.thunderdog.challegram.telegram.Tgx101OwnTime.firstSend(org.thunderdog.challegram.telegram.Tgx101OwnTime.ruleFor(tgx101OwnKind[0], millis), millis, tdlib.currentTimeMillis());
       };
       InfiniteRecyclerView.ItemChangeListener<SimpleStringItem> listener = (v, index) -> {
         updateSendButton.runWithLong(tgx101SendDate.getLongValue());
@@ -3450,7 +3450,7 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         updatePill.run();
         tgx101PillRefresh[0] = updatePill;
         android.widget.FrameLayout.LayoutParams pp = new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(38f), Gravity.CENTER);
-        pp.leftMargin = pp.rightMargin = Screen.dp(56f);
+        pp.leftMargin = pp.rightMargin = Screen.dp(tgx101Own ? 16f : 56f); // own time: no bell — the pill takes the width (user 2026-11-28 «надпись обрезана»)
         pill.setLayoutParams(pp);
         pill.setOnClickListener(v -> {
           if (tgx101Own) {

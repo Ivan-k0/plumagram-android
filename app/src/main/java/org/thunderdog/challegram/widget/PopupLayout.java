@@ -608,6 +608,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     view.setTranslationY(currentHeight = height);
     addView(boundView = view);
     ((BaseActivity) getContext()).showPopupWindow(this);
+    tgx101TakeStepSource();
   }
 
   /** TGx101 (user 2026-11-23 «экран мигает, когда переходишь дальше — закрепить сообщение»): a window opened from the
@@ -881,6 +882,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     provider.prepareShowAnimation();
     addView(boundView = view);
     ((BaseActivity) getContext()).showPopupWindow(this);
+    tgx101TakeStepSource();
   }
 
   public boolean shouldDisallowScreenshots () {
@@ -947,6 +949,30 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
     tgx101StepDone = true;
   }
 
+  /** A choice was made in this window: it goes, and the windows under it (it was a step) with it — unless the choice
+   *  opened the next step over it (then it waits under that one) */
+  public void tgx101HideAsDone () {
+    if (tgx101StepHolding || isHidden) return;
+    tgx101StepDone = true;
+    hideWindow(true);
+  }
+
+  // (user 2026-11-28, recording: the send button's menu dimmed 40 %, «Schedule» over it 55 %) a window whose choice may
+  // open another one names itself the step source for that moment; the window that opens then is a step over it
+  private static @Nullable java.lang.ref.WeakReference<PopupLayout> tgx101StepSource;
+
+  public static void tgx101SetStepSource (@Nullable PopupLayout source) {
+    tgx101StepSource = source != null ? new java.lang.ref.WeakReference<>(source) : null;
+  }
+
+  private void tgx101TakeStepSource () {
+    PopupLayout source = tgx101StepSource != null ? tgx101StepSource.get() : null;
+    tgx101StepSource = null;
+    if (source == null || source == this || source.isHidden) return;
+    source.tgx101HideForNextStep();
+    tgx101StepOver(source);
+  }
+
   public boolean isWindowHidden () {
     return isHidden;
   }
@@ -964,6 +990,7 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
       tgx101StepPrev = null;
       prev.tgx101StepHolding = false;
       if (tgx101StepDone || prev.isDismissed) {
+        prev.tgx101StepDone = true; // the whole chain goes: the window under a step done doesn't come back either
         prev.hideWindow(animated);
       } else {
         prev.tgx101ShowAgainAfterStep();

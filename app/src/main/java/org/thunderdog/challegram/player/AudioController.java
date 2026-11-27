@@ -413,6 +413,7 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
 
     ExoPlayer exoPlayer = this.exoPlayer = U.newExoPlayer(AppContext.get(), true);
     exoPlayer.addListener(this);
+    exoPlayer.setPauseAtEndOfMediaItems(tgx101StopAtEnd);
     setExoPlayerParameters();
     setExoPlayerSpeed();
     exoPlayer.setVolume(tgx101CastMuted ? 0f : volume);
@@ -1032,6 +1033,11 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
         break;
       }
       case Player.STATE_ENDED: {
+        if (tgx101StopAtEnd && playbackMode != PLAYBACK_MODE_UNSET) { // a single track: no next one this time
+          tgx101SetStopAtEnd(false);
+          if (context.player().getCurrentTrack() != null) context.player().playPauseCurrent(false);
+          break;
+        }
         if (playbackMode != PLAYBACK_MODE_UNSET && !(playbackMode == PLAYBACK_MODE_EXOPLAYER_LIST && exoPlayer != null && exoPlayer.getRepeatMode() == Player.REPEAT_MODE_ONE)) {
           context.player().playNextMessageInQueue();
         }
@@ -1045,6 +1051,28 @@ public class AudioController extends BasePlaybackController implements TGAudio.P
 
   @Override
   public void onShuffleModeEnabledChanged (boolean shuffleModeEnabled) { }
+
+  // TGx101 (user 2026-11-27 22:58 «в плеере не хватает функции «остановить воспроизведение в конце аудиофайла»»): once,
+  // for the track playing — it ends, the player pauses there, and the switch goes off by itself
+  private static boolean tgx101StopAtEnd;
+
+  public static boolean tgx101StopAtEnd () {
+    return tgx101StopAtEnd;
+  }
+
+  public void tgx101SetStopAtEnd (boolean on) {
+    tgx101StopAtEnd = on;
+    if (exoPlayer != null) exoPlayer.setPauseAtEndOfMediaItems(on);
+    org.thunderdog.challegram.Tgx101Diag.mark("player: stop at the end of the track " + on);
+  }
+
+  @Override
+  public void onPlayWhenReadyChanged (boolean playWhenReady, int reason) {
+    if (!playWhenReady && reason == Player.PLAY_WHEN_READY_CHANGE_REASON_END_OF_MEDIA_ITEM && tgx101StopAtEnd) {
+      tgx101SetStopAtEnd(false);
+      if (context.player().getCurrentTrack() != null) context.player().playPauseCurrent(false); // the app's own state: paused
+    }
+  }
 
   @Override
   public void onPositionDiscontinuity (@NonNull Player.PositionInfo oldPosition, @NonNull Player.PositionInfo newPosition, int reason) {

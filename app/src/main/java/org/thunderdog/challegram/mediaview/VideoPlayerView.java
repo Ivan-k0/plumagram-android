@@ -661,6 +661,13 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
       org.thunderdog.challegram.Tgx101Diag.mark("player: to the background while casting — keeps playing");
       return;
     }
+    if (!isDetached && isPlaying && player != null && currentItem != null && !currentItem.isGifType() && !isMuted && !tgx101Silenced
+      && org.thunderdog.challegram.unsorted.Settings.instance().tgx101PlayerBackground()) {
+      // TGx101 (user 2026-11-27 22:16): «Play in the background» — the sound goes on; back in the app the picture is there
+      isDetached = true;
+      org.thunderdog.challegram.Tgx101Diag.mark("player: to the background — keeps playing (setting)");
+      return;
+    }
     if (!isDetached) {
       // TGx101: the app goes to the background — the video only pauses and the player is kept. Rebuilding it on the
       // way back showed a black frame until the first picture came (the video «blinked» after returning).
@@ -799,6 +806,15 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
   }
 
   private boolean isMuted;
+  private boolean tgx101Silenced;
+
+  /** TGx101 (user 2026-11-27 22:19, 2026-11-28 «кнопка без звука справа вверху»): the video window's own «no sound» */
+  public void tgx101SetSilenced (boolean silenced) {
+    if (this.tgx101Silenced != silenced) {
+      this.tgx101Silenced = silenced;
+      checkMuted();
+    }
+  }
 
   public void setMuted (boolean isMuted) {
     if (this.isMuted != isMuted) {
@@ -895,7 +911,7 @@ public class VideoPlayerView implements Player.Listener, CallManager.CurrentCall
   };
 
   private void checkMuted () {
-    boolean muted = isMuted || forcelyMuted || tgx101CastMuted;
+    boolean muted = isMuted || forcelyMuted || tgx101CastMuted || tgx101Silenced;
     if (player != null) {
       player.setVolume(muted ? 0f : 1f);
     }

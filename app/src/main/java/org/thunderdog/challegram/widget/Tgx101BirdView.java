@@ -683,15 +683,22 @@ public class Tgx101BirdView extends View {
     return !accountsRing && i < items.length && items[i].id == org.thunderdog.challegram.ui.Tgx101Bird.ACTION_HIDE;
   }
 
-  /** the ring's own actions, without the «×» */
+  /** the ring's own actions, without the «×» and «Досмотреть» */
   private int layoutCount () {
     int n = items.length;
     if (n > 0 && items[n - 1].id == org.thunderdog.challegram.ui.Tgx101Bird.ACTION_HIDE) n--;
+    if (n > 0 && items[n - 1].id == org.thunderdog.challegram.ui.Tgx101Bird.ACTION_RESUME_VIDEO) n--;
     return n;
+  }
+
+  /** «Досмотреть»: the eighth, straight out from the bird, beyond the rows (user 2026-11-27 22:14) */
+  private boolean isResume (int i) {
+    return !accountsRing && i < items.length && items[i].id == org.thunderdog.challegram.ui.Tgx101Bird.ACTION_RESUME_VIDEO;
   }
 
   private float radiusOf (int i) {
     if (isHide(i)) return HIDE_R;
+    if (isResume(i)) return (twoRows() ? RING_R_OUTER : RING_R) + ITEM + 10f;
     return twoRows() && i < 4 ? RING_R_OUTER : RING_R;
   }
 
@@ -704,6 +711,7 @@ public class Tgx101BirdView extends View {
 
   private float angleFor (int i) {
     if (isHide(i)) return right ? 250f : -70f;
+    if (isResume(i)) return right ? 180f : 0f;
     if (!twoRows()) return angleOf(i);
     return i < 4 ? rowAngle(i, 4, 30f) : rowAngle(i - 4, layoutCount() - 4, 40f);
   }

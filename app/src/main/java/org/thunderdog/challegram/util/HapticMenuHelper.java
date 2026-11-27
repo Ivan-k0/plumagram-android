@@ -362,6 +362,7 @@ public class HapticMenuHelper implements View.OnTouchListener, View.OnLongClickL
   public void hideMenu () {
     if (this.hapticMenu != null) {
       this.hapticMenu.hideWindow(true);
+      if (!this.hapticMenu.isWindowHidden()) return; // a step is up over it: it comes back when the step is cancelled
       this.hapticMenu = null;
       if (onHapticMenuListener != null) {
         onHapticMenuListener.onHapticMenuClose();
@@ -386,7 +387,14 @@ public class HapticMenuHelper implements View.OnTouchListener, View.OnLongClickL
 
   private void onMenuItemClick (MenuItem item, View view, View parentView) {
     if (hapticMenu != null && !hapticMenu.isWindowHidden()) {
-      boolean res = onItemClickListener.onHapticMenuItemClick(view, parentView, item);
+      // TGx101 (user 2026-11-28 «затемнение одно на всех шагах»): a window this item opens is a step over the menu
+      PopupLayout.tgx101SetStepSource(hapticMenu);
+      boolean res;
+      try {
+        res = onItemClickListener.onHapticMenuItemClick(view, parentView, item);
+      } finally {
+        PopupLayout.tgx101SetStepSource(null);
+      }
       if (item.onClickListener != null && !item.onClickListener.onHapticMenuItemClick(view, parentView, item)) {
         res = false;
       }
