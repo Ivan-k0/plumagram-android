@@ -36,7 +36,15 @@ public class MaxHeightScrollView extends ScrollView {
 
   @Override
   public boolean onTouchEvent (MotionEvent ev) {
-    boolean res = super.onTouchEvent(ev) && (ev.getAction() != MotionEvent.ACTION_DOWN || (isScrollable && Views.isValid(this)));
+    boolean handled;
+    try {
+      handled = super.onTouchEvent(ev);
+    } catch (IllegalArgumentException e) {
+      // TGx101 (crash from people 2026-11-27, «invalid pointerIndex -1» on POINTER_UP): ScrollView looks up a finger it
+      // has lost track of (after a CANCEL, or a pointer it never saw) — the event is dropped instead of the app
+      handled = false;
+    }
+    boolean res = handled && (ev.getAction() != MotionEvent.ACTION_DOWN || (isScrollable && Views.isValid(this)));
     switch (ev.getAction()) {
       case MotionEvent.ACTION_DOWN: {
         if (isScrollable && Views.isValid(this)) {

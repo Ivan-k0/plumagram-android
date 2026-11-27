@@ -236,7 +236,7 @@ public class MediaLayout extends FrameLayoutFix implements
       case MODE_AVATAR_PICKER:
       case MODE_GALLERY: {
         items = new MediaBottomBar.BarItem[] {
-          new MediaBottomBar.BarItem(R.drawable.baseline_location_on_24, R.string.Gallery, ColorId.attachPhoto, Screen.dp(1f))
+          new MediaBottomBar.BarItem(R.drawable.baseline_location_on_24, R.string.Gallery, TGX101_HEADER_COLORED ? ColorId.headerBackground : ColorId.attachPhoto, Screen.dp(1f))
         };
         index = 0;
         break;
@@ -261,7 +261,7 @@ public class MediaLayout extends FrameLayoutFix implements
               new MediaBottomBar.BarItem(R.drawable.baseline_camera_alt_24, R.string.Tgx101AttachCamera, ColorId.attachInlineBot) :
               new MediaBottomBar.BarItem(R.drawable.deproko_baseline_bots_24, R.string.InlineBot, ColorId.attachInlineBot),
             new MediaBottomBar.BarItem(R.drawable.baseline_location_on_24, R.string.Location, ColorId.attachLocation, Screen.dp(1f)),
-            new MediaBottomBar.BarItem(R.drawable.baseline_image_24, R.string.Gallery, ColorId.attachPhoto),
+            new MediaBottomBar.BarItem(R.drawable.baseline_image_24, R.string.Gallery, TGX101_HEADER_COLORED ? ColorId.headerBackground : ColorId.attachPhoto), // (user 2026-11-27 «галерею перекрась в цвет шапки», the other sections keep theirs)
             new MediaBottomBar.BarItem(R.drawable.baseline_insert_drive_file_24, R.string.File, ColorId.attachFile),
             new MediaBottomBar.BarItem(R.drawable.baseline_person_24, R.string.AttachContact, ColorId.attachContact, Screen.dp(1f))
           };
@@ -269,7 +269,7 @@ public class MediaLayout extends FrameLayoutFix implements
           items = new MediaBottomBar.BarItem[]{
             new MediaBottomBar.BarItem(R.drawable.baseline_person_24, R.string.AttachContact, ColorId.attachContact, Screen.dp(1f)),
             new MediaBottomBar.BarItem(R.drawable.baseline_insert_drive_file_24, R.string.File, ColorId.attachFile),
-            new MediaBottomBar.BarItem(R.drawable.baseline_image_24, R.string.Gallery, ColorId.attachPhoto),
+            new MediaBottomBar.BarItem(R.drawable.baseline_image_24, R.string.Gallery, TGX101_HEADER_COLORED ? ColorId.headerBackground : ColorId.attachPhoto), // (user 2026-11-27 «галерею перекрась в цвет шапки», the other sections keep theirs)
             new MediaBottomBar.BarItem(R.drawable.baseline_location_on_24, R.string.Location, ColorId.attachLocation, Screen.dp(1f)),
             needVote ?
               new MediaBottomBar.BarItem(R.drawable.baseline_poll_24, R.string.CreatePoll, ColorId.attachInlineBot) :

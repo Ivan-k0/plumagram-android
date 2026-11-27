@@ -7250,6 +7250,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           // the swipe stays with the caption — the photo under it does not move or close
           @Override
           public boolean dispatchTouchEvent (MotionEvent ev) {
+            // (crash from people, PlumaGram Т 0.3.255 on a POCO, 2026-11-27: «invalid pointerIndex -1» in ScrollView on
+            // POINTER_UP) once the caption took the swipe its scroll got a CANCEL and forgot the finger — a second finger's
+            // up still reached it. Every other event of a taken swipe stays here
+            int masked = ev.getActionMasked();
+            if (swipeTaken && masked != MotionEvent.ACTION_UP && masked != MotionEvent.ACTION_CANCEL && masked != MotionEvent.ACTION_DOWN) return true;
             switch (ev.getActionMasked()) {
               case MotionEvent.ACTION_DOWN:
                 swipeX = ev.getX();
