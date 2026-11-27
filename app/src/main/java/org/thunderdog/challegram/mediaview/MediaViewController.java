@@ -3432,6 +3432,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private void setPipHidden (boolean isHidden, boolean isLeft) {
     if (this.pipHidden != isHidden) {
       this.pipHidden = isHidden;
+      org.thunderdog.challegram.Tgx101Diag.mark("pip: " + (isHidden ? "hides at the " + (isLeft ? "left" : "right") + " edge" : "out of hiding") + " at " + tgx101PipWhere());
       if (pipHideAnimator == null) {
         pipHideAnimator = new FactorAnimator(ANIMATOR_PIP_HIDE, this, AnimatorUtils.DECELERATE_INTERPOLATOR, 180l);
       }
@@ -3460,6 +3461,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private void preparePipMovement () {
     pipStartX = pipAddX;
     pipStartY = pipAddY;
+    tgx101PipLogAt = 0;
+    org.thunderdog.challegram.Tgx101Diag.mark("pip: drag starts at " + tgx101PipWhere() + (pipPositionAnimator != null && pipPositionAnimator.isAnimating() ? " (a slide was running)" : ""));
   }
 
   private float pipAddX, pipAddY;
@@ -3579,10 +3582,19 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     toPipYFactor = targetYFactor;
     tgx101PipFreeDrop = !tgx101Fling && Math.abs(targetXFactor) != 2f && targetXFactor == this.pipXFactor && targetYFactor == this.pipYFactor;
 
+    org.thunderdog.challegram.Tgx101Diag.mark("pip: let go at " + tgx101PipWhere() + ", speed " + Math.round(tgx101Speed / Screen.dp(1f)) + " dp/s (" + Math.round(velocityX / Screen.dp(1f)) + "," + Math.round(velocityY / Screen.dp(1f)) + ")"
+      + (tgx101Fling ? " — a throw" : " — stays") + (shouldBeHidden ? ", past the edge" : "") + " → x " + Math.round(targetX) + " y " + Math.round(targetY)
+      + " [" + targetXFactor + "," + targetYFactor + " +" + Math.round(toPipAddX) + "," + Math.round(toPipAddY) + "] in " + pipPositionAnimator.getDuration() + " ms; bounds x " + Math.round(leftX) + "…" + Math.round(rightX) + " y " + Math.round(topY) + "…" + Math.round(bottomY));
     pipPositionAnimator.animateTo(1f);
   }
 
   private boolean tgx101PipFreeDrop;
+  private long tgx101PipLogAt;
+
+  /** for the journal: the window's place (from the screen's middle), its corner factors and offset */
+  private String tgx101PipWhere () {
+    return "x " + Math.round(pipX) + " y " + Math.round(pipY) + " [" + pipXFactor + "," + pipYFactor + " +" + Math.round(pipAddX) + "," + Math.round(pipAddY) + "] " + pipWidth + "×" + pipHeight;
+  }
 
   private void applyPipPosition () {
     // the free place: on an axis whose corner stays the same, the offset stays as the animation left it (it is the place
@@ -3593,6 +3605,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     pipXFactor = toPipXFactor;
     pipYFactor = toPipYFactor;
     savePipFactors();
+    float beforeX = pipX, beforeY = pipY;
+    updatePipLayout(mediaView.getMeasuredWidth(), mediaView.getMeasuredHeight(), false, false);
+    org.thunderdog.challegram.Tgx101Diag.mark("pip: slide done at " + tgx101PipWhere() + (Math.abs(beforeX - pipX) > 2 || Math.abs(beforeY - pipY) > 2 ? " — JUMPED from x " + Math.round(beforeX) + " y " + Math.round(beforeY) : ""));
   }
 
   private void restorePipFactors () {
@@ -3617,6 +3632,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     pipAddX = pipStartX + dx;
     pipAddY = pipStartY + dy;
     updatePipLayout(viewWidth, viewHeight, false, true);
+    long now = android.os.SystemClock.uptimeMillis();
+    if (now - tgx101PipLogAt > 120) { // (user 2026-11-28 «оно прыгает и скачет»): the drag, a few times a second
+      tgx101PipLogAt = now;
+      org.thunderdog.challegram.Tgx101Diag.mark("pip: drag " + Math.round(dx) + "," + Math.round(dy) + " → " + tgx101PipWhere() + (pipHidden ? " hidden" : ""));
+    }
   }
 
   private boolean pipControlsVisible = true;
