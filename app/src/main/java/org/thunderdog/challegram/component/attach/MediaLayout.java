@@ -2007,6 +2007,14 @@ public class MediaLayout extends FrameLayoutFix implements
 
   private float headerFactor;
   private @Nullable HeaderView headerView;
+
+  /**
+   * TGx101 (user 2026-11-27 «шапка в галерее красится в белый… держать в цвете шапки; во время подъёма шапки должны
+   * сливаться в одну»): the gallery's header in the chat header's colour. It fades in right over the chat's header, which
+   * the popup dims — so it wears the same dim, and the dim melts away as the sheet reaches the top: one header brightening
+   */
+  public static final boolean TGX101_HEADER_COLORED = true;
+  private int tgx101HeaderVeil;
   private int lastHeaderIndex = -1;
 
   public void prepareHeader () {
@@ -2019,6 +2027,12 @@ public class MediaLayout extends FrameLayoutFix implements
         public boolean onTouchEvent (MotionEvent e) {
           super.onTouchEvent(e);
           return true;
+        }
+
+        @Override
+        public void draw (android.graphics.Canvas c) {
+          super.draw(c);
+          if (tgx101HeaderVeil != 0) c.drawColor(tgx101HeaderVeil); // the same dim as the chat's header under it
         }
       };
       headerView.initWithSingleController(getCurrentController(), true);
@@ -2043,6 +2057,14 @@ public class MediaLayout extends FrameLayoutFix implements
         int layer = factor > 0f && factor < 1f ? View.LAYER_TYPE_HARDWARE : View.LAYER_TYPE_NONE;
         if (headerView.getLayerType() != layer) headerView.setLayerType(layer, null);
         headerView.setAlpha(factor);
+        if (TGX101_HEADER_COLORED) {
+          int dim = popupLayout != null ? popupLayout.tgx101CurrentDim() : 0;
+          int veil = me.vkryl.core.ColorUtils.alphaColor(1f - factor, dim);
+          if (veil != tgx101HeaderVeil) {
+            tgx101HeaderVeil = veil;
+            headerView.invalidate();
+          }
+        }
         // (user 2026-11-22 «при движении вверх проблема, когда галерея встречается с шапкой», recorded next to the
         // reference): the header slid down from above while the grid rose — the two met head-on. The reference's header
         // stays in its place and only fades in over the rising sheet; so does this one now
@@ -2075,7 +2097,7 @@ public class MediaLayout extends FrameLayoutFix implements
     tgx101HeaderIcons = header;
     android.view.Window window = UI.getWindow();
     if (window == null) return;
-    org.thunderdog.challegram.navigation.HeaderView.tgx101HoldStatusIcons(window, header, header ? Theme.fillingColor() : Theme.headerColor());
+    org.thunderdog.challegram.navigation.HeaderView.tgx101HoldStatusIcons(window, header, header && !TGX101_HEADER_COLORED ? Theme.fillingColor() : Theme.headerColor());
   }
 
   private boolean visible = true;

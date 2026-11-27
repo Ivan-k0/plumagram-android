@@ -92,12 +92,12 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
 
   @Override
   protected final int getHeaderTextColorId () {
-    return ColorId.text;
+    return MediaLayout.TGX101_HEADER_COLORED ? ColorId.headerText : ColorId.text;
   }
 
   @Override
   protected final int getHeaderColorId () {
-    return ColorId.filling;
+    return MediaLayout.TGX101_HEADER_COLORED ? ColorId.headerBackground : ColorId.filling;
   }
 
   @Override
@@ -107,7 +107,7 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
 
   @Override
   protected final int getHeaderIconColorId () {
-    return ColorId.headerLightIcon;
+    return MediaLayout.TGX101_HEADER_COLORED ? ColorId.headerIcon : ColorId.headerLightIcon;
   }
 
   @Override

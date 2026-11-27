@@ -1150,6 +1150,12 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
   /** TGx101 (user 2026-11-23 «зачем на одинаковых окнах разное затемнение?»): one dim for every window — the message
    *  menu, the sheets, the ⋮ menus and the cards in the middle — 55 % black on a dark theme, 35 % on a light one; going
    *  from one to the next, the screen keeps the same darkness */
+  /** (user 2026-11-27): the dim over the screen under the popup right now, as drawn */
+  public int tgx101CurrentDim () {
+    final int color = animationType == ANIMATION_TYPE_SIMPLE || tgx101StrongDim ? tgx101Dim() : ColorUtils.color((int) (255f * (Theme.getPopupOverlayAlpha())), 0);
+    return ColorUtils.alphaColor(backgroundView != null ? backgroundView.getAlpha() : 0f, color);
+  }
+
   public static int tgx101Dim () {
     // (user 2026-11-23, next to the reference: «затемнение не такое сильное, как у нас») 40 % dark, 27 % light (was 55 / 35)
     return ColorUtils.color(Theme.isDark() ? 102 : 70, 0);
