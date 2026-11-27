@@ -1180,6 +1180,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     }
 
     ThemeListenerList themeListenerList = navigation != null ? navigation.getThemeListeners() : null;
+    tgx101AccentIds = null;
     tgx101FillMore(ids, titles, icons, onMoreItemClick, themeListenerList);
     for (int k = 0; k < wrap.getChildCount(); k++) {
       View child = wrap.getChildAt(k);
@@ -1216,6 +1217,8 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     final int[] ids = (int[]) page[0];
     final String[] titles = (String[]) page[1];
     final int[] icons = (int[]) page[2];
+    // (user 2026-11-27 «иконки, которые в "Ещё", должны подсвечиваться тем же акцентом, как три точки или стрелочка»)
+    tgx101AccentIds = page.length > 3 ? (int[]) page[3] : null;
     final MenuMoreWrap wrap = moreWrap;
     final float scale = org.thunderdog.challegram.U.getAnimationScale(getContext()) > 0f ? org.thunderdog.challegram.U.getAnimationScale(getContext()) : 1f;
     final long duration = (long) (220 / scale);
@@ -1274,6 +1277,15 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     }
   }
 
+  /** the rows whose icons are in the accent — the ones «More» showed (null — none) */
+  private @Nullable int[] tgx101AccentIds;
+
+  private boolean tgx101IsAccent (int id) {
+    if (tgx101AccentIds == null) return false;
+    for (int a : tgx101AccentIds) if (a == id) return true;
+    return false;
+  }
+
   private void tgx101FillMore (int[] ids, String[] titles, int[] icons, View.OnClickListener onItemClick, @Nullable ThemeListenerList themeListeners) {
     int size = ids.length;
     int childCount = moreWrap.getChildCount();
@@ -1325,7 +1337,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
         }
         continue;
       }
-      if ((id == R.id.btn_tgx101ChatMore || id == R.id.btn_tgx101ChatMoreBack) && icons != null && icons[k] != 0) {
+      if ((id == R.id.btn_tgx101ChatMore || id == R.id.btn_tgx101ChatMoreBack || tgx101IsAccent(id)) && icons != null && icons[k] != 0) {
         // (user 2026-11-27 «"ещё" можно чуть выделить… можно иконку сделать цветную»): the accent icon, the usual text
         android.graphics.drawable.Drawable drawable = org.thunderdog.challegram.tool.Drawables.get(getResources(), org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(icons[k])).mutate();
         drawable.setColorFilter(Paints.getColorFilter(Theme.getColor(ColorId.iconActive)));
@@ -1345,6 +1357,7 @@ public class HeaderView extends FrameLayoutFix implements View.OnClickListener, 
     moreWrap.setMinimumWidth(0); // a page turn of the last menu kept its width
     moreWrap.tgx101SetForcedHeight(-1);
     moreWrap.tgx101SetSeparators();
+    tgx101AccentIds = null;
     int i, j;
     int childCount = moreWrap.getChildCount();
     for (i = 0, j = 0; j < childCount; j++) {

@@ -6599,7 +6599,7 @@ public class MessagesController extends ViewController<MessagesController.Argume
     }
     int[] outIds = new int[ids.size()], outIcons = new int[ids.size()];
     for (int i = 0; i < outIds.length; i++) { outIds[i] = ids.get(i); outIcons[i] = tgx101ChatMenuIcon(outIds[i]); }
-    return new Object[] {outIds, titles.toArray(new String[0]), outIcons};
+    return new Object[] {outIds, titles.toArray(new String[0]), outIcons, tgx101MoreIds.clone()};
   }
 
 
