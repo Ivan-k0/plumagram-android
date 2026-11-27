@@ -645,6 +645,47 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
     animateCurrentHeightImpl(toHeight, duration, curve, after);
   }
 
+  /** the throw's slowing down: the speed halves every tau × ln 2 (set by the reference's recordings, 2026-11-27) */
+  private static final float TGX101_THROW_TAU = .42f; // s
+  private static final float TGX101_THROW_STOP = 30f; // px/s — slower than this it has stopped
+
+  /**
+   * TGx101 (user 2026-11-27): the sheet let go upwards at {@code speed} px/s goes on as a thrown thing — its speed fades
+   * exponentially — and stops where that ends, or at the top if it gets there (still moving, as the reference). A stop in
+   * the header's stretch (the last 30 %) goes on to the top so the header isn't left half shown. False — nothing to throw
+   */
+  private boolean tgx101Throw (float speed) {
+    final int max = getMaxHeight();
+    final int remaining = max - currentHeight;
+    if (remaining <= 0 || speed < TGX101_THROW_STOP * 4f) return false;
+    final float tau = TGX101_THROW_TAU;
+    final float reach = speed * tau; // px the throw would go in all
+    int target;
+    float t; // s
+    if (reach >= remaining) {
+      target = max;
+      t = (float) (-tau * Math.log(1.0 - remaining / reach));
+    } else {
+      t = (float) (tau * Math.log(speed / TGX101_THROW_STOP));
+      target = currentHeight + Math.round(reach * (1f - (float) Math.exp(-t / tau)));
+      int headerFrom = max - Math.round((max - startHeight) * .3f);
+      if (target >= headerFrom) {
+        // to the top, slowing down evenly from the throw's speed (the header comes in over this stretch)
+        animateCurrentHeight(max, false, -speed);
+        return true;
+      }
+      if (target - currentHeight < Screen.dp(2f)) return false;
+    }
+    final float k = t / tau;
+    final float norm = 1f - (float) Math.exp(-k);
+    android.view.animation.Interpolator curve = x -> (1f - (float) Math.exp(-k * x)) / norm;
+    long duration = Math.max(60l, Math.round(t * 1000f));
+    org.thunderdog.challegram.Tgx101Diag.mark("attach sheet: thrown at " + Math.round(speed) + " px/s, " + currentHeight + " → " + target + " px of " + max + ", " + duration + " ms");
+    tgx101ArrivalSpeed = 0f;
+    animateCurrentHeightImpl(target, duration, curve, null);
+    return true;
+  }
+
   /** Starts at the given speed (slope at 0, in distance per duration) and ends at the other one (0: comes to rest), no jolt on either end */
   private static final class Tgx101GlideCurve implements android.view.animation.Interpolator {
     private final float m0, m1;
@@ -900,9 +941,13 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
           // (user's own flicks recorded next to the reference 2026-11-23: with half the flick the sheet sagged to 28–40 px a
           // frame after a 68 px finger, then the grid sped off at 64 — «ускорение вверху». The halves were fitted to adb
           // swipes and are wrong for a real finger) the sheet goes on at the flick's own speed
+          // (user 2026-11-27, five same swipes recorded here and in the reference: «почему галерея ставится не так плавно»)
+          // the sheet went on at the flick's speed evenly, then handed the rest to the grid, which crawled on for 2–4 s after
+          // a stop at the top. The reference throws the sheet: it slows down as a flung thing does and stops where that
+          // ends — at the top if the throw carries it there — and the grid stays put
+          if (currentHeight >= startHeight && tgx101Throw(-velocityY)) return true;
           float cruise = velocityY < 0 ? Math.max(-velocityY, Math.max(0, getMaxHeight() - currentHeight) / .7f) : 0f;
-          final int fling = Math.round(cruise);
-          animateCurrentHeight(getMaxHeight(), false, -cruise, fling > 0 && recyclerView != null ? () -> tgx101GlideGrid(fling) : null, fling);
+          animateCurrentHeight(getMaxHeight(), false, -cruise);
         } else {
           animateCurrentHeight(startHeight, true);
         }
@@ -950,8 +995,11 @@ public abstract class MediaBottomBaseController<T> extends ViewController<T> {
         barChangeHeightDiff = -currentHeight;
         mediaLayout.hideBottomBarAndDismiss();
       } else if (expandFactor >= .08f && isHeightIncreasing && canExpandHeight()) {
-        // TGx101 (user 2026-10-12 «нужно два свайпа, чтобы её вытащить — нужен один обычный»): any real pull up opens it
-        animateCurrentHeight(getMaxHeight(), false);
+        // TGx101 (user 2026-10-12 «нужно два свайпа, чтобы её вытащить — нужен один обычный»): any real pull up opens it;
+        // (user 2026-11-27, as in the reference): let go without a throw — it stays where the finger left it, unless that is
+        // in the last stretch where the header shows
+        float speed = SystemClock.uptimeMillis() - tgx101SpeedAt < 100 ? Math.max(0f, tgx101Speed) * 1000f : 0f;
+        if (!tgx101Throw(speed)) animateCurrentHeight(getMaxHeight(), false);
       } else {
         animateCurrentHeight(startHeight, false);
       }
