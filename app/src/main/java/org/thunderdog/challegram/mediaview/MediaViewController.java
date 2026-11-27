@@ -206,7 +206,9 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   private static final long REVEAL_ANIMATION_DURATION = /*BuildConfig.DEBUG ? 1800l :*/ 260;
   // (user 2026-11-19 «как в эталоне», recordings 20:30 side by side): the other client's video grows out of its post in
   // about half our time (~60 ms of movement at the phone's 0.5 animation scale against our 130) — the same curve, 200 ms
-  private static final long REVEAL_OPEN_ANIMATION_DURATION = /*BuildConfig.DEBUG ? 1800l :*/ 200l;
+  // (user 2026-11-27 «как будто мигает весь экран по контуру», recorded next to the reference: the dark backdrop round the
+  // growing photo came and went at the edges in ~80 ms here, ~145 ms there) 200 → 360
+  private static final long REVEAL_OPEN_ANIMATION_DURATION = /*BuildConfig.DEBUG ? 1800l :*/ 360l;
   // (user 2026-11-03, recording 120 fps next to another client: «скорость открытия и плавность по кадрам») the soft start
   // (.25, .1) stood still for the first 3–4 frames while the backdrop already darkened, then hurried — slow-fast-slow
   // and a dark frame before the light photo. Now it starts at ~1.7× the average speed (the other client's measured first
