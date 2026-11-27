@@ -781,7 +781,7 @@ public class MessagePreviewView extends BaseView implements AttachDelegate, Dest
     }
     for (ListAnimator.Entry<TextEntry> entry : contentText) {
       if (entry.item.drawable != null) {
-        Drawables.draw(c, entry.item.drawable, textX, contextTextY + (entry.item.content != null ? entry.item.content.getLineHeight(false) : Screen.dp(TEXT_SIZE)) / 2f - entry.item.drawable.getMinimumHeight() / 2f, PorterDuffPaint.get(ColorId.icon, entry.getVisibility()));
+        Drawables.draw(c, entry.item.drawable, textX, contextTextY + (entry.item.content != null ? entry.item.content.getLineHeight(false) : Screen.dp(TEXT_SIZE)) / 2f - entry.item.drawable.getMinimumHeight() / 2f, PorterDuffPaint.get(tgx101OnHeader ? ColorId.headerText : ColorId.icon, entry.getVisibility() * (tgx101OnHeader ? .85f : 1f))); // on the header: its text colour (2026-11-27: grey on blue)
       }
       if (entry.item.content != null) {
         entry.item.content.draw(c, textX, contextTextY, null, entry.getVisibility(), entry.item.receiver);
