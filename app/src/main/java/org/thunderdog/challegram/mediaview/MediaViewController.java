@@ -1381,7 +1381,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
           }
           case MODE_MESSAGES:
           case MODE_SIMPLE: {
-            setBottomAlpha(MathUtils.clamp(factor));
+            // (user 2026-11-27, recorded next to the reference «при открытии снизу что-то мигает»): the caption's dark plate
+            // stood over the chat from the first frames — it comes in over the last third, once the photo is there, and
+            // goes in the first third of the close
+            setBottomAlpha(MathUtils.clamp((factor - .67f) / .33f));
             break;
           }
         }
@@ -3929,7 +3932,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private boolean needVideoMargin;
   // TGx101 (user 2026-10-30: «подними область, часто срабатывает ложный свайп домой»): a photo's caption stands this high over the screen's bottom
-  private static final float TGX101_CAPTION_LIFT = 40f;
+  // (user 2026-11-27 «почему у нас описание не прижато к низу фото?», next to the reference): down to the bottom again
+  private static final float TGX101_CAPTION_LIFT = 0f;
 
   private void updateCaptionLayout () {
     boolean needMargin = videoFactor == 1f && !inCaption;
@@ -5007,7 +5011,10 @@ public class MediaViewController extends ViewController<MediaViewController.Args
         if (mode == MODE_MESSAGES || mode == MODE_SIMPLE) {
           // TGx101 (user 2026-10-12 «желе вверху во время свайпа; в exteraGram шапка прячется чуть быстрее фото»):
           // the header melts away with the pull instead of riding up under the status bar
-          tgx101HeaderDragAlpha = MathUtils.clamp(1f - dismissFactor * 2.5f);
+          float dragAlpha = MathUtils.clamp(1f - dismissFactor * 2.5f);
+          // (recording 2026-11-27: let go after a pull, the header came back — 98 → 63 in brightness — as the flight into
+          // the post set the slide back) once flying, it only goes on fading from where the finger left it
+          tgx101HeaderDragAlpha = tgx101FlyFromSlide ? Math.min(tgx101HeaderDragAlpha, dragAlpha) : dragAlpha;
           headerView.setTranslationY(-headerView.getSize() * .25f * dismissFactor);
           updateHeaderAlpha();
         } else {
