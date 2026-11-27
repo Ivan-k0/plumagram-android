@@ -1841,6 +1841,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private static final long BOTTOM_ANIMATION_DURATION = 150l;
+  private static final android.view.animation.Interpolator TGX101_HEADER_SHOW_CURVE = androidx.core.view.animation.PathInterpolatorCompat.create(.25f, .1f, .35f, 1f);
 
   private void animateCaptionFactor (float toFactor) {
     if (captionAnimator == null) {
@@ -2429,6 +2430,12 @@ public class MediaViewController extends ViewController<MediaViewController.Args
 
   private boolean toggleHeaderVisibility () {
     if (headerView != null && needHeader()) {
+      // (user 2026-11-27 «меня волнует появление — делай как у эталона», frame by frame: there the header and the status bar
+      // come in together over ~120 ms, near even steps; here the header was in by ~70 ms and the status bar's icons only
+      // then began) coming back it takes as long as the status bar's own fade, on a soft curve; going away as before
+      boolean showing = !headerVisible.getValue();
+      headerVisible.setDuration(showing ? 240L : BOTTOM_ANIMATION_DURATION);
+      headerVisible.setInterpolator(showing ? TGX101_HEADER_SHOW_CURVE : AnimatorUtils.DECELERATE_INTERPOLATOR);
       boolean isVisible = headerVisible.toggleValue(true);
       if (isVisible) {
         context().removeHideNavigationView(this);
