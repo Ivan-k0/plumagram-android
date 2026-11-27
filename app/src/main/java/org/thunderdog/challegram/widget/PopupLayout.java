@@ -896,18 +896,79 @@ public class PopupLayout extends RootFrameLayout implements FactorAnimator.Targe
 
   private boolean isHidden;
 
+  // TGx101 (user 2026-11-27 «каждый шаг — запланировать, выбрать время, повторять — окно сзади меняет затемнение; нужно
+  // одно, и не мигало ни на каком шаге»; «вернуться на шаг назад, просто нажав где-то рядом»): windows opened one from
+  // another as steps keep one dim — the first window's. The next step comes without a dim of its own; the window under
+  // only hides its card. A tap beside the step (or Back) closes the step and the card under comes back; the step done,
+  // both go together
+  private @Nullable PopupLayout tgx101StepPrev;
+  private boolean tgx101StepDone;
+
+  private boolean tgx101StepHolding;
+
+  /** The next step did not open after all: this window goes as usual */
+  public void tgx101CancelStepHold () {
+    tgx101StepHolding = false;
+    hideWindow(true);
+  }
+
+  /** The next step is opening over this window: its card goes, its dim stays */
+  public void tgx101HideForNextStep () {
+    if (isHidden) return;
+    tgx101StepHolding = true;
+    View content = getContentChild();
+    if (content != null) {
+      content.animate().cancel();
+      content.animate().alpha(0f).setDuration(150).setInterpolator(TGX101_OUT_CURVE).start();
+    }
+  }
+
+  private void tgx101ShowAgainAfterStep () {
+    tgx101StepHolding = false;
+    if (isHidden) return;
+    View content = getContentChild();
+    if (content != null) {
+      content.animate().cancel();
+      content.animate().alpha(1f).setDuration(200).setInterpolator(TGX101_IN_CURVE).start();
+    }
+  }
+
+  /** This window is a step over prev (call right after it is shown): no dim / blur of its own */
+  public void tgx101StepOver (@Nullable PopupLayout prev) {
+    if (prev == null || prev.isHidden) return;
+    tgx101StepPrev = prev;
+    setHideBackground(true);
+    tgx101SystemBlur = false;
+    if (backgroundView != null) backgroundView.tgx101Blur = null;
+  }
+
+  /** The step is done (not cancelled): the window under goes as this one goes */
+  public void tgx101MarkStepDone () {
+    tgx101StepDone = true;
+  }
+
   public boolean isWindowHidden () {
     return isHidden;
   }
 
   public void hideWindow (boolean animated) {
-    if (isHidden) {
+    if (isHidden || tgx101StepHolding) { // (a step is up over it: the menu's own «hide after the choice» waits for the step)
       return;
     }
 
     isHidden = true;
     // TGx101: every frame while it goes (diagnostics builds; JANK doesn't see a popup's own window)
     org.thunderdog.challegram.Tgx101Diag.watchMainFrames("popup close", 500);
+    if (tgx101StepPrev != null) { // a step: done — the window under goes too (its dim with it); cancelled — it comes back
+      PopupLayout prev = tgx101StepPrev;
+      tgx101StepPrev = null;
+      prev.tgx101StepHolding = false;
+      if (tgx101StepDone || prev.isDismissed) {
+        prev.hideWindow(animated);
+      } else {
+        prev.tgx101ShowAgainAfterStep();
+      }
+    }
     if (tgx101From != null) { // closed before it finished coming in: the menu goes with it
       PopupLayout from = tgx101From;
       tgx101From = null;

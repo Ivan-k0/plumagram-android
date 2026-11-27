@@ -3196,8 +3196,17 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
     R.string.Tgx101RepeatMonthly, R.string.Tgx101Repeat3Months, R.string.Tgx101Repeat6Months, R.string.Tgx101RepeatYearly};
 
   public final PopupLayout showDateTimePicker (Tdlib tdlib, CharSequence title, @StringRes int todayRes, @StringRes int tomorrowRes, @StringRes int futureRes, final RunnableLong callback, final @Nullable Tgx101ScheduleCallback tgx101Callback, final @Nullable ThemeDelegate forcedTheme) {
+    return showDateTimePicker(tdlib, title, todayRes, tomorrowRes, futureRes, callback, tgx101Callback, -1, forcedTheme);
+  }
+
+  /** tgx101OwnRule ≥ 0: one's own time — «When: every day ⌃⌄» instead of the repeat, and onPicked gets the rule
+   *  (Tgx101OwnTime) in place of the repeat period; the moment is the first message's */
+  public final PopupLayout showDateTimePicker (Tdlib tdlib, CharSequence title, @StringRes int todayRes, @StringRes int tomorrowRes, @StringRes int futureRes, final RunnableLong callback, final @Nullable Tgx101ScheduleCallback tgx101Callback, final int tgx101OwnRule, final @Nullable ThemeDelegate forcedTheme) {
     final int[] tgx101Repeat = {0};
     final boolean[] tgx101Silent = {false};
+    final boolean tgx101Own = tgx101OwnRule >= 0 && tgx101Callback != null;
+    final int[] tgx101OwnKind = {tgx101Own ? org.thunderdog.challegram.telegram.Tgx101OwnTime.kindOf(tgx101OwnRule) : 0};
+    final Runnable[] tgx101PillRefresh = {null};
     return showPopup(title, true, Text.LINE_COUNT_UNLIMITED, (popupLayout, optionsWrap) -> {
       int contentHeight = 0;
       int pickerHeight = InfiniteRecyclerView.getItemHeight() * 5;
@@ -3293,8 +3302,16 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         c.set(Calendar.MILLISECOND, 0);
         return c.getTimeInMillis();
       };
+      // TGx101: one's own time — the first message by the rule (an odd / even week: maybe a week on); the «When» names
+      // the weekday / day of the date on the wheels
+      final FutureLong tgx101SendDate = () -> {
+        long millis = calculateDate.getLongValue();
+        if (!tgx101Own || millis == 0) return millis;
+        return org.thunderdog.challegram.telegram.Tgx101OwnTime.firstSend(org.thunderdog.challegram.telegram.Tgx101OwnTime.ruleFor(tgx101OwnKind[0], millis), millis);
+      };
       InfiniteRecyclerView.ItemChangeListener<SimpleStringItem> listener = (v, index) -> {
-        updateSendButton.runWithLong(calculateDate.getLongValue());
+        updateSendButton.runWithLong(tgx101SendDate.getLongValue());
+        if (tgx101PillRefresh[0] != null) tgx101PillRefresh[0].run();
       };
       dayPicker.setNeedSeparators(false);
       dayPicker.setMinMaxProvider((v, index) -> {
@@ -3387,7 +3404,9 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
 
       if (tgx101Callback != null) {
         // (user 2026-11-27 «как в эталоне достаточно, и там есть кнопка отправить без звука»): «Repeat: Never ⌃⌄» in the
-        // middle, the bell for a silent message at the end
+        // middle, the bell for a silent message at the end. (user 2026-11-27 «повторить должно просто появиться поверх, как
+        // в эталоне, с возможностью вернуться на шаг назад, просто нажав где-то рядом»): the choice is a small card over
+        // the pill, in this window — no new dim; a tap beside it closes only it. One's own time: «When: …» in its place
         android.widget.FrameLayout row = new android.widget.FrameLayout(context);
         row.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(56f)));
         final int textColor = forcedTheme != null ? forcedTheme.getColor(ColorId.text) : Theme.textAccentColor();
@@ -3396,55 +3415,89 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
         pill.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
         pill.setTextColor(textColor);
         pill.setGravity(Gravity.CENTER);
-        pill.setPadding(Screen.dp(18f), 0, Screen.dp(14f), 0);
+        pill.setSingleLine(true);
+        pill.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        pill.setPadding(Screen.dp(18f), 0, Screen.dp(12f), 0);
+        android.graphics.drawable.Drawable unfold = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.tgx101_unfold_more_20);
+        if (unfold != null) {
+          unfold = unfold.mutate();
+          unfold.setColorFilter(new android.graphics.PorterDuffColorFilter(iconColor, android.graphics.PorterDuff.Mode.SRC_IN));
+          pill.setCompoundDrawablesWithIntrinsicBounds(null, null, unfold, null);
+          pill.setCompoundDrawablePadding(Screen.dp(6f));
+        }
         android.graphics.drawable.GradientDrawable pillBg = new android.graphics.drawable.GradientDrawable();
         pillBg.setCornerRadius(Screen.dp(19f));
         pillBg.setColor(me.vkryl.core.ColorUtils.alphaColor(.08f, textColor));
         pill.setBackground(pillBg);
         final Runnable updatePill = () -> {
-          int i = 0;
-          for (int k = 0; k < TGX101_REPEAT_PERIODS.length; k++) if (TGX101_REPEAT_PERIODS[k] == tgx101Repeat[0]) i = k;
-          android.text.SpannableStringBuilder b = new android.text.SpannableStringBuilder(Lang.getString(R.string.Tgx101Repeat) + ": ");
-          int start = b.length();
-          b.append(Lang.getString(TGX101_REPEAT_NAMES[i]));
-          b.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, b.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-          b.append("  ⌃⌄");
+          android.text.SpannableStringBuilder b;
+          if (tgx101Own) {
+            long millis = calculateDate.getLongValue();
+            b = new android.text.SpannableStringBuilder(Lang.getString(R.string.Tgx101OwnWhen) + ": ");
+            int start = b.length();
+            b.append(org.thunderdog.challegram.telegram.Tgx101OwnTime.name(org.thunderdog.challegram.telegram.Tgx101OwnTime.ruleFor(tgx101OwnKind[0], millis != 0 ? millis : tdlib.currentTimeMillis())));
+            b.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, b.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+          } else {
+            int i = 0;
+            for (int k = 0; k < TGX101_REPEAT_PERIODS.length; k++) if (TGX101_REPEAT_PERIODS[k] == tgx101Repeat[0]) i = k;
+            b = new android.text.SpannableStringBuilder(Lang.getString(R.string.Tgx101Repeat) + ": ");
+            int start = b.length();
+            b.append(Lang.getString(TGX101_REPEAT_NAMES[i]));
+            b.setSpan(new android.text.style.StyleSpan(android.graphics.Typeface.BOLD), start, b.length(), android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+          }
           pill.setText(b);
         };
         updatePill.run();
+        tgx101PillRefresh[0] = updatePill;
         android.widget.FrameLayout.LayoutParams pp = new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, Screen.dp(38f), Gravity.CENTER);
+        pp.leftMargin = pp.rightMargin = Screen.dp(56f);
         pill.setLayoutParams(pp);
         pill.setOnClickListener(v -> {
+          if (tgx101Own) {
+            long millis = calculateDate.getLongValue();
+            if (millis == 0) millis = tdlib.currentTimeMillis();
+            String[] names = new String[org.thunderdog.challegram.telegram.Tgx101OwnTime.KIND_COUNT];
+            for (int k = 0; k < names.length; k++) names[k] = org.thunderdog.challegram.telegram.Tgx101OwnTime.capitalized(org.thunderdog.challegram.telegram.Tgx101OwnTime.ruleFor(k, millis));
+            tgx101ShowStepMenu(popupLayout, pill, names, tgx101OwnKind[0], forcedTheme, k -> {
+              tgx101OwnKind[0] = k;
+              listener.onCurrentIndexChanged(null, -1);
+            });
+            return;
+          }
           if (!tdlib.hasPremium()) {
             UI.showToast(R.string.Tgx101RepeatPremium, android.widget.Toast.LENGTH_SHORT);
             return;
           }
           String[] names = new String[TGX101_REPEAT_NAMES.length];
-          int[] ids = new int[names.length];
-          for (int k = 0; k < names.length; k++) { names[k] = Lang.getString(TGX101_REPEAT_NAMES[k]); ids[k] = k + 1; }
-          showOptions(null, ids, names, null, null, (itemView, id) -> {
-            tgx101Repeat[0] = TGX101_REPEAT_PERIODS[id - 1];
+          int checked = 0;
+          for (int k = 0; k < names.length; k++) {
+            names[k] = Lang.getString(TGX101_REPEAT_NAMES[k]);
+            if (TGX101_REPEAT_PERIODS[k] == tgx101Repeat[0]) checked = k;
+          }
+          tgx101ShowStepMenu(popupLayout, pill, names, checked, forcedTheme, k -> {
+            tgx101Repeat[0] = TGX101_REPEAT_PERIODS[k];
             updatePill.run();
-            return true;
-          }, forcedTheme);
+          });
         });
         row.addView(pill);
-        final android.widget.ImageView bell = new android.widget.ImageView(context);
-        bell.setScaleType(android.widget.ImageView.ScaleType.CENTER);
-        final Runnable updateBell = () -> {
-          bell.setImageResource(org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(tgx101Silent[0] ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24));
-          bell.setColorFilter(tgx101Silent[0] ? Theme.getColor(ColorId.iconActive) : iconColor);
-          bell.setContentDescription(Lang.getString(tgx101Silent[0] ? R.string.Tgx101SendSilentOn : R.string.Tgx101SendSilentOff));
-        };
-        updateBell.run();
-        bell.setLayoutParams(new android.widget.FrameLayout.LayoutParams(Screen.dp(52f), Screen.dp(52f), Gravity.CENTER_VERTICAL | Gravity.END));
-        Views.setClickable(bell);
-        bell.setOnClickListener(v -> {
-          tgx101Silent[0] = !tgx101Silent[0];
+        if (!tgx101Own) {
+          final android.widget.ImageView bell = new android.widget.ImageView(context);
+          bell.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+          final Runnable updateBell = () -> {
+            bell.setImageResource(org.thunderdog.challegram.ui.Tgx101MessageMenu.outlined(tgx101Silent[0] ? R.drawable.baseline_notifications_off_24 : R.drawable.baseline_notifications_24));
+            bell.setColorFilter(tgx101Silent[0] ? Theme.getColor(ColorId.iconActive) : iconColor);
+            bell.setContentDescription(Lang.getString(tgx101Silent[0] ? R.string.Tgx101SendSilentOn : R.string.Tgx101SendSilentOff));
+          };
           updateBell.run();
-          UI.showToast(tgx101Silent[0] ? R.string.Tgx101SendSilentOn : R.string.Tgx101SendSilentOff, android.widget.Toast.LENGTH_SHORT);
-        });
-        row.addView(bell);
+          bell.setLayoutParams(new android.widget.FrameLayout.LayoutParams(Screen.dp(52f), Screen.dp(52f), Gravity.CENTER_VERTICAL | Gravity.END));
+          Views.setClickable(bell);
+          bell.setOnClickListener(v -> {
+            tgx101Silent[0] = !tgx101Silent[0];
+            updateBell.run();
+            UI.showToast(tgx101Silent[0] ? R.string.Tgx101SendSilentOn : R.string.Tgx101SendSilentOff, android.widget.Toast.LENGTH_SHORT);
+          });
+          row.addView(bell);
+        }
         optionsWrap.addView(row);
         contentHeight += Screen.dp(56f);
       }
@@ -3463,13 +3516,15 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       }
       contentHeight += Screen.dp(56f);
       sendView.setOnClickListener(v -> {
-        long millis = calculateDate.getLongValue();
+        long millis = tgx101SendDate.getLongValue();
         if (tdlib.currentTimeMillis() < millis) {
+          popupLayout.tgx101MarkStepDone(); // a step over the schedule menu: it goes with this window
           // TGx101 (user 2026-11-20 «как будто мигает экран на мгновение», recording): the message went first and the chat
           // under the dim jumped while the sheet was still leaving — the dim went in one frame. The sheet leaves first
           popupLayout.hideWindow(true);
           if (tgx101Callback != null) {
-            UI.post(() -> tgx101Callback.onPicked(millis, tgx101Repeat[0], tgx101Silent[0]), 280);
+            final int extra = tgx101Own ? org.thunderdog.challegram.telegram.Tgx101OwnTime.ruleFor(tgx101OwnKind[0], calculateDate.getLongValue()) : tgx101Repeat[0];
+            UI.post(() -> tgx101Callback.onPicked(millis, extra, tgx101Silent[0]), 280);
           } else {
             UI.post(() -> callback.runWithLong(millis), 280);
           }
@@ -3479,6 +3534,107 @@ public abstract class ViewController<T> implements Future<View>, ThemeChangeList
       optionsWrap.addView(sendView);
       return contentHeight;
     }, forcedTheme);
+  }
+
+  /** TGx101 (user 2026-11-27 «повторить должно просто появиться поверх, как в эталоне»): a small card of choices over
+   *  the anchor, inside the given window — no dim of its own; a tap beside it (or Back) closes only it */
+  private void tgx101ShowStepMenu (PopupLayout popupLayout, View anchor, String[] names, int checked, @Nullable ThemeDelegate forcedTheme, me.vkryl.core.lambda.RunnableInt onPick) {
+    final boolean dark = forcedTheme != null ? forcedTheme.isDark() : Theme.isDark();
+    final int filling = forcedTheme != null ? forcedTheme.getColor(ColorId.filling) : Theme.getColor(ColorId.filling);
+    final int textColor = forcedTheme != null ? forcedTheme.getColor(ColorId.text) : Theme.textAccentColor();
+    final int accent = forcedTheme != null ? forcedTheme.getColor(ColorId.textNeutral) : Theme.getColor(ColorId.textNeutral);
+    final android.widget.FrameLayout catcher = new android.widget.FrameLayout(context);
+    final LinearLayout card = new LinearLayout(context);
+    card.setOrientation(LinearLayout.VERTICAL);
+    card.setClickable(true);
+    card.setPadding(0, Screen.dp(6f), 0, Screen.dp(6f));
+    android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+    bg.setColor(dark ? me.vkryl.core.ColorUtils.fromToArgb(filling, 0xffffffff, .08f) : filling);
+    final float radius = Screen.dp(16f);
+    bg.setCornerRadius(radius);
+    bg.setStroke(Math.max(1, Screen.dp(.5f)), forcedTheme != null ? forcedTheme.getColor(ColorId.separator) : Theme.separatorColor());
+    card.setBackground(bg);
+    if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+      card.setElevation(Screen.dp(8f));
+      card.setOutlineProvider(new android.view.ViewOutlineProvider() {
+        @Override
+        public void getOutline (View v, android.graphics.Outline outline) {
+          outline.setRoundRect(0, 0, v.getWidth(), v.getHeight(), radius);
+        }
+      });
+      card.setClipToOutline(true);
+    }
+    card.setMinimumWidth(Screen.dp(200f));
+    final boolean[] closing = {false};
+    final Runnable close = () -> {
+      if (closing[0]) return;
+      closing[0] = true;
+      popupLayout.setBackListener(null);
+      card.animate().cancel();
+      card.animate().alpha(0f).scaleX(.92f).scaleY(.92f).setDuration(140).setInterpolator(PopupLayout.TGX101_OUT_CURVE)
+        .withEndAction(() -> popupLayout.removeView(catcher)).start();
+    };
+    android.graphics.drawable.Drawable check = androidx.core.content.ContextCompat.getDrawable(context, R.drawable.baseline_check_24);
+    if (check != null) {
+      check = check.mutate();
+      check.setColorFilter(new android.graphics.PorterDuffColorFilter(accent, android.graphics.PorterDuff.Mode.SRC_IN));
+    }
+    for (int i = 0; i < names.length; i++) {
+      final int index = i;
+      TextView item = new TextView(context);
+      item.setText(names[i]);
+      item.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15f);
+      item.setSingleLine(true);
+      item.setGravity(Gravity.CENTER_VERTICAL | Lang.gravity());
+      item.setPadding(Screen.dp(16f), 0, Screen.dp(14f), 0);
+      boolean on = i == checked;
+      item.setTextColor(on ? accent : textColor);
+      if (on) {
+        item.setTypeface(org.thunderdog.challegram.tool.Fonts.getRobotoMedium());
+        item.setCompoundDrawablesWithIntrinsicBounds(null, null, check, null);
+        item.setCompoundDrawablePadding(Screen.dp(12f));
+      }
+      RippleSupport.setTransparentSelector(item);
+      item.setOnClickListener(v -> {
+        if (closing[0]) return;
+        onPick.runWithInt(index);
+        close.run();
+      });
+      card.addView(item, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, Screen.dp(46f)));
+    }
+    android.widget.FrameLayout.LayoutParams cp = new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP | Gravity.LEFT);
+    catcher.addView(card, cp);
+    catcher.setOnClickListener(v -> close.run());
+    card.setAlpha(0f);
+    card.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+      @Override
+      public void onLayoutChange (View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+        card.removeOnLayoutChangeListener(this);
+        int[] a = new int[2], root = new int[2];
+        anchor.getLocationOnScreen(a);
+        catcher.getLocationOnScreen(root);
+        int w = card.getWidth(), h = card.getHeight();
+        int edge = Screen.dp(12f), gap = Screen.dp(8f);
+        int ax = a[0] - root[0], ay = a[1] - root[1];
+        int x = Math.max(edge, Math.min(catcher.getWidth() - edge - w, ax + anchor.getWidth() / 2 - w / 2));
+        int top = Screen.getStatusBarHeight() + edge;
+        int y = ay - gap - h;
+        boolean above = y >= top;
+        if (!above) y = Math.max(top, Math.min(catcher.getHeight() - edge - h, ay + anchor.getHeight() + gap));
+        card.setTranslationX(x);
+        card.setTranslationY(y);
+        card.setPivotX(Math.max(0, Math.min(w, ax + anchor.getWidth() / 2f - x)));
+        card.setPivotY(above ? h : 0);
+        card.setScaleX(.86f);
+        card.setScaleY(.86f);
+        card.animate().alpha(1f).scaleX(1f).scaleY(1f).setDuration(200).setInterpolator(PopupLayout.TGX101_IN_CURVE).start();
+      }
+    });
+    popupLayout.addView(catcher, new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    popupLayout.setBackListener((fromTop, commit) -> {
+      if (commit) close.run();
+      return true;
+    });
   }
 
   // Other

@@ -594,6 +594,14 @@ final class Tgx101Strings {
     RU.put(R.string.Tgx101OwnRuleSun, "по воскресеньям");
     RU.put(R.string.Tgx101OwnRuleMonthDay, "%1$d-го числа");
     RU.put(R.string.Tgx101Repeat, "Повторять");
+    RU.put(R.string.Tgx101OwnRuleEvenWord, "чётным");
+    RU.put(R.string.Tgx101OwnRuleOddWord, "нечётным");
+    RU.put(R.string.Tgx101OwnRuleFirstNext, "1-го числа следующего месяца");
+    RU.put(R.string.Tgx101OwnRuleInWeek, "через неделю");
+    RU.put(R.string.Tgx101OwnRuleIn2Weeks, "через 2 недели");
+    RU.put(R.string.Tgx101OwnRuleInMonth, "через месяц");
+    RU.put(R.string.Tgx101OwnRuleInYear, "через год");
+    RU.put(R.string.Tgx101OwnWhen, "Когда");
     RU.put(R.string.Tgx101RepeatNever, "Никогда");
     RU.put(R.string.Tgx101RepeatDaily, "Ежедневно");
     RU.put(R.string.Tgx101RepeatWeekly, "Еженедельно");
