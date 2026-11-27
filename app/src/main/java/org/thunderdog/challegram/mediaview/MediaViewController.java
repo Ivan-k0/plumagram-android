@@ -2406,6 +2406,15 @@ public class MediaViewController extends ViewController<MediaViewController.Args
       } else {
         context().addHideNavigationView(this);
       }
+      if (TGX101_KEEP_STATUS_BAR && mode != MODE_SECRET && !tgx101LandscapeWindow() && Config.CUTOUT_ENABLED && Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+        // (user 2026-11-27 «строка состояния должна оставаться только во время превью; когда превью нет — и строки нет»):
+        // the status bar is there with the header and the caption, and goes with them on a tap — whole, not dimmed
+        if (isVisible) {
+          context().removeFullScreenView(this, true);
+        } else {
+          context().addFullScreenView(this, true);
+        }
+      }
       return true;
     }
     return false;
