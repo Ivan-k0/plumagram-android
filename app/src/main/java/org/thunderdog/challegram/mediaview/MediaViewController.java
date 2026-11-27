@@ -1013,6 +1013,11 @@ public class MediaViewController extends ViewController<MediaViewController.Args
   }
 
   private void setLowProfile (boolean isLowProfile) {
+    if (isLowProfile && TGX101_KEEP_STATUS_BAR && mode != MODE_SECRET && !tgx101LandscapeWindow()) {
+      // (user 2026-11-27 «батарейка подсвечивается тусклым светом, слева какая-то точка… верни как было»): with the status
+      // bar kept over the viewer, the dimmed «low profile» icons showed (and stayed) — the bar stays as it is
+      isLowProfile = false;
+    }
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.ICE_CREAM_SANDWICH) {
       if (isLowProfile) {
         if (mode == MODE_SECRET && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT && Config.CUTOUT_ENABLED) {

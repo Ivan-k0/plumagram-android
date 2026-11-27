@@ -6611,6 +6611,11 @@ public class MessagesController extends ViewController<MessagesController.Argume
   }
 
 
+  /** (user 2026-11-27) the pinned bar is shown under the header — the call bar's green line goes only between them */
+  public boolean tgx101PinnedShown () {
+    return pinnedMessagesBar != null && topBar != null && topBar.isVisible(pinnedMessagesItem);
+  }
+
   // TGx101: the ⋮ «Proxy» — switch it on/off at once, or open the list of proxies
   private void tgx101ShowChatProxy () {
     Tgx101ProxyQuick.show(this);

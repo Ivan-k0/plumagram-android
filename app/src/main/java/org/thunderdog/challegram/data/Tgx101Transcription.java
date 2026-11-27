@@ -116,13 +116,13 @@ public final class Tgx101Transcription {
     }
     TdApi.SpeechRecognitionResult server = serverResult(message.content);
     if (server instanceof TdApi.SpeechRecognitionResultText) {
-      result = new Result(STATE_DONE, ((TdApi.SpeechRecognitionResultText) server).text, false);
+      result = new Result(STATE_DONE, ((TdApi.SpeechRecognitionResultText) server).text, isFolded(key));
       results.put(key, result);
       return result;
     }
     String stored = prefs().getString(key, null);
     if (stored != null) {
-      result = new Result(STATE_DONE, stored, false);
+      result = new Result(STATE_DONE, stored, isFolded(key));
       results.put(key, result);
       return result;
     }
@@ -208,8 +208,31 @@ public final class Tgx101Transcription {
     }
   }
 
+  // (user 2026-11-27 «раскрыл расшифровку, прочитал, закрыл — после сворачивания приложения и возврата она опять
+  // раскрыта»): the folded state lived only in memory; the phone unloads the app in the background and it came back from
+  // the server's text, open. The folded ones are kept on disk too
+  private static final String FOLDED_PREFS = "tgx101_transcriptions_folded";
+
+  private static boolean isFolded (String key) {
+    return org.thunderdog.challegram.unsorted.AppContext.get().getSharedPreferences(FOLDED_PREFS, Context.MODE_PRIVATE).contains(key);
+  }
+
+  private static void setFolded (String key, boolean folded) {
+    SharedPreferences prefs = org.thunderdog.challegram.unsorted.AppContext.get().getSharedPreferences(FOLDED_PREFS, Context.MODE_PRIVATE);
+    if (folded == prefs.contains(key)) return;
+    SharedPreferences.Editor editor = prefs.edit();
+    if (folded) {
+      if (prefs.getAll().size() >= MAX_STORED) editor.clear(); // small: the oldest folds are simply forgotten
+      editor.putBoolean(key, true);
+    } else {
+      editor.remove(key);
+    }
+    editor.apply();
+  }
+
   private static void set (String key, long chatId, long messageId, Result result) {
     results.put(key, result);
+    if (result.state == STATE_DONE) setFolded(key, result.collapsed);
     if (result.state == STATE_DONE && !result.text.isEmpty()) {
       SharedPreferences prefs = prefs();
       if (!result.text.equals(prefs.getString(key, null))) {

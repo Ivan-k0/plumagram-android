@@ -215,9 +215,14 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
    * the bar of a playing voice message or round is a row of the header too; music keeps its cover's colours
    */
   private boolean tgx101VoiceOnHeader () {
-    return playingMessage != null && playingMessage.content.getConstructor() != TdApi.MessageAudio.CONSTRUCTOR
+    // (user 2026-11-27 «голосовое закончилось и исчезает с синей подложкой»): while the bar slides away the message is
+    // already gone — it keeps what it was
+    if (playingMessage != null) tgx101LastWasVoice = playingMessage.content.getConstructor() != TdApi.MessageAudio.CONSTRUCTOR;
+    return (playingMessage != null ? tgx101LastWasVoice : tgx101LastWasVoice && showFactor > 0f)
       && org.thunderdog.challegram.unsorted.Settings.instance().tgx101PinnedHeader();
   }
+
+  private boolean tgx101LastWasVoice;
 
   private int tgx101BarFill () {
     int custom = tgx101ScreenFill();
@@ -1401,10 +1406,14 @@ public class HeaderFilling extends Drawable implements TGLegacyAudioManager.Play
           headerView.postDelayed(tgx101HaloTick, 33);
         }
       }
-      int h = Math.max(2, Screen.dp(1.5f));
-      Paint p = Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha, line));
-      c.drawRect(0, playerTop, rectWidth, playerTop + h, p);
-      c.drawRect(0, playerBottom - h, rectWidth, playerBottom, p);
+      // (user 2026-11-27 «верхнюю в зелёный не красить; внизу — только если в чате есть закреп, между звонком и закрепом;
+      // нет закрепа — зелёных полос нигде нет»)
+      ViewController<?> screen = tgx101Screen();
+      boolean pinBelow = screen instanceof org.thunderdog.challegram.ui.MessagesController && ((org.thunderdog.challegram.ui.MessagesController) screen).tgx101PinnedShown();
+      if (pinBelow) {
+        int h = Math.max(2, Screen.dp(1.5f));
+        c.drawRect(0, playerBottom - h, rectWidth, playerBottom, Paints.fillingPaint(ColorUtils.alphaColor(dropShadowAlpha, line)));
+      }
     }
 
     Paint iconPaint = onHeader ? Paints.getPorterDuffPaint(fg) : Paints.whitePorterDuffPaint();
