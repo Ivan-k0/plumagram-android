@@ -4747,6 +4747,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             lastT = e.getEventTime();
             velocity = 0;
             dragging = false;
+            sideways = false;
+            velocityX = 0;
             break;
           case android.view.MotionEvent.ACTION_MOVE: {
             float dy = e.getRawY() - downY, dx = e.getRawX() - downX;
@@ -4755,14 +4757,75 @@ public class MediaViewController extends ViewController<MediaViewController.Args
               downY = e.getRawY();
               return true;
             }
+            // (user 2026-11-28 «свайп назад по менюшке возвращает назад, вплоть до выхода из меню в само видео»): a swipe
+            // towards the back side — the page follows the finger, past a quarter it goes one page back (closed from the first)
+            float back = Lang.rtl() ? -dx : dx;
+            if (!dragging && !sideways && back > slop && back > Math.abs(dy) * 1.5f) {
+              sideways = true;
+              downX = e.getRawX();
+              lastX = downX;
+              lastT = e.getEventTime();
+              return true;
+            }
             break;
           }
         }
         return false;
       }
 
+      private boolean sideways;
+      private float lastX, velocityX;
+
+      private boolean onSideways (android.view.MotionEvent e) {
+        View rowsView = tgx101SettingsRows;
+        switch (e.getActionMasked()) {
+          case android.view.MotionEvent.ACTION_MOVE: {
+            float x = e.getRawX();
+            long dt = Math.max(1, e.getEventTime() - lastT);
+            velocityX = (x - lastX) / dt * 1000f * (Lang.rtl() ? -1 : 1);
+            lastX = x;
+            lastT = e.getEventTime();
+            float d = Math.max(0f, (x - downX) * (Lang.rtl() ? -1 : 1));
+            boolean closes = tgx101SettingsPage == PAGE_MAIN;
+            View moving = closes ? this : rowsView;
+            if (moving != null) {
+              moving.setTranslationX(d * (Lang.rtl() ? -1 : 1));
+              if (!closes) moving.setAlpha(1f - Math.min(.7f, d / Math.max(1f, getWidth())));
+            }
+            if (closes) {
+              View wrapView = (View) getParent();
+              if (wrapView != null) wrapView.setAlpha(1f - Math.min(.6f, d / Math.max(1f, getWidth()) * .8f));
+            }
+            return true;
+          }
+          case android.view.MotionEvent.ACTION_UP:
+          case android.view.MotionEvent.ACTION_CANCEL: {
+            sideways = false;
+            boolean closes = tgx101SettingsPage == PAGE_MAIN;
+            View moving = closes ? this : rowsView;
+            float d = moving != null ? Math.abs(moving.getTranslationX()) : 0f;
+            boolean go = e.getActionMasked() == android.view.MotionEvent.ACTION_UP && (d > getWidth() * .25f || velocityX > Screen.dp(700f));
+            if (go && closes) {
+              org.thunderdog.challegram.Tgx101Diag.mark("player: settings swiped away sideways");
+              tgx101CloseSettings();
+            } else if (go) {
+              if (moving != null) { moving.setTranslationX(0f); moving.setAlpha(1f); }
+              tgx101SettingsPage = tgx101ParentPage(tgx101SettingsPage);
+              tgx101RefreshSettings();
+            } else if (moving != null) {
+              moving.animate().translationX(0f).alpha(1f).setDuration(180).setInterpolator(AnimatorUtils.DECELERATE_INTERPOLATOR).start();
+              View wrapView = (View) getParent();
+              if (closes && wrapView != null) wrapView.animate().alpha(1f).setDuration(180).start();
+            }
+            return true;
+          }
+        }
+        return true;
+      }
+
       @Override
       public boolean onTouchEvent (android.view.MotionEvent e) {
+        if (sideways) return onSideways(e);
         switch (e.getActionMasked()) {
           case android.view.MotionEvent.ACTION_DOWN:
             downX = e.getRawX();
@@ -4770,6 +4833,7 @@ public class MediaViewController extends ViewController<MediaViewController.Args
             lastT = e.getEventTime();
             velocity = 0;
             dragging = canDrag();
+            sideways = false;
             return true;
           case android.view.MotionEvent.ACTION_MOVE: {
             if (!dragging) return true;
@@ -4823,26 +4887,8 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     LinearLayout header = new LinearLayout(context);
     header.setOrientation(LinearLayout.HORIZONTAL);
     header.setGravity(Gravity.CENTER_VERTICAL);
-    header.setPadding(Screen.dp(8f), Screen.dp(6f), Screen.dp(12f), Screen.dp(6f));
-    android.widget.ImageView back = new android.widget.ImageView(context);
-    back.setImageResource(R.drawable.baseline_arrow_back_24);
-    back.setColorFilter(0xffffffff);
-    back.setScaleType(android.widget.ImageView.ScaleType.CENTER);
-    back.setOnClickListener(v -> {
-      tgx101SettingsPage = tgx101ParentPage(tgx101SettingsPage);
-      tgx101RefreshSettings();
-    });
-    back.setVisibility(View.GONE);
-    header.addView(back, new LinearLayout.LayoutParams(Screen.dp(40f), Screen.dp(40f)));
-    tgx101SettingsBack = back;
-    android.widget.TextView title = new android.widget.TextView(context);
-    title.setPadding(Screen.dp(10f), 0, 0, 0);
-    tgx101SettingsTitle = title;
-    title.setText(Lang.getString(R.string.Tgx101PlayerSettings));
-    title.setTextColor(0xffffffff);
-    title.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);
-    title.setTypeface(Fonts.getRobotoMedium());
-    header.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    header.setPadding(Screen.dp(12f), Screen.dp(6f), Screen.dp(8f), Screen.dp(6f));
+    // (user 2026-11-28 «стрелку и крестик поменяй местами»): ✕ first, the title, the back arrow at the end
     android.widget.ImageView close = new android.widget.ImageView(context);
     close.setImageResource(R.drawable.baseline_close_24);
     close.setColorFilter(0xffffffff);
@@ -4854,6 +4900,26 @@ public class MediaViewController extends ViewController<MediaViewController.Args
     close.setContentDescription(Lang.getString(R.string.Cancel));
     close.setOnClickListener(v -> tgx101CloseSettings());
     header.addView(close, new LinearLayout.LayoutParams(Screen.dp(34f), Screen.dp(34f)));
+    android.widget.TextView title = new android.widget.TextView(context);
+    title.setPadding(Screen.dp(12f), 0, 0, 0);
+    tgx101SettingsTitle = title;
+    title.setText(Lang.getString(R.string.Tgx101PlayerSettings));
+    title.setTextColor(0xffffffff);
+    title.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16f);
+    title.setTypeface(Fonts.getRobotoMedium());
+    header.addView(title, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+    android.widget.ImageView back = new android.widget.ImageView(context);
+    back.setImageResource(R.drawable.baseline_arrow_back_24);
+    back.setRotation(0f); // (user 2026-11-28 «стрелку и крестик поменяй местами»): the ✕ on the left, the arrow on the right
+    back.setColorFilter(0xffffffff);
+    back.setScaleType(android.widget.ImageView.ScaleType.CENTER);
+    back.setOnClickListener(v -> {
+      tgx101SettingsPage = tgx101ParentPage(tgx101SettingsPage);
+      tgx101RefreshSettings();
+    });
+    back.setVisibility(View.GONE);
+    header.addView(back, new LinearLayout.LayoutParams(Screen.dp(40f), Screen.dp(40f)));
+    tgx101SettingsBack = back;
     panel.addView(header);
 
     android.widget.ScrollView scroll = new android.widget.ScrollView(context);
